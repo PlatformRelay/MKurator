@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -31,7 +32,7 @@ metadata:
 	Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
 	By("installing CRDs for MQ e2e")
-	cmd = exec.Command("make", "install")
+	cmd = exec.Command("task", "install:crds")
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
 
@@ -42,7 +43,8 @@ metadata:
 	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
 	By("deploying the controller-manager for MQ e2e")
-	cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", managerImage))
+	cmd = exec.Command("task", "deploy:operator")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
 

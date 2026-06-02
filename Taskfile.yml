@@ -115,6 +115,37 @@ tasks:
     cmds:
       - "{{.CONTAINER_TOOL | default `docker`}} build -t {{.DOCKER_IMAGE}} ."
 
+  install:crds:
+    desc: Apply CRD manifests to the cluster (e2e/local)
+    cmds:
+      - kubectl apply --server-side -f config/crd/bases
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  deploy:operator:
+    desc: Deploy operator manifests without rebuilding the image (assumes image is loaded)
+    cmds:
+      - |
+        cd config/manager && {{.KUSTOMIZE}} edit set image controller={{.DOCKER_IMAGE}}
+      - kubectl apply --server-side -k config/default
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  undeploy:operator:
+    desc: Remove operator manifests and CRDs from the cluster
+    cmds:
+      - kubectl delete --ignore-not-found -k config/default
+      - kubectl delete --ignore-not-found -f config/crd/bases
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  format:check:
+    desc: Fail if Go formatting differs from task format output
+    deps: [install]
+    cmds:
+      - bash hack/goformat.sh
+      - git diff --exit-code -- '*.go'
+
   deploy:
     desc: Build image, load into kind (if present), apply CRDs + operator (Kustomize)
     deps: [docker:build]
@@ -123,10 +154,8 @@ tasks:
         if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -qx "{{.CLUSTER_NAME}}"; then
           kind load docker-image {{.DOCKER_IMAGE}} --name "{{.CLUSTER_NAME}}"
         fi
-      - |
-        cd config/manager && {{.KUSTOMIZE}} edit set image controller={{.DOCKER_IMAGE}}
-      - kubectl apply --server-side -f config/crd/bases
-      - kubectl apply --server-side -k config/default
+      - task: install:crds
+      - task: deploy:operator
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
