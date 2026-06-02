@@ -454,9 +454,9 @@ Reuse the existing `QueueManagerConnection`; add another `Queue` with a differen
 
 ### Rotate credentials
 
-Update the Secret data. The operator rebuilds the mqweb client on the next
-reconcile when the Secret `resourceVersion` changes (or the connection spec
-generation changes).
+Update the Secret data. The mqweb client cache is keyed by connection spec
+generation today — bump the `QueueManagerConnection` spec (for example add or
+change an annotation) so the operator rebuilds the client with new credentials.
 
 ### Delete a queue, topic, or channel
 
