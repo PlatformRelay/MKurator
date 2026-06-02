@@ -72,7 +72,7 @@ resource "helm_release" "kube_prometheus_stack" {
   ]
 
   depends_on = [
-    helm_release.ingress_nginx,
+    helm_release.haproxy_ingress,
     kubernetes_secret_v1.monitoring_tls,
   ]
 }

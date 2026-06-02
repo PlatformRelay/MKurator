@@ -1,0 +1,25 @@
+configs:
+  params:
+    server.insecure: "true"
+    controller.repo.server.timeout.seconds: "300"
+    server.repo.server.timeout.seconds: "300"
+    reposerver.git.request.timeout: "300s"
+
+repoServer:
+  env:
+    - name: ARGOCD_EXEC_TIMEOUT
+      value: 10m
+
+server:
+  ingress:
+    enabled: true
+    controller: generic
+    ingressClassName: haproxy
+    hostname: argocd.localhost
+    path: /
+    pathType: Prefix
+    annotations: {}
+    extraTls:
+      - hosts:
+          - argocd.localhost
+        secretName: wildcard-localhost-tls

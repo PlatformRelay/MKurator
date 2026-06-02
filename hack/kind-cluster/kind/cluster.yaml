@@ -2,7 +2,7 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 
 # Expose fixed NodePorts from the control-plane container to the host so the
-# ingress-nginx controller (NodePort 30080/30443) is reachable at
+# HAProxy ingress controller (NodePort 30080/30443) is reachable at
 # http(s)://*.localhost from the host machine.
 nodes:
   - role: control-plane

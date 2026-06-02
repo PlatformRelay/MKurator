@@ -9,7 +9,6 @@ resource "kubernetes_namespace_v1" "ibm_mq" {
   }
 }
 
-# Copy the mkcert TLS material into the MQ namespace for the web console Ingress.
 resource "kubernetes_secret_v1" "mq_tls" {
   metadata {
     name      = var.tls_secret_name
@@ -24,7 +23,6 @@ resource "kubernetes_secret_v1" "mq_tls" {
   }
 }
 
-# Passwords for the MQ "admin" (MQWebAdmin / REST admin API) and "app" users.
 resource "kubernetes_secret_v1" "mq_credentials" {
   metadata {
     name      = "mq-credentials"
@@ -43,15 +41,15 @@ resource "helm_release" "ibm_mq" {
   name      = local.mq_release_name
   namespace = kubernetes_namespace_v1.ibm_mq.metadata[0].name
 
-  # Vendored chart (../charts/ibm-mq). The official IBM MQ chart.
-  chart = "${path.module}/../charts/ibm-mq"
+  repository = "https://ibm-messaging.github.io/mq-helm"
+  chart      = "ibm-mq"
+  version    = var.mq_chart_version
 
   wait    = true
   timeout = 900
 
   values = [
     yamlencode({
-      # Accepts the IBM MQ Advanced for Developers license for local dev use.
       license = "accept"
 
       image = {
@@ -63,7 +61,6 @@ resource "helm_release" "ibm_mq" {
         name = var.mq_queue_manager_name
       }
 
-      # Enable the web server (web console + administrative REST API).
       web = {
         enable = true
       }
@@ -95,21 +92,12 @@ resource "helm_release" "ibm_mq" {
         }
       }
 
-      # Expose the web console / REST API via ingress-nginx. The backend speaks
-      # HTTPS (port console-https/9443), so tell nginx to re-encrypt.
+      # Upstream chart Ingress hardcodes ingressClassName: nginx. We expose mqweb
+      # via a Terraform-managed Ingress using HAProxy instead.
       route = {
         ingress = {
           webconsole = {
-            enable   = true
-            hostname = local.mq_host
-            path     = "/"
-            tls = {
-              enable = true
-              secret = var.tls_secret_name
-            }
-          }
-          annotations = {
-            "nginx.ingress.kubernetes.io/backend-protocol" = "HTTPS"
+            enable = false
           }
         }
       }
@@ -117,8 +105,50 @@ resource "helm_release" "ibm_mq" {
   ]
 
   depends_on = [
-    helm_release.ingress_nginx,
+    helm_release.haproxy_ingress,
     kubernetes_secret_v1.mq_tls,
     kubernetes_secret_v1.mq_credentials,
+  ]
+}
+
+resource "kubernetes_ingress_v1" "mq_web" {
+  metadata {
+    name      = "${local.mq_release_name}-console"
+    namespace = kubernetes_namespace_v1.ibm_mq.metadata[0].name
+    annotations = {
+      "haproxy-ingress.github.io/backend-protocol" = "h1-ssl"
+    }
+  }
+
+  spec {
+    ingress_class_name = var.ingress_class_name
+
+    tls {
+      hosts       = [local.mq_host]
+      secret_name = var.tls_secret_name
+    }
+
+    rule {
+      host = local.mq_host
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = local.mq_release_name
+              port {
+                name = "console-https"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.ibm_mq,
+    kubernetes_secret_v1.mq_tls,
   ]
 }

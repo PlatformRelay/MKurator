@@ -21,6 +21,7 @@ if [[ -d "${ROOT_DIR}/terraform" && -f "$KUBECONFIG_PATH" ]]; then
   terraform -chdir="${ROOT_DIR}/terraform" init -upgrade
   terraform -chdir="${ROOT_DIR}/terraform" destroy -auto-approve \
     -var="kubeconfig=${KUBECONFIG_PATH}" \
+    -var="state_dir=${ROOT_DIR}/.state" \
     -var="tls_cert_string=${TLS_CERT_STRING:-}" \
     -var="tls_key_string=${TLS_KEY_STRING:-}" || true
 else
@@ -29,8 +30,7 @@ fi
 
 if [[ "${DELETE_CLUSTER:-false}" == "true" ]]; then
   echo "Deleting kind cluster: ${CLUSTER_NAME}"
-  kind delete cluster --name "${CLUSTER_NAME}" || true
-  rm -f "$KUBECONFIG_PATH"
+  "${ROOT_DIR}/scripts/kind-down.sh"
 fi
 
 if [[ "${DELETE_STATE:-false}" == "true" ]]; then

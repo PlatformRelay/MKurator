@@ -4,15 +4,15 @@ variable "kubeconfig" {
 }
 
 variable "ingress_class_name" {
-  description = "IngressClass name. Must be 'nginx' to match the IBM MQ chart's web console Ingress."
+  description = "IngressClass name used by the HAProxy ingress controller."
   type        = string
-  default     = "nginx"
+  default     = "haproxy"
 }
 
 variable "tls_namespace" {
-  description = "Namespace to store the shared TLS secret for ingresses."
+  description = "Namespace that holds the shared/default TLS secret for the ingress controller."
   type        = string
-  default     = "ingress-nginx"
+  default     = "ingress-system"
 }
 
 variable "tls_secret_name" {
@@ -58,6 +58,12 @@ variable "mq_namespace" {
   default     = "ibm-mq"
 }
 
+variable "mq_chart_version" {
+  description = "Version of the upstream IBM MQ Helm chart (https://ibm-messaging.github.io/mq-helm)."
+  type        = string
+  default     = "12.0.1"
+}
+
 variable "mq_queue_manager_name" {
   description = "Name of the IBM MQ queue manager."
   type        = string
@@ -76,4 +82,10 @@ variable "mq_app_password" {
   type        = string
   default     = "passw0rd"
   sensitive   = true
+}
+
+variable "state_dir" {
+  description = "Path to the local .state directory where generated secrets are written."
+  type        = string
+  default     = ""
 }

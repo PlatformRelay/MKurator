@@ -32,9 +32,16 @@ fi
 CERT_PEM="${CERT_DIR}/${CERT_NAME}.pem"
 KEY_PEM="${CERT_DIR}/${CERT_NAME}-key.pem"
 
+if [[ "${FORCE_TLS:-false}" != "true" && -f "$OUT_ENV" && -f "$CERT_PEM" && -f "$KEY_PEM" ]]; then
+  echo "TLS material already present (set FORCE_TLS=true to regenerate):"
+  echo "  cert: $CERT_PEM"
+  echo "  env:  $OUT_ENV"
+  exit 0
+fi
+
 # Extra explicit DNS names to include in the certificate SANs.
 # Some TLS clients are picky about "*.localhost" wildcards.
-EXTRA_DNS_NAMES="${EXTRA_DNS_NAMES:-mq.localhost grafana.localhost}"
+EXTRA_DNS_NAMES="${EXTRA_DNS_NAMES:-mq.localhost grafana.localhost argocd.localhost}"
 
 # Generate a certificate covering our local DNS scheme:
 # - localhost: direct access
