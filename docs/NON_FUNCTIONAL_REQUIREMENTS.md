@@ -68,7 +68,7 @@ Each requirement has an ID (`NFR-x`), a priority (**MUST** / **SHOULD** /
 | ID | Req | Priority | Verification |
 |----|-----|----------|--------------|
 | API-1 | CRDs follow Kubernetes API conventions; the `v1alpha1` contract may change but changes are deliberate and documented. | MUST | Review |
-| API-2 | OpenAPI validation (kubebuilder markers) rejects invalid specs at admission time. | MUST | envtest |
+| API-2 | OpenAPI validation (kubebuilder markers) rejects invalid specs at admission time. | MUST | OpenAPI + validating webhooks; envtest admission tests |
 | API-3 | Supported Kubernetes versions are stated and tested (envtest pins an API version; e2e on kind). | SHOULD | CI matrix (later) |
 | API-4 | Supported IBM MQ / mqweb REST version is stated (target REST `v3`); adapter degrades clearly on unsupported versions. | SHOULD | Adapter test |
 

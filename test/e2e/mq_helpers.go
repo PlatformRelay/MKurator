@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/konradheimel/kurator/internal/adapter/mqrest"
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	"github.com/konih/kurator/internal/adapter/mqrest"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 const (

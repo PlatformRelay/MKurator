@@ -46,6 +46,13 @@ metrics:
     enabled: false
     labels: {}
 
+webhooks:
+  enabled: true
+  certManager:
+    # Creates a cert-manager Issuer + Certificate for webhook TLS (requires cert-manager).
+    create: true
+    secretName: webhook-server-cert
+
 resources:
   limits:
     cpu: 500m

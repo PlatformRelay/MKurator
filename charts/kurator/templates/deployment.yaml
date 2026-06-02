@@ -40,6 +40,9 @@ spec:
             - --metrics-bind-address={{ .Values.metrics.bindAddress }}
             - --metrics-secure={{ .Values.metrics.secure }}
             {{- end }}
+            {{- if .Values.webhooks.enabled }}
+            - --webhook-cert-path=/tmp/k8s-webhook-server/serving-certs
+            {{- end }}
             {{- with .Values.extraArgs }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -55,6 +58,11 @@ spec:
             {{- if .Values.metrics.enabled }}
             - name: metrics
               containerPort: 8443
+              protocol: TCP
+            {{- end }}
+            {{- if .Values.webhooks.enabled }}
+            - name: webhook-server
+              containerPort: 9443
               protocol: TCP
             {{- end }}
           livenessProbe:
@@ -73,6 +81,19 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.webhooks.enabled }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+          {{- end }}
+      {{- if .Values.webhooks.enabled }}
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: {{ .Values.webhooks.certManager.secretName }}
+            defaultMode: 420
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

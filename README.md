@@ -4,9 +4,9 @@
 [![E2E](https://github.com/konih/kurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/konih/kurator/actions/workflows/e2e.yaml)
 [![License: MIT](https://img.shields.io/github/license/konih/kurator)](https://github.com/konih/kurator/blob/main/LICENSE)
 [![codecov](https://codecov.io/gh/konih/kurator/graph/badge.svg)](https://codecov.io/gh/konih/kurator)
-[![Go](https://img.shields.io/github/go-mod/go-version/konih/kurator)](https://pkg.go.dev/github.com/konradheimel/kurator)
-[![Go Reference](https://pkg.go.dev/badge/github.com/konradheimel/kurator.svg)](https://pkg.go.dev/github.com/konradheimel/kurator)
-[![Go Report Card](https://goreportcard.com/badge/github.com/konradheimel/kurator)](https://goreportcard.com/report/github.com/konradheimel/kurator)
+[![Go](https://img.shields.io/github/go-mod/go-version/konih/kurator)](https://pkg.go.dev/github.com/konih/kurator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/konih/kurator.svg)](https://pkg.go.dev/github.com/konih/kurator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/konih/kurator)](https://goreportcard.com/report/github.com/konih/kurator)
 [![Release](https://img.shields.io/github/v/release/konih/kurator)](https://github.com/konih/kurator/releases)
 
 A Kubernetes operator for declaratively managing **resources on an existing
@@ -28,10 +28,9 @@ more later.
 **Not shipped yet:** `SET CHLAUTH`, `SET AUTHREC`, and related access-control
 resources (Phase 5 — see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md)).
 
-**Release vs module:** GitHub releases and container images live under
-[konih/kurator](https://github.com/konih/kurator); the Go module and pkg.go.dev
-path is [`github.com/konradheimel/kurator`](https://pkg.go.dev/github.com/konradheimel/kurator)
-([ADR-0006](docs/adr/0006-project-name-kurator.md)).
+**Repository:** [github.com/konih/kurator](https://github.com/konih/kurator) — Go module
+[`github.com/konih/kurator`](https://pkg.go.dev/github.com/konih/kurator), images
+`ghcr.io/konih/kurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md)).
 
 ### What CI proves
 
@@ -40,6 +39,8 @@ path is [`github.com/konradheimel/kurator`](https://pkg.go.dev/github.com/konrad
 | Unit + envtest | Reconcilers and adapter (mocked MQ); Queue, Topic, Channel, and QMC envtest |
 | Docker integration | Queue (local/alias/remote), Topic, Channel against live mqweb |
 | kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, and Channel CR reconcile + delete on live `QM1` |
+
+Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 
 Latest tagged release: [GitHub Releases](https://github.com/konih/kurator/releases)
 (current badge above). `main` may include fixes not yet in a tag.
@@ -72,90 +73,30 @@ kubectl get qmc,mq,tp,chl -n kurator-system
 
 ## Local development (contributors)
 
-**Canonical reference:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (endpoints,
-credentials, test tiers, full task list). Quick start:
+**Canonical reference:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — prerequisites,
+local platform, task reference, test tiers, URLs, and credentials.
 
 ```sh
-# Prerequisites: Go, Task, Docker, kind, kubectl, Terraform, Helm, mkcert
-# Optional: direnv (loads KUBECONFIG from .envrc)
-
 task local:up      # cluster + IBM MQ + operator (Helm) + sample CRs
 task local:info    # URLs, credentials, CR status
-task mq:console    # IBM MQ web UI URL (https://mq.localhost:30443/ibmmq/console/)
-task mq:cli        # interactive runmqsc on QM1
 task local:down    # tear everything down
 ```
 
-IBM MQ on the kind cluster includes the **web console** and **`runmqsc`** in the
-MQ pod. See [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) to confirm the operator
-created `APP.ORDERS` on the queue manager.
-
-**Inner loop** (no cluster — mocks + envtest):
-
-```sh
-task install && task lint && task test:run && task build
-```
-
-**Incremental** (cluster already running):
-
-```sh
-task local:deploy          # rebuild image, helm upgrade, re-apply samples
-task deploy:samples        # only sample Secret + CRs
-```
-
-| Task | What it does |
-|------|----------------|
-| `task cluster:up` | kind cluster + ingress + cert-manager + monitoring + IBM MQ |
-| `task cluster:info` | MQ/Grafana/Argo CD URLs and passwords |
-| `task cluster:down` | Destroy platform and delete kind cluster |
-| `task deploy` | Operator via Kustomize (`config/default` + CRDs) |
-| `task deploy:helm` | Operator via [Helm chart](charts/kurator/README.md) (recommended on kind) |
-| `task deploy:samples` | Sample Secret + `QueueManagerConnection` + `Queue` + `Topic` + `Channel` |
-| `task test:run` | Unit + envtest (`-race`) |
-| `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
-| `task ci:e2e` | Same as GitHub Actions e2e job (`cluster:up` + MQ wait + tests) |
-
-After `task local:up`, check reconciliation:
-
-```sh
-kubectl get qmc,mq,tp,chl -n kurator-system
-kubectl logs -n kurator-system deployment/kurator-controller-manager -f
-```
-
-Confirm on MQ (`task mq:runmqsc`):
-
-```sh
-task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH"
-task mq:runmqsc -- "DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR"
-task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN)"
-```
-
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for platform URLs and credentials.
+Verify reconciliation with [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) (`runmqsc`, MQ console).
 
 ## Documentation
 
-- [docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md) — **install, use, samples, troubleshooting**.
-- [config/samples/README.md](config/samples/README.md) — annotated sample manifests.
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — prerequisites, local platform, deploy, test tiers.
-- [hack/kind-cluster/README.md](hack/kind-cluster/README.md) — kind/Terraform/MQ platform only.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — components, runtime, CRDs, reconcile flow, security.
-- [docs/ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md) — which MQ attributes are drift-checked vs define-only.
-- [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) — quality bars.
-- [docs/CICD.md](docs/CICD.md) — CI/CD pipeline design.
-- [docs/adr/](docs/adr/) — architecture decision records.
-- [docs/ROADMAP.md](docs/ROADMAP.md) — phased delivery plan.
-- [charts/kurator/README.md](charts/kurator/README.md) — Helm chart to install the operator.
-- [SECURITY.md](SECURITY.md) — security posture and reporting.
+Full index with paths by role: **[docs/README.md](docs/README.md)**.
 
-### IBM MQ reference (research)
+| | Doc |
+|---|-----|
+| 🎯 **Use Kurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/kurator/README.md) |
+| 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
+| 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [Attribute reconciliation](docs/ATTRIBUTE_RECONCILIATION.md) · [ADRs](docs/adr/) |
+| 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
+| 📚 **IBM MQ reference** | [Objects (research)](docs/IBM_MQ_OBJECTS.md) · [REST API](docs/IBM_MQ_REST_API.md) · [Schemas](docs/schemas/README.md) |
 
-These documents support design and implementation; **shipped CRDs and
-[ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md)** are the operator
-contract:
-
-- [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) — verify Kurator on kind (`runmqsc`, console).
-- [docs/IBM_MQ_REST_API.md](docs/IBM_MQ_REST_API.md) — how mqweb REST is consumed.
-- [docs/IBM_MQ_OBJECTS.md](docs/IBM_MQ_OBJECTS.md) — MQSC research inventory (not the product API).
+Contributors and agents: start with [AGENTS.md](AGENTS.md) (conventions + workflow).
 
 ## License
 

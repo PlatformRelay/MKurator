@@ -59,7 +59,7 @@ tasks:
     desc: Generate CRDs, RBAC, and webhook configuration
     deps: [install]
     cmds:
-      - go tool controller-gen rbac:roleName=manager-role crd webhook paths="./api/...;./internal/controller/...;./cmd/..." output:crd:artifacts:config=config/crd/bases
+      - go tool controller-gen rbac:roleName=manager-role crd webhook paths="./api/...;./internal/controller/...;./internal/webhook/...;./cmd/..." output:crd:artifacts:config=config/crd/bases
 
   generate:
     desc: Generate deepcopy and other codegen

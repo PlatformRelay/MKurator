@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 )
 
 // Factory builds Admin clients for a QueueManagerConnection.

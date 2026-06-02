@@ -13,8 +13,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konradheimel/kurator/internal/mqadmin"
-	"github.com/konradheimel/kurator/test/utils"
+	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/kurator/test/utils"
 )
 
 const (

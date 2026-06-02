@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/konradheimel/kurator/internal/adapter/mqrest"
+	"github.com/konih/kurator/internal/adapter/mqrest"
 )
 
 func integrationEnabled() bool {

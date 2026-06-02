@@ -7,5 +7,5 @@ domain: kurator.dev
 layout:
 - go.kubebuilder.io/v4
 projectName: kurator
-repo: github.com/konradheimel/kurator
+repo: github.com/konih/kurator
 version: "3"

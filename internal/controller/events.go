@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 func recordTerminalEvent(recorder record.EventRecorder, obj runtime.Object, err error) {

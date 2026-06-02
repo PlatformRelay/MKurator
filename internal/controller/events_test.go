@@ -9,8 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 func TestRecordTerminalEvent_NilRecorder(t *testing.T) {

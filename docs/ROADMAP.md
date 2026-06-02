@@ -85,7 +85,7 @@ locally and in CI — **met**.
   `local:deploy` / `local:info` / `local:down`.
 - [x] README + [DEVELOPMENT.md](DEVELOPMENT.md) — full local setup documented;
   `hack/kind-cluster/README.md` cross-linked.
-- [x] Optional local `docs/REFERENCES.md` + `references/` clones (both gitignored)
+- [x] Optional local `docs/REFERENCES.md` (from [REFERENCES.md.example](REFERENCES.md.example)) + `references/` clones (both gitignored)
   for vendored IBM MQ sample trees — not published in the repository.
 - [x] `setup-envtest` wired in `Taskfile.test.yml` (`KUBEBUILDER_ASSETS`).
 - [x] Manual validation on kind: `QueueManagerConnection` reaches **Ready** against
@@ -157,6 +157,18 @@ Exit criteria: at least **Topic** and one **Channel** kind reconcile end-to-end 
 kind with the same quality bar as Phase 2 (`verify`, ≥85% `internal/` coverage,
 e2e green).
 
+## Phase 4b — Validating admission webhooks (pre–Phase 5)
+
+- [x] Validating webhooks (no mutating) for `QueueManagerConnection`, `Queue`, `Topic`, `Channel`.
+- [x] cert-manager TLS for webhook serving; Kustomize + Helm wired.
+- [x] Referential checks: `connectionRef` exists, same namespace, not deleting.
+- [x] Queue: MQ name constraints; alias/remote required attributes; optional unknown-attribute warnings.
+- [x] Topic/Channel: name constraints; channel `svrconn` only.
+- [x] Unit tests (`internal/validation`) + envtest admission tests; optional e2e negative apply.
+- [ ] Optional: deny `QueueManagerConnection` delete while dependent CRs exist.
+
+Exit criteria: invalid sample manifests rejected by `kubectl apply`; `task test:run` includes webhook admission tests; kind/Helm install enables webhooks by default.
+
 ## Phase 5 — User & authority management
 
 - [x] [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) — CR sketch mapped from
@@ -177,7 +189,7 @@ reconciled on kind with e2e coverage.
 - [x] CI coverage export — `coverage.out` artifact, job summary, Codecov upload
   (`codecov.yml`; first green `main` run registers the project).
 - [x] **Go Report Card** — badge in [README.md](../README.md); refresh at
-  [goreportcard.com/report/github.com/konradheimel/kurator](https://goreportcard.com/report/github.com/konradheimel/kurator)
+  [goreportcard.com/report/github.com/konih/kurator](https://goreportcard.com/report/github.com/konih/kurator)
   after significant API changes (uses module path from `go.mod`).
 - [x] Release badge — [`README.md`](../README.md) links GitHub Releases (`v0.1.0`).
 

@@ -13,7 +13,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 )
 
 var (

@@ -13,9 +13,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
-	"github.com/konradheimel/kurator/internal/metrics"
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/metrics"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 // QueueReconciler reconciles Queue objects into MQSC on IBM MQ.

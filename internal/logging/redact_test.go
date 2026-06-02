@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/konradheimel/kurator/internal/logging"
+	"github.com/konih/kurator/internal/logging"
 )
 
 func TestRedactHandlerWithSlogLogger(t *testing.T) {

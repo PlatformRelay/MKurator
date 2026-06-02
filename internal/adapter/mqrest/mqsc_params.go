@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 const attrMaxDepth = "maxdepth"
@@ -52,7 +52,7 @@ var channelNumericParameters = map[string]struct{}{
 // mqweb. pubscope/subscope are included for drift on 9.4; omit from this slice if
 // your QM returns MQWB0120E (see docs/ATTRIBUTE_RECONCILIATION.md).
 var topicDisplayParameters = []string{
-	attrTopicStr, attrDescr, "pub", "sub", "defpsist", "pubscope", "subscope",
+	attrTopicStr, attrDescr, mqadmin.AttrKeyPub, mqadmin.AttrKeySub, "defpsist", "pubscope", "subscope",
 }
 
 var channelDisplayParameters = []string{
@@ -71,7 +71,7 @@ func mapTopicRESTParameters(params map[string]any) {
 		params[attrTopicStr] = v
 		delete(params, attrTopstr)
 	}
-	for _, key := range []string{"pub", "sub"} {
+	for _, key := range []string{mqadmin.AttrKeyPub, mqadmin.AttrKeySub} {
 		if v, ok := params[key]; ok {
 			params[key] = strings.ToUpper(fmt.Sprint(v))
 		}

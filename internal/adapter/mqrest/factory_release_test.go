@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 )
 
 func TestClientFactory_ReleaseConnection(t *testing.T) {

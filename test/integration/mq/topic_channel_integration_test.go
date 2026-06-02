@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 func TestIntegration_Topic_CreateGetDelete(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/konradheimel/kurator/internal/logging"
+	"github.com/konih/kurator/internal/logging"
 )
 
 func TestLoadDefaultsLocal(t *testing.T) {

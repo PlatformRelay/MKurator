@@ -18,10 +18,11 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
-	"github.com/konradheimel/kurator/internal/adapter/mqrest"
-	"github.com/konradheimel/kurator/internal/controller"
-	"github.com/konradheimel/kurator/internal/logging"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/adapter/mqrest"
+	"github.com/konih/kurator/internal/controller"
+	"github.com/konih/kurator/internal/logging"
+	webhookv1alpha1 "github.com/konih/kurator/internal/webhook/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -234,6 +235,11 @@ func main() {
 		Recorder:  eventRecorder,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Channel")
+		os.Exit(1)
+	}
+
+	if err := webhookv1alpha1.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup webhooks")
 		os.Exit(1)
 	}
 

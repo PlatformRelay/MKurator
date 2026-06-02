@@ -18,8 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 func resolveConnection(

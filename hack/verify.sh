@@ -29,7 +29,7 @@ go tool controller-gen \
   rbac:roleName=manager-role \
   crd \
   webhook \
-  paths="./api/...;./internal/controller/...;./cmd/..." \
+  paths="./api/...;./internal/controller/...;./internal/webhook/...;./cmd/..." \
   output:crd:artifacts:config=config/crd/bases
 
 bash hack/helm-sync-crds.sh

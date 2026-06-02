@@ -11,8 +11,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 // ClientFactory resolves Secrets and caches mqrest clients per connection.

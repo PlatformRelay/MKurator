@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/konradheimel/kurator/internal/metrics"
-	"github.com/konradheimel/kurator/internal/mqadmin"
+	"github.com/konih/kurator/internal/metrics"
+	"github.com/konih/kurator/internal/mqadmin"
 )
 
 const (

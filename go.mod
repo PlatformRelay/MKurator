@@ -1,4 +1,4 @@
-module github.com/konradheimel/kurator
+module github.com/konih/kurator
 
 go 1.26.3
 

@@ -14,7 +14,8 @@ Queue Operator" with placeholder identifiers (`ibm-mq-operator`,
 
 - **Project name**: **Kurator** (from "curator" — declarative curation of MQ
   resources on a Queue Manager).
-- **Go module**: `github.com/konradheimel/kurator`
+- **Go module**: `github.com/konih/kurator`
+- **GitHub / GHCR**: `github.com/konih/kurator`, `ghcr.io/konih/kurator`
 - **API group / domain**: `messaging.kurator.dev`, version `v1alpha1`
 - **Local kind cluster** default name: `kurator`
 - **Container image** (local): `kurator-controller-manager:latest`

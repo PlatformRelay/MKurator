@@ -15,9 +15,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
-	"github.com/konradheimel/kurator/internal/mqadmin"
-	mqadmintest "github.com/konradheimel/kurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/mqadmin"
+	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
 )
 
 var (
@@ -170,7 +170,9 @@ func TestQueueReconciler_DeletionDeleteFails(t *testing.T) {
 		Build()
 
 	mockAdmin := mqadmintest.NewMockAdmin(t)
-	mockAdmin.EXPECT().DeleteQueue(mock.Anything, mock.Anything).Return(&mqadmin.TerminalError{Message: "delete denied"})
+	mockAdmin.EXPECT().
+		DeleteQueue(mock.Anything, mock.Anything).
+		Return(&mqadmin.TerminalError{Message: "delete denied"})
 
 	mockFactory := mqadmintest.NewMockFactory(t)
 	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)

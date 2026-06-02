@@ -4,6 +4,21 @@ How to set up, build, test, and run **Kurator** locally. For
 conventions see [../AGENTS.md](../AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+Doc index: [README.md](README.md)
+
+## On this page
+
+| | Section |
+|---|---------|
+| 🚀 | [Quick start](#quick-start) (includes [task reference](#task-reference)) |
+| 📋 | [Prerequisites](#prerequisites) |
+| 🔄 | [The inner loop](#the-inner-loop) |
+| 🖥️ | [Local platform (kind + IBM MQ)](#local-platform-kind--ibm-mq) |
+| 📦 | [Deploying a queue manager](#deploying-a-queue-manager-for-kurator) |
+| 🧪 | [Test tiers](#test-tiers) |
+| 🆘 | [Troubleshooting](#troubleshooting) |
+| ✅ | [Before you push](#before-you-push) |
+
 ## Quick start
 
 From the repository root (see [Prerequisites](#prerequisites)):
@@ -21,6 +36,42 @@ Optional: enable [direnv](https://direnv.net/) so `.envrc` exports
 
 Platform-only commands live under `task cluster:*` (see
 [hack/kind-cluster/README.md](../hack/kind-cluster/README.md)).
+
+### Task reference
+
+| Task | What it does |
+|------|----------------|
+| `task local:up` | kind cluster + IBM MQ + operator (Helm) + sample CRs |
+| `task local:info` | URLs, credentials, CR status |
+| `task local:deploy` | Rebuild image, helm upgrade, re-apply samples (cluster already up) |
+| `task local:down` | Undeploy samples/operator and delete kind cluster |
+| `task cluster:up` | kind + ingress + cert-manager + monitoring + IBM MQ |
+| `task cluster:info` | MQ/Grafana/Argo CD URLs and passwords |
+| `task cluster:down` | Destroy platform and delete kind cluster |
+| `task deploy` | Operator via Kustomize (`config/default` + CRDs) |
+| `task deploy:helm` | Operator via [Helm chart](../charts/kurator/README.md) (recommended on kind) |
+| `task deploy:samples` | Sample Secret + `QueueManagerConnection` + `Queue` + `Topic` + `Channel` |
+| `task mq:console` | IBM MQ web UI URL (`https://mq.localhost:30443/ibmmq/console/`) |
+| `task mq:cli` | Interactive `runmqsc` on QM1 |
+| `task mq:runmqsc` | One-shot `runmqsc` (pass MQSC as args) |
+| `task test:run` | Unit + envtest (`-race`) |
+| `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
+| `task ci:e2e` | Same as GitHub Actions e2e job (`cluster:up` + MQ wait + tests) |
+
+After `task local:up`, check reconciliation:
+
+```sh
+kubectl get qmc,mq,tp,chl -n kurator-system
+kubectl logs -n kurator-system deployment/kurator-controller-manager -f
+```
+
+Confirm on MQ (`task mq:runmqsc`):
+
+```sh
+task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH"
+task mq:runmqsc -- "DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR"
+task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN)"
+```
 
 ## Prerequisites
 
@@ -165,8 +216,9 @@ Kurator requires an **existing** queue manager with **mqweb** enabled. It does n
 install or upgrade Queue Managers. Choose one of the options below; then point a
 `QueueManagerConnection` at the in-cluster mqweb URL (or a reachable equivalent).
 
-When using a local `references/` clone, keep your own gitignored `docs/REFERENCES.md`
-notes (not published in this repository).
+When using a local `references/` clone, copy
+[docs/REFERENCES.md.example](REFERENCES.md.example) to gitignored `docs/REFERENCES.md`
+and edit as needed.
 
 ### Option A — mq-helm on kind (recommended for local dev)
 
@@ -282,6 +334,11 @@ task cluster:down    # full platform teardown
 ```
 
 ## Test tiers
+
+### What CI proves
+
+Same tiers as [README.md#what-ci-proves](../README.md#what-ci-proves) (summary table).
+Commands and env vars below.
 
 | Tier | Scope | Needs a cluster? | Command |
 |------|-------|------------------|---------|

@@ -7,6 +7,24 @@ have a running **IBM MQ queue manager** with the **Administrative REST API**
 
 For contributor setup (kind, tests, codegen), see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+Doc index: [README.md](README.md) · [../README.md](../README.md)
+
+## On this page
+
+| | Section |
+|---|---------|
+| 📦 | [What you get](#what-you-get) |
+| ✅ | [Before you install](#before-you-install) |
+| ⬇️ | [Install the operator](#install-the-operator) |
+| 🚀 | [Quick start: one queue](#quick-start-one-queue-on-your-queue-manager) |
+| ⚙️ | [How it works](#how-it-works) |
+| 📖 | [Resource reference](#resource-reference) |
+| 🔧 | [Sample resources](#sample-resources-in-this-repository) |
+| 📅 | [Day-2 operations](#day-2-operations) |
+| 🆘 | [Troubleshooting](#troubleshooting) |
+| 🗑️ | [Uninstall](#uninstall) |
+| ➡️ | [Next steps](#next-steps) |
+
 ## What you get
 
 | Custom resource | Short name | Purpose |
@@ -27,16 +45,9 @@ on each resource, and removes MQ objects when you delete a CR (finalizers).
 
 Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
 
-### What CI proves
-
-| Tier | Scope |
-|------|-------|
-| Unit + envtest | Reconcilers and adapter (mocked MQ); Queue, Topic, Channel, and QMC envtest |
-| Docker integration | Queue (local/alias/remote), Topic, Channel against live mqweb |
-| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, and Channel CR reconcile + delete on live `QM1` |
-
-See [README.md](../README.md#what-ships-in-v1alpha1-today) for release vs `main`
-and the konih / konradheimel identity split.
+CR summary and release identity: [README.md#what-ships-in-v1alpha1-today](../README.md#what-ships-in-v1alpha1-today).
+Test coverage: [README.md#what-ci-proves](../README.md#what-ci-proves) and
+[DEVELOPMENT.md#test-tiers](DEVELOPMENT.md#test-tiers).
 
 ---
 

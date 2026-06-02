@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	attrKeyPub       = "pub"
-	attrKeySub       = "sub"
+	AttrKeyPub       = "pub"
+	AttrKeySub       = "sub"
 	attrKeyGet       = "get"
 	attrKeyPut       = "put"
 	attrKeyDefpsist  = "defpsist"
@@ -23,8 +23,8 @@ const (
 )
 
 var caseInsensitiveAttrKeys = map[string]struct{}{
-	attrKeyPub:      {},
-	attrKeySub:      {},
+	AttrKeyPub:      {},
+	AttrKeySub:      {},
 	attrKeyGet:      {},
 	attrKeyPut:      {},
 	attrKeyDefpsist: {},

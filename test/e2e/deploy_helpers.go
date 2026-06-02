@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konradheimel/kurator/test/utils"
+	"github.com/konih/kurator/test/utils"
 )
 
 // ensureOperatorForMQE2E (re)creates the operator install needed by Queue reconciliation tests.
