@@ -1,7 +1,8 @@
 # Development
 
-How to set up, build, test, and run **Kurator** locally. For
-conventions see [../AGENTS.md](../AGENTS.md); for design see
+How to set up, build, test, and run **Kurator** locally. For commit format and
+contributor guidelines see [CONTRIBUTING.md](CONTRIBUTING.md); for Go style and
+agent workflow see [../AGENTS.md](../AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Doc index: [README.md](README.md)
@@ -17,6 +18,7 @@ Doc index: [README.md](README.md)
 | 📦 | [Deploying a queue manager](#deploying-a-queue-manager-for-kurator) |
 | 🧪 | [Test tiers](#test-tiers) |
 | 🆘 | [Troubleshooting](#troubleshooting) |
+| ✉️ | [Commits and changelog](CONTRIBUTING.md) |
 | ✅ | [Before you push](#before-you-push) |
 
 ## Quick start
@@ -57,6 +59,8 @@ Platform-only commands live under `task cluster:*` (see
 | `task test:run` | Unit + envtest (`-race`) |
 | `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
 | `task ci:e2e` | Same as GitHub Actions e2e job (`cluster:up` + MQ wait + tests) |
+| `task changelog` | Preview unreleased changelog (`git-cliff`; see [CICD.md](CICD.md)) |
+| `task changelog:write` | Regenerate `CHANGELOG.md` before tagging a release |
 
 After `task local:up`, check reconciliation:
 
@@ -74,6 +78,11 @@ task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN)"
 ```
 
 ## Prerequisites
+
+**Install guide:** [LOCAL_SETUP.md](LOCAL_SETUP.md) — tiered tool list, OS-specific
+install commands, CI version pins, and verification steps.
+
+Summary:
 
 | Tool | Why |
 |------|-----|
@@ -421,4 +430,4 @@ Guidelines:
 1. `task verify` — generated artifacts are fresh.
 2. `task lint` — clean.
 3. `task test:run` — green.
-4. Conventional Commit with a gitmoji (see [../AGENTS.md](../AGENTS.md)).
+4. [Conventional Commit with gitmoji](CONTRIBUTING.md#commit-message-format).

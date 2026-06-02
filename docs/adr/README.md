@@ -33,3 +33,4 @@ supersedes the old one rather than editing history.
 | [0005](0005-keep-tooling-lean.md) | Keep tooling lean; borrow discipline, not org overhead | Accepted |
 | [0006](0006-project-name-kurator.md) | Project name and module identity (Kurator) | Accepted |
 | [0007](0007-structured-logging-logr-slog.md) | Structured logging with logr and slog | Accepted |
+| [0008](0008-changelog-git-cliff.md) | Generate changelogs with git-cliff | Accepted |

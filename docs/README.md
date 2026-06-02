@@ -3,9 +3,11 @@
 | | Start here |
 |---|------------|
 | 🎯 | Install and manage MQ objects on your queue manager → [INSTALL_AND_USE.md](INSTALL_AND_USE.md) |
+| 🛠️ | Install dev tools → [LOCAL_SETUP.md](LOCAL_SETUP.md) |
 | 🛠️ | Hack on the operator locally → [DEVELOPMENT.md](DEVELOPMENT.md) |
 | 🏗️ | Understand design and reconciliation → [ARCHITECTURE.md](ARCHITECTURE.md) |
 | 🤖 | AI agent conventions and workflow → [../AGENTS.md](../AGENTS.md) |
+| ✉️ | Commit format (Conventional Commits + gitmoji) → [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## All docs
 
@@ -14,7 +16,9 @@
 | 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, troubleshooting, uninstall |
 | 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel YAML |
 | 🔧 | [../charts/kurator/README.md](../charts/kurator/README.md) | Helm chart to install the operator |
+| 🛠️ | [LOCAL_SETUP.md](LOCAL_SETUP.md) | Install Go, Task, Docker, kind, Terraform, and other dev tools |
 | 🛠️ | [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, inner loop, local platform, deploy, test tiers |
+| 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guidelines, Conventional Commits, gitmoji |
 | 🛠️ | [../hack/kind-cluster/README.md](../hack/kind-cluster/README.md) | kind + Terraform + IBM MQ platform only |
 | 🛠️ | [IBM_MQ_101.md](IBM_MQ_101.md) | MQ console, `runmqsc`, verify Kurator on kind |
 | 🏗️ | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, runtime, CRDs, reconcile flow, security |

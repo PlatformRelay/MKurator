@@ -43,7 +43,8 @@ resources (Phase 5 — see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md)).
 Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 
 Latest tagged release: [GitHub Releases](https://github.com/konih/kurator/releases)
-(current badge above). `main` may include fixes not yet in a tag.
+(current badge above). `main` may include fixes not yet in a tag. See
+[CHANGELOG.md](CHANGELOG.md) for version history (generated from Conventional Commits).
 
 ## What it does
 
@@ -73,7 +74,10 @@ kubectl get qmc,mq,tp,chl -n kurator-system
 
 ## Local development (contributors)
 
-**Canonical reference:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — prerequisites,
+**Tool install:** [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) — Go, Task, Docker, kind,
+Terraform, and verification by tier.
+
+**Canonical reference:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — inner loop,
 local platform, task reference, test tiers, URLs, and credentials.
 
 ```sh
@@ -91,12 +95,14 @@ Full index with paths by role: **[docs/README.md](docs/README.md)**.
 | | Doc |
 |---|-----|
 | 🎯 **Use Kurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/kurator/README.md) |
-| 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
+| 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](docs/CONTRIBUTING.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
 | 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [Attribute reconciliation](docs/ATTRIBUTE_RECONCILIATION.md) · [ADRs](docs/adr/) |
 | 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
 | 📚 **IBM MQ reference** | [Objects (research)](docs/IBM_MQ_OBJECTS.md) · [REST API](docs/IBM_MQ_REST_API.md) · [Schemas](docs/schemas/README.md) |
 
-Contributors and agents: start with [AGENTS.md](AGENTS.md) (conventions + workflow).
+Contributors: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (guidelines, commits,
+gitmoji) · [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (local workflow) ·
+[AGENTS.md](AGENTS.md) (Go conventions and agent entry point).
 
 ## License
 

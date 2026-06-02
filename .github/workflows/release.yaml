@@ -30,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
@@ -132,59 +133,36 @@ jobs:
         run: |
           helm push "dist/kurator-${{ steps.version.outputs.version }}.tgz" "${{ steps.chart.outputs.oci }}"
 
+      - name: Generate changelog
+        id: cliff
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
+        with:
+          version: v2.13.1
+          config: cliff.toml
+          args: --latest --strip header
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assemble release notes
+        env:
+          CLIFF_CHANGELOG: ${{ steps.cliff.outputs.changelog }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          IMAGE_REPO: ${{ steps.image.outputs.repository }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          CHART_OCI: ${{ steps.chart.outputs.oci }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          chmod +x hack/assemble-release-notes.sh
+          printf '%s\n' "${CLIFF_CHANGELOG}" >"${RUNNER_TEMP}/changelog.md"
+          CHANGELOG_SECTION="${RUNNER_TEMP}/changelog.md" \
+            bash hack/assemble-release-notes.sh "${RUNNER_TEMP}/release-body.md"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Kurator ${{ steps.version.outputs.version }}
-          generate_release_notes: true
-          body: |
-            ## Container image
-
-            ```
-            ${{ steps.image.outputs.repository }}:${{ steps.version.outputs.version }}
-            ```
-
-            Multi-arch (`linux/amd64`, `linux/arm64`), distroless nonroot base.
-
-            OCI attestations (SBOM + SLSA provenance) are attached in GHCR. Verify the signature:
-
-            ```sh
-            cosign verify \
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.+' \
-              ${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}
-            ```
-
-            ## Install (Kustomize)
-
-            ```sh
-            kubectl apply -f install-crds.yaml
-            kubectl apply -f install.yaml
-            ```
-
-            ## Install (Helm — OCI)
-
-            ```sh
-            helm upgrade --install kurator ${{ steps.chart.outputs.oci }}/kurator \
-              --version ${{ steps.version.outputs.version }} \
-              --namespace kurator-system \
-              --create-namespace \
-              --set image.repository=${{ steps.image.outputs.repository }} \
-              --set image.tag=${{ steps.version.outputs.version }}
-            ```
-
-            ## Install (Helm — GitHub Release tarball)
-
-            ```sh
-            helm upgrade --install kurator kurator-${{ steps.version.outputs.version }}.tgz \
-              --namespace kurator-system \
-              --create-namespace \
-              --set image.repository=${{ steps.image.outputs.repository }} \
-              --set image.tag=${{ steps.version.outputs.version }}
-            ```
-
-            Verify checksums with `sha256sum -c checksums.txt`.
+          body_path: ${{ runner.temp }}/release-body.md
           files: |
             dist/install-crds.yaml
             dist/install.yaml

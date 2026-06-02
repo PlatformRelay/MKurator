@@ -13,6 +13,8 @@ env:
 
 vars:
   BIN_DIR: bin
+  GIT_CLIFF_VERSION: v2.13.1
+  GIT_CLIFF_BIN: "{{.BIN_DIR}}/git-cliff"
   MANAGER_BINARY: "{{.BIN_DIR}}/manager"
   DOCKER_IMAGE: kurator-controller-manager:dev
   CLUSTER_NAME:
@@ -266,3 +268,28 @@ tasks:
       - task: mq:integration:wait
       - task: test:integration
       - task: mq:integration:down
+
+  tools:git-cliff:
+    desc: Download pinned git-cliff binary ({{.GIT_CLIFF_VERSION}})
+    status:
+      - test -x {{.GIT_CLIFF_BIN}}
+    cmds:
+      - bash hack/install-git-cliff.sh {{.GIT_CLIFF_VERSION}} {{.GIT_CLIFF_BIN}}
+
+  changelog:
+    desc: Preview unreleased changelog section (stdout)
+    deps: [tools:git-cliff]
+    cmds:
+      - "{{.GIT_CLIFF_BIN}} --config cliff.toml --unreleased"
+
+  changelog:write:
+    desc: Regenerate CHANGELOG.md from git tags and unreleased commits
+    deps: [tools:git-cliff]
+    cmds:
+      - "{{.GIT_CLIFF_BIN}} --config cliff.toml -o CHANGELOG.md"
+
+  changelog:release:
+    desc: Print changelog section for the latest tag (release notes)
+    deps: [tools:git-cliff]
+    cmds:
+      - "{{.GIT_CLIFF_BIN}} --config cliff.toml --latest"

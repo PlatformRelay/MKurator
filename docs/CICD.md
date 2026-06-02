@@ -91,6 +91,17 @@ digest (keyless OIDC), generates an SPDX SBOM (`dist/sbom.spdx.json`), then
 publishes Kustomize/Helm install manifests on the GitHub Release. Runs only on
 `v*.*.*` tags (or `workflow_dispatch` for testing).
 
+**Changelog:** [git-cliff](https://git-cliff.org/) (`cliff.toml`) generates the
+release-notes section from Conventional Commits since the previous tag
+(`orhun/git-cliff-action`, pinned to the same version as `task tools:git-cliff`).
+Install instructions are appended from [`.github/release-notes-install.md`](../.github/release-notes-install.md)
+via [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh). Checkout
+uses `fetch-depth: 0` so tag ranges resolve correctly.
+
+Before tagging locally: `task changelog` (preview), bump `charts/kurator/Chart.yaml`,
+`task changelog:write`, commit `CHANGELOG.md`, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+Rationale: [ADR-0008](adr/0008-changelog-git-cliff.md).
+
 ### image scan
 **Trivy** scans the built image for OS/dependency vulnerabilities; documented
 false positives live in `.trivyignore` with a rationale comment. Critical/high
@@ -138,6 +149,7 @@ pushes to the default branch.
 | govulncheck | `govulncheck ./...` |
 | integration | `task ci:integration` (or `task test:integration:local`) |
 | e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
+| release changelog | `task changelog` / `task changelog:write` |
 
 pre-commit runs `gofmt`/`goimports`, `golangci-lint`, and `task verify` so most
 CI failures are caught before pushing.
