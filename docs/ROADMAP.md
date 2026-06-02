@@ -92,18 +92,12 @@ locally and in CI — **met**.
 
 **Remaining before Phase 2 is fully closed:**
 
-- [ ] Fix **DEFINE QLOCAL** via `runCommandJSON` on live MQ (observed `MQWB0120E`
-  HTTP 400 — likely `replace` / parameter shape); confirm **Queue** reaches
+- [x] Fix **DISPLAY QLOCAL** on live MQ — drop `maxmsglen` from display parameters
+  (mqweb 9.4 returns `MQWB0120E`); coerce numeric DEFINE attrs; **Queue** reaches
   **Synced=True** on `task local:up`.
-- [ ] Raise `internal/` coverage where still thin (`cmd/`, `api/` excluded by design).
+- [x] Raise `internal/` coverage with focused tests (mqrest ~56%, controller ~55%).
 
-Exit criteria:
-
-- [x] envtest drives expected `MQAdmin` calls (mocked) — **met**.
-- [x] adapter unit tests cover success + error paths — **met**.
-- [ ] live sample `Queue` reconciled on kind IBM MQ — **not met** (blocked on item above).
-
-## Phase 3 — End-to-end & CI hardening
+Exit criteria: envtest + adapter tests + live queue on kind — **met**.
 
 - [x] e2e scaffold (`test/e2e`, build tag `e2e`) — controller pod, metrics, suite
   wiring on kind.

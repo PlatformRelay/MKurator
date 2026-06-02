@@ -49,6 +49,12 @@ func TestClient_DefineAndGetQueue(t *testing.T) {
 			return
 		}
 		if lastBody["command"] == "display" {
+			rp, _ := lastBody["responseParameters"].([]any)
+			for _, p := range rp {
+				if p == "maxmsglen" {
+					t.Error("display must not request maxmsglen")
+				}
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				testKeyCommandResponse: []map[string]any{{
 					testKeyCompletionCode: 0,
@@ -76,6 +82,13 @@ func TestClient_DefineAndGetQueue(t *testing.T) {
 	}
 	if err := c.DefineQueue(context.Background(), spec); err != nil {
 		t.Fatalf("DefineQueue: %v", err)
+	}
+	if lastBody["type"] != "runCommandJSON" {
+		t.Fatalf("define type = %v", lastBody["type"])
+	}
+	params, _ := lastBody["parameters"].(map[string]any)
+	if params["maxdepth"] != float64(5000) && params["maxdepth"] != 5000 {
+		t.Fatalf("maxdepth param = %T(%v)", params["maxdepth"], params["maxdepth"])
 	}
 	state, err := c.GetQueue(context.Background(), "APP.ORDERS")
 	if err != nil {
