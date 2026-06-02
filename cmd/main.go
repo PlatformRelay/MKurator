@@ -82,7 +82,7 @@ func main() {
 		setupLog.Error(err, "invalid logging configuration")
 		os.Exit(1)
 	}
-	if err := logging.Setup(logCfg); err != nil {
+	if err = logging.Setup(logCfg); err != nil {
 		setupLog.Error(err, "configure logging")
 		os.Exit(1)
 	}
