@@ -8,7 +8,6 @@
 *.so
 *.dylib
 references/
-docs/REFERENCES.md
 AGENTS.md
 .envrc
 # Test binary, built with `go test -c`

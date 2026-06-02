@@ -165,8 +165,7 @@ Kurator requires an **existing** queue manager with **mqweb** enabled. It does n
 install or upgrade Queue Managers. Choose one of the options below; then point a
 `QueueManagerConnection` at the in-cluster mqweb URL (or a reachable equivalent).
 
-See also [REFERENCES.md.example](REFERENCES.md.example) (copy to gitignored
-`docs/REFERENCES.md` when using a local `references/` clone).
+See also [REFERENCES.md](REFERENCES.md) when using a local `references/` clone.
 
 ### Option A — mq-helm on kind (recommended for local dev)
 
