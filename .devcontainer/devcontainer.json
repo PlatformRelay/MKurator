@@ -1,9 +1,9 @@
 {
-  "name": "Kubebuilder DevContainer",
-  "image": "golang:1.25",
+  "name": "Kurator DevContainer",
+  "image": "golang:1.26-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "moby": false,
+      "moby": true,
       "dockerDefaultAddressPool": "base=172.30.0.0/16,size=24"
     },
     "ghcr.io/devcontainers/features/git:1": {},
@@ -17,19 +17,26 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash"
+        "go.toolsManagement.autoUpdate": false,
+        "terminal.integrated.defaultProfile.linux": "bash"
       },
       "extensions": [
+        "golang.go",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "task.vscode-task"
       ]
     }
   },
 
   "remoteEnv": {
-    "GO111MODULE": "on"
+    "GO111MODULE": "on",
+    "GOTOOLCHAIN": "go1.26.3",
+    "CGO_ENABLED": "0",
+    "PATH": "${containerWorkspaceFolder}/bin:/usr/local/go/bin:/usr/local/bin:${containerEnv:PATH}",
+    "KUBECONFIG": "${containerWorkspaceFolder}/hack/kind-cluster/.state/kubeconfig.yaml",
+    "TF_VAR_kubeconfig": "${containerWorkspaceFolder}/hack/kind-cluster/.state/kubeconfig.yaml"
   },
 
-  "onCreateCommand": "bash .devcontainer/post-install.sh"
+  "postCreateCommand": "bash .devcontainer/post-install.sh"
 }
-

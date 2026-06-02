@@ -17,6 +17,9 @@ for `*.localhost`.
 
 ## Prerequisites
 
+Install instructions (versions, macOS/Linux commands, verification):
+[docs/LOCAL_SETUP.md](../../docs/LOCAL_SETUP.md) (Tier C).
+
 - A container runtime: Docker (recommended), nerdctl, or Podman
 - [`kind`](https://kind.sigs.k8s.io/), [`kubectl`](https://kubernetes.io/docs/tasks/tools/),
   [`helm`](https://helm.sh/), [`terraform`](https://developer.hashicorp.com/terraform),
