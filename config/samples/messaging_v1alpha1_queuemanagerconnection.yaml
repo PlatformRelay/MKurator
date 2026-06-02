@@ -1,0 +1,12 @@
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: QueueManagerConnection
+metadata:
+  name: qm1
+  namespace: kurator-system
+spec:
+  queueManager: QM1
+  endpoint: https://ibm-mq.ibm-mq.svc:9443
+  tls:
+    insecureSkipVerify: true
+  credentialsSecretRef:
+    name: mq-credentials

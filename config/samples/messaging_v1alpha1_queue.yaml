@@ -1,0 +1,13 @@
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Queue
+metadata:
+  name: orders
+  namespace: kurator-system
+spec:
+  connectionRef:
+    name: qm1
+  queueName: APP.ORDERS
+  type: local
+  attributes:
+    maxdepth: "5000"
+    descr: Orders intake queue

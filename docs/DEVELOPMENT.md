@@ -42,6 +42,29 @@ task test:run     # unit + envtest (Ginkgo, -race, coverage)
 `task verify` re-runs codegen into a scratch area and fails if anything is stale
 — run it before committing (pre-commit does this automatically).
 
+### Codegen verification (`hack/verify.sh`)
+
+`task verify` runs `hack/verify.sh`, which implements the **generate / verify**
+discipline from [CICD.md](CICD.md):
+
+1. Snapshot committed generated artifacts (`config/crd/bases`, `config/rbac`,
+   `api/*/zz_generated.deepcopy.go`).
+2. Regenerate with `controller-gen`.
+3. `diff` snapshot vs working tree and fail on drift.
+
+This catches the common mistake of editing API types or kubebuilder markers
+without re-running `task generate && task manifests`. It is unrelated to
+`go mod verify` (module checksum verification in `task install`).
+
+### Task vs Makefile
+
+**Task is the canonical entry point** ([ADR-0004](adr/0004-task-as-task-runner.md)):
+humans, pre-commit, and CI all run `task <target>`. The root `Makefile` is
+**Kubebuilder scaffold** — it ships with `kubebuilder init` and is still used
+by the default e2e suite (`make docker-build`, `make deploy`). Prefer `task`
+for day-to-day work; ignore `make` unless you are running that scaffold as-is.
+A future cleanup can rewire e2e to `task deploy` and trim the Makefile.
+
 Build the manager binary (CGO-free, static):
 
 ```sh

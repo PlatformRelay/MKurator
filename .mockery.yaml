@@ -1,6 +1,14 @@
-# Mockery v3 config — targets expand in Phase 2 when MQAdmin is defined.
+# Mockery v3 config — see https://vektra.github.io/mockery/
 # yaml-language-server: $schema=https://vektra.github.io/mockery/schema.json
 ---
 template: testify
 force-file-write: true
-packages: {}
+packages:
+  github.com/konradheimel/kurator/internal/mqadmin:
+    config:
+      dir: test/mocks/mqadmin
+      pkgname: mqadmintest
+      filename: admin_mock.go
+    interfaces:
+      Admin:
+      Factory:

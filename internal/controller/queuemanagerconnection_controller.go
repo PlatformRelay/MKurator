@@ -1,0 +1,109 @@
+package controller
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
+	"github.com/konradheimel/kurator/internal/mqadmin"
+)
+
+// QueueManagerConnectionReconciler reconciles QueueManagerConnection objects.
+type QueueManagerConnectionReconciler struct {
+	client.Client
+	Scheme    *runtime.Scheme
+	MQFactory mqadmin.Factory
+}
+
+// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=get;list;watch
+// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=create;update
+// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=patch;delete
+// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+
+// Reconcile tests connectivity to mqweb and sets Ready.
+func (r *QueueManagerConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+	conn := &messagingv1alpha1.QueueManagerConnection{}
+	if err := r.Get(ctx, req.NamespacedName, conn); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("get QueueManagerConnection: %w", err)
+	}
+
+	if !conn.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
+	if !controllerutil.ContainsFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer) {
+		controllerutil.AddFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer)
+		if err := r.Update(ctx, conn); err != nil {
+			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	gen := conn.Generation
+	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
+		metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, "Testing mqweb connectivity", gen)
+
+	admin, err := r.MQFactory.ForConnection(ctx, conn)
+	if err != nil {
+		return r.fail(ctx, conn, gen, err)
+	}
+	if err := admin.Ping(ctx); err != nil {
+		return r.fail(ctx, conn, gen, err)
+	}
+
+	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
+		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, "mqweb connection is healthy", gen)
+	conn.Status.ObservedGeneration = gen
+	if err := r.Status().Update(ctx, conn); err != nil {
+		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
+	}
+	logger.Info("QueueManagerConnection ready", "connection", conn.Name)
+	return ctrl.Result{}, nil
+}
+
+func (r *QueueManagerConnectionReconciler) fail(
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
+	gen int64,
+	err error,
+) (ctrl.Result, error) {
+	reason := messagingv1alpha1.ReasonError
+	msg := err.Error()
+	var requeue ctrl.Result
+	if errors.Is(err, mqadmin.ErrTransient) {
+		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
+	}
+	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
+		metav1.ConditionFalse, reason, msg, gen)
+	if statusErr := r.Status().Update(ctx, conn); statusErr != nil {
+		return requeue, fmt.Errorf("update status: %w", statusErr)
+	}
+	if errors.Is(err, mqadmin.ErrTransient) {
+		return requeue, err
+	}
+	return ctrl.Result{}, nil
+}
+
+// SetupWithManager wires the reconciler.
+func (r *QueueManagerConnectionReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&messagingv1alpha1.QueueManagerConnection{}).
+		Complete(r)
+}

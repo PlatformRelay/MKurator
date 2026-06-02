@@ -34,7 +34,7 @@ const (
 
 // Config holds resolved logging settings.
 type Config struct {
-	Level  Level  `json:"level" yaml:"level"`
+	Level  Level  `json:"level"  yaml:"level"`
 	Format Format `json:"format" yaml:"format"`
 }
 

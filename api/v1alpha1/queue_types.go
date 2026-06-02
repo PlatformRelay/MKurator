@@ -1,0 +1,87 @@
+package v1alpha1
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// QueueType is the IBM MQ queue object type to manage.
+// +kubebuilder:validation:Enum=local;alias;remote
+type QueueType string
+
+const (
+	QueueTypeLocal  QueueType = "local"
+	QueueTypeAlias  QueueType = "alias"
+	QueueTypeRemote QueueType = "remote"
+)
+
+// QueueSpec defines a queue to maintain on a referenced queue manager.
+type QueueSpec struct {
+	// ConnectionRef names a QueueManagerConnection in the same namespace.
+	// +kubebuilder:validation:Required
+	ConnectionRef LocalObjectReference `json:"connectionRef"`
+
+	// QueueName is the IBM MQ object name.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	QueueName string `json:"queueName"`
+
+	// Type is the queue kind to define. Only local queues are reconciled in v1alpha1.
+	// +kubebuilder:default=local
+	// +optional
+	Type QueueType `json:"type,omitempty"`
+
+	// Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
+	// Common keys: maxdepth, descr, defpsist, maxmsglen.
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
+}
+
+// LocalObjectReference is a namespaced object reference.
+type LocalObjectReference struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+}
+
+// QueueStatus defines the observed state of Queue.
+type QueueStatus struct {
+	// Conditions represent the current state of the queue.
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// ObservedGeneration reflects the generation last successfully synced.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=mq
+// +kubebuilder:printcolumn:name="Synced",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].reason`
+// +kubebuilder:printcolumn:name="Queue",type=string,JSONPath=`.spec.queueName`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+
+// Queue maintains an IBM MQ queue on a referenced queue manager.
+type Queue struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   QueueSpec   `json:"spec,omitempty"`
+	Status QueueStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// QueueList contains a list of Queue.
+type QueueList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []Queue `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&Queue{}, &QueueList{})
+}

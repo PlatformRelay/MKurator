@@ -1,0 +1,5 @@
+## Append samples of your project ##
+resources:
+- messaging_v1alpha1_queuemanagerconnection.yaml
+- messaging_v1alpha1_queue.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

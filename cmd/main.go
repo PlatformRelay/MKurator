@@ -19,6 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
+	"github.com/konradheimel/kurator/internal/adapter/mqrest"
+	"github.com/konradheimel/kurator/internal/controller"
 	"github.com/konradheimel/kurator/internal/logging"
 	// +kubebuilder:scaffold:imports
 )
@@ -111,8 +113,15 @@ func main() {
 	}
 
 	if len(webhookCertPath) > 0 {
-		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
-			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
+		setupLog.Info(
+			"Initializing webhook certificate watcher using provided certificates",
+			"webhook-cert-path",
+			webhookCertPath,
+			"webhook-cert-name",
+			webhookCertName,
+			"webhook-cert-key",
+			webhookCertKey,
+		)
 
 		webhookServerOptions.CertDir = webhookCertPath
 		webhookServerOptions.CertName = webhookCertName
@@ -148,8 +157,15 @@ func main() {
 	// managed by cert-manager for the metrics server.
 	// - [PROMETHEUS-WITH-CERTS] at config/prometheus/kustomization.yaml for TLS certification.
 	if len(metricsCertPath) > 0 {
-		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
-			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
+		setupLog.Info(
+			"Initializing metrics certificate watcher using provided certificates",
+			"metrics-cert-path",
+			metricsCertPath,
+			"metrics-cert-name",
+			metricsCertName,
+			"metrics-cert-key",
+			metricsCertKey,
+		)
 
 		metricsServerOptions.CertDir = metricsCertPath
 		metricsServerOptions.CertName = metricsCertName
@@ -181,6 +197,24 @@ func main() {
 	}
 
 	// +kubebuilder:scaffold:builder
+
+	mqFactory := mqrest.NewClientFactory(mgr.GetClient())
+	if err := (&controller.QueueManagerConnectionReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		MQFactory: mqFactory,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "QueueManagerConnection")
+		os.Exit(1)
+	}
+	if err := (&controller.QueueReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		MQFactory: mqFactory,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Queue")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "Failed to set up health check")

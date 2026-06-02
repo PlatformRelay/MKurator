@@ -29,7 +29,7 @@ go tool controller-gen \
   rbac:roleName=manager-role \
   crd \
   webhook \
-  paths="./api/...;./cmd/..." \
+  paths="./api/...;./internal/controller/...;./cmd/..." \
   output:crd:artifacts:config=config/crd/bases
 
 echo "verify: comparing generated artifacts..."
