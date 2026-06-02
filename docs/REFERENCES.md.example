@@ -40,7 +40,7 @@ For deploying a QM when not using kind, see [Deploying a queue manager for Kurat
 
 ## Phase 4 API planning
 
-Channel and authority CR sketches derived from gitops MQSC are in [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md).
+Channel and authority CR sketches derived from gitops MQSC are in [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
 ## Upstream links (not vendored)
 

@@ -15,6 +15,34 @@ more later.
 > Status: **Phase 4** — queue, topic, and SVRCONN channel reconcile on existing
 > IBM MQ via `mqweb`. See the [roadmap](docs/ROADMAP.md) for what is next.
 
+## What ships in v1alpha1 (today)
+
+| Custom resource | MQ objects | Notes |
+|-----------------|------------|-------|
+| `QueueManagerConnection` | (connectivity) | Ping + credentials from a referenced `Secret` |
+| `Queue` | `QLOCAL`, `QALIAS`, `QREMOTE` | `spec.type`: `local` (default), `alias`, `remote` |
+| `Topic` | `TOPIC` | Drift-checked attributes per [ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md) |
+| `Channel` | `CHANNEL` … `CHLTYPE(SVRCONN)` | Other channel types planned later |
+
+**Not shipped yet:** `SET CHLAUTH`, `SET AUTHREC`, and related access-control
+resources (Phase 5 — see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md)).
+
+**Release vs module:** GitHub releases and container images live under
+[konih/kurator](https://github.com/konih/kurator); the Go module and pkg.go.dev
+path is [`github.com/konradheimel/kurator`](https://pkg.go.dev/github.com/konradheimel/kurator)
+([ADR-0006](docs/adr/0006-project-name-kurator.md)).
+
+### What CI proves
+
+| Tier | Scope |
+|------|-------|
+| Unit + envtest | Reconcilers and adapter (mocked MQ); Queue and QMC envtest |
+| Docker integration | Queue (local/alias/remote), Topic, Channel against live mqweb |
+| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, and Channel CR reconcile + delete on live `QM1` |
+
+Latest tagged release: [GitHub Releases](https://github.com/konih/kurator/releases)
+(current badge above). `main` may include fixes not yet in a tag.
+
 ## What it does
 
 - Reconciles custom resources (`Queue`, `Topic`, `Channel`) into MQSC objects on

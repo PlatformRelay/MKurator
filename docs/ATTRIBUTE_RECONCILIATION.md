@@ -88,11 +88,12 @@ Planned: `SET AUTHREC` / `SET CHLAUTH` (Phase 5).
 | OAM | `SET AUTHREC` | 5 |
 | Channel auth | `SET CHLAUTH` | 5 |
 | Durable subscription | `DEFINE SUB` | Later |
-| Alias / remote / model queue | `QALIAS`, `QREMOTE`, `QMODEL` | 4 follow-on |
+| Alias / remote queue | `QALIAS`, `QREMOTE` | 4 (shipped) |
+| Model queue | `QMODEL` | Later |
 | Message channels | `CHLTYPE(SDR\|RCVR\|…)` | Later |
 | Connection auth | `AUTHINFO`, `ALTER QMGR CONNAUTH` | Platform |
 
-Sketch for Phase 5: [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md).
+Sketch for Phase 5: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
 ## Known limitations
 

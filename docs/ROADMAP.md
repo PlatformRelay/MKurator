@@ -108,7 +108,7 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
   apply via mqweb; assert real MQSC objects for create/update/delete and re-apply
   idempotency (NFR REL-1) once DEFINE QLOCAL is fixed (Phase 2 blocker).
 - [x] `test/e2e/fixtures/` — MQSC bootstrap for channels/auth (from
-  mq-gitops-samples); see [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md).
+  mq-gitops-samples); see [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 - [x] Wire e2e into CI (`.github/workflows/e2e.yaml`: kind + IBM MQ + `task test:e2e`;
   `task ci:e2e` for local parity).
 - [x] Release workflow (`.github/workflows/release.yaml`): multi-arch distroless
@@ -141,11 +141,11 @@ before access-control work.
   table-driven adapter tests with `httptest`.
 - [x] Thin reconcilers, RBAC, samples under `config/samples/` and
   `charts/kurator/samples/resources/`.
-- [x] Unit + envtest coverage; [ ] e2e scenarios on kind against live `QM1`.
+- [x] Unit + envtest coverage; [x] e2e scenarios on kind against live `QM1`
+  (Queue, Topic, Channel — see [`test/e2e/mq_e2e_test.go`](../test/e2e/mq_e2e_test.go)).
 - [x] [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) — DEFINE vs DISPLAY
   drift matrix per object; user tables in [INSTALL_AND_USE.md](INSTALL_AND_USE.md).
-- [x] Align `Queue.spec.type` OpenAPI with reality (`local` only until alias/remote
-  reconcilers land).
+- [x] `Queue.spec.type` OpenAPI aligned with reconcilers (`local`, `alias`, `remote`).
 - [x] Drift detection: case-insensitive `pub`/`sub`/policies; channel `maxinst` /
   `maxinstc`; topic `pubscope`/`subscope` where mqweb DISPLAY allows.
 - [x] **Alias** and **remote** queue types (`QALIAS`, `QREMOTE`) with drift detection.
@@ -158,7 +158,7 @@ e2e green).
 
 ## Phase 5 — User & authority management
 
-- [x] [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md) — CR sketch mapped from
+- [x] [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) — CR sketch mapped from
   reference MQSC; e2e fixture [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc).
 - [ ] Extend the API toward MQ access control: authority records / channel auth /
   user-style resources (exact CRDs decided when reached).

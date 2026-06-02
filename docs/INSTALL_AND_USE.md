@@ -12,15 +12,20 @@ For contributor setup (kind, tests, codegen), see [DEVELOPMENT.md](DEVELOPMENT.m
 | Custom resource | Short name | Purpose |
 |-----------------|------------|---------|
 | `QueueManagerConnection` | `qmc` | How to reach one queue manager (endpoint, TLS, credentials) |
-| `Queue` | `mq` | A local queue (`QLOCAL`) to create, update, and delete on that manager |
+| `Queue` | `mq` | Local, alias, or remote queue (`QLOCAL` / `QALIAS` / `QREMOTE`) |
 | `Topic` | `tp` | An administrative topic object (`DEFINE TOPIC`) |
 | `Channel` | `chl` | A server-connection channel (`CHLTYPE(SVRCONN)`) |
 
 The operator translates desired state into MQSC via `mqweb`, reports **conditions**
 on each resource, and removes MQ objects when you delete a CR (finalizers).
 
-**v0.1.0 scope:** local queues only. **v0.2+ (Phase 4):** topics and SVRCONN
-channels. Alias and remote queue types are accepted in the API but not reconciled yet.
+**v1alpha1 scope:** all four CR kinds above. Queue `spec.type` supports `local`
+(default), `alias`, and `remote`. Attribute drift behaviour is documented in
+[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). Access control
+(`SET CHLAUTH`, `SET AUTHREC`) is planned for Phase 5 — see
+[PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
+
+Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
 
 ---
 
@@ -44,10 +49,10 @@ channels. Alias and remote queue types are accepted in the API but not reconcile
 ### Recommended layout
 
 Install the **operator** into a dedicated namespace (for example
-`kurator-system`). Put **`QueueManagerConnection` and `Queue` objects in the
-same namespace** as the credentials `Secret` they reference — typically that
-same `kurator-system` namespace, or a team namespace where you store MQ
-connection secrets.
+`kurator-system`). Put **`QueueManagerConnection` and all workload CRs** (`Queue`,
+`Topic`, `Channel`) **in the same namespace** as the credentials `Secret` they
+reference — typically that same `kurator-system` namespace, or a team namespace
+where you store MQ connection secrets.
 
 ---
 
@@ -213,7 +218,7 @@ Confirm on the queue manager (example with `runmqsc`):
 DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH DESCR
 ```
 
-### 4. Topic (optional)
+### 4. Topic
 
 ```yaml
 apiVersion: messaging.kurator.dev/v1alpha1
@@ -238,7 +243,7 @@ kubectl wait --for=condition=Synced topic/retail-orders -n kurator-system --time
 kubectl get tp -n kurator-system
 ```
 
-### 5. Channel (optional)
+### 5. Channel
 
 ```yaml
 apiVersion: messaging.kurator.dev/v1alpha1
@@ -331,7 +336,7 @@ safely on IBM MQ 9.4.x (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATI
 | `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
 | `spec.queueName` | yes | IBM MQ object name (e.g. `APP.ORDERS`) |
 | `spec.type` | no | `local` (default), `alias` (`QALIAS`), or `remote` (`QREMOTE`) |
-| `spec.attributes` | no | MQSC parameters for `DEFINE QLOCAL` (string keys/values) |
+| `spec.attributes` | no | MQSC parameters for `DEFINE QLOCAL` / `QALIAS` / `QREMOTE` (string keys/values) |
 
 **Common attributes** (lowercase keys in spec):
 
@@ -450,7 +455,8 @@ Reuse the existing `QueueManagerConnection`; add another `Queue` with a differen
 ### Rotate credentials
 
 Update the Secret data. The operator rebuilds the mqweb client on the next
-reconcile when the connection or Secret changes.
+reconcile when the Secret `resourceVersion` changes (or the connection spec
+generation changes).
 
 ### Delete a queue, topic, or channel
 
@@ -465,9 +471,9 @@ was already gone on MQ, deletion still succeeds.
 
 ### Delete a connection
 
-Remove dependent `Queue`, `Topic`, and `Channel` objects first. `QueueManagerConnection` uses a finalizer
-for orderly teardown; in v0.1.0 it mainly guards API lifecycle (no remote objects
-to delete beyond connectivity).
+Remove dependent `Queue`, `Topic`, and `Channel` objects first.
+`QueueManagerConnection` uses a finalizer for orderly teardown (connectivity
+only — it does not own MQ objects on the queue manager).
 
 ---
 
@@ -509,6 +515,21 @@ Common causes: invalid attribute for your MQ version, unsupported `type`, or MQ
 authorization denying `DEFINE QLOCAL`. The condition **message** includes the
 mqweb/MQSC error text.
 
+### `Topic` or `Channel` stuck or Error
+
+Same pattern as queues — check that the connection is **Ready**, then inspect
+status and operator logs:
+
+```sh
+kubectl get qmc,topic,channel -n kurator-system
+kubectl describe topic retail-orders -n kurator-system
+kubectl describe channel orders-app -n kurator-system
+```
+
+Common causes: invalid `topstr` / topic name, channel attribute not supported on
+your MQ version, or MQ authorization denying `DEFINE TOPIC` / `DEFINE CHANNEL`.
+Only `CHLTYPE(SVRCONN)` is supported in v1alpha1.
+
 ### Operator not running
 
 ```sh
@@ -531,7 +552,7 @@ helm uninstall kurator -n kurator-system
 # Operator (Kustomize / release manifest)
 kubectl delete -f install.yaml
 
-# CRDs (removes all Queue / QueueManagerConnection instances cluster-wide)
+# CRDs (removes all messaging.kurator.dev instances cluster-wide)
 kubectl delete -f install-crds.yaml
 ```
 
