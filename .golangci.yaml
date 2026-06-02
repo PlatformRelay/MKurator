@@ -78,6 +78,8 @@ linters:
       - linters:
           - dupl
           - gocyclo
+          - goconst
+          - unparam
         path: _test\.go
     paths:
       - third_party$

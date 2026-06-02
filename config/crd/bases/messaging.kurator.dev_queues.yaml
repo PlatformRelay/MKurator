@@ -60,7 +60,7 @@ spec:
                   type: string
                 description: |-
                   Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-                  Common keys: maxdepth, descr, defpsist, maxmsglen.
+                  Common keys: maxdepth, descr, defpsist (maxmsglen on define only — not displayable via mqweb JSON on 9.4).
                 type: object
               connectionRef:
                 description: ConnectionRef names a QueueManagerConnection in the same

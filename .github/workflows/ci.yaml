@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  GOTOOLCHAIN: go1.26.3
+
 jobs:
   gitleaks:
     name: gitleaks
@@ -92,7 +95,7 @@ jobs:
             coverage.out
             coverage-summary.txt
           if-no-files-found: error
-      - uses: codecov/codecov-action@0565863df21f3cdea94fdd5411e4efae765cfb57 # v5.4.0
+      - uses: codecov/codecov-action@e96185f4044c2f0cedf0f022454acf9811cf8057 # v5.4.0
         with:
           files: coverage.out
           fail_ci_if_error: false
