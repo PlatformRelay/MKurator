@@ -47,7 +47,7 @@ var _ = Describe("IBM MQ integration", Label("mq"), func() {
 		})
 	})
 
-	Context("Queue reconciliation", func() {
+	Context("Queue reconciliation", Ordered, func() {
 		BeforeAll(func() {
 			if !mqE2EEnabled() {
 				return
