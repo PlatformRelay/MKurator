@@ -3,22 +3,11 @@ title = "Kurator gitleaks config"
 [extend]
 useDefault = true
 
-[[allowlist]]
-description = "Vendored reference trees (local clones; not shipped)"
+[allowlist]
 paths = [
   '''(?:^|/)references/''',
-]
-
-[[allowlist]]
-description = "Local kind cluster runtime state (gitignored)"
-paths = [
   '''(?:^|/)hack/kind-cluster/\.state/''',
   '''(?:^|/)\.state/''',
-]
-
-[[allowlist]]
-description = "Terraform state and working directories (gitignored)"
-paths = [
-  '''(?:^|/)\.tfstate(?:\.backup)?$''',
+  '''\.tfstate(?:\.backup)?$''',
   '''(?:^|/)hack/kind-cluster/terraform/\.terraform/''',
 ]
