@@ -1,17 +1,44 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":disableDependencyDashboard"
   ],
   "labels": ["dependencies"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on Monday"],
+  "ignorePaths": [
+    "**/references/**",
+    "hack/kind-cluster/charts/**",
+    "bin/**",
+    ".task/**"
+  ],
   "packageRules": [
     {
       "matchManagers": ["gomod"],
       "groupName": "go dependencies"
     },
     {
+      "matchManagers": ["gomod"],
+      "matchPackagePatterns": ["^k8s.io/", "^sigs.k8s.io/controller-runtime"],
+      "groupName": "kubernetes packages"
+    },
+    {
       "matchManagers": ["github-actions"],
-      "groupName": "github actions"
+      "groupName": "github actions",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "docker images"
+    },
+    {
+      "matchManagers": ["terraform"],
+      "groupName": "terraform"
+    },
+    {
+      "matchManagers": ["pre-commit"],
+      "groupName": "pre-commit hooks"
     }
   ]
 }
