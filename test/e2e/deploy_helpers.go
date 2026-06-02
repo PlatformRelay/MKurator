@@ -46,12 +46,32 @@ metadata:
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
 
+	waitForControllerAndWebhookReady()
+}
+
+// waitForControllerAndWebhookReady blocks until cert-manager has issued the webhook
+// TLS secret and the controller-manager pod reports Ready (webhook listener up).
+func waitForControllerAndWebhookReady() {
+	Eventually(func(g Gomega) {
+		cmd := exec.Command("kubectl", "get", "secret", "webhook-server-cert", "-n", namespace)
+		_, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert should exist")
+	}).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "pods", "-n", namespace,
 			"-l", "control-plane=controller-manager",
-			"-o", "jsonpath={.items[0].status.phase}")
-		out, runErr := utils.Run(cmd)
-		g.Expect(runErr).NotTo(HaveOccurred())
-		g.Expect(out).To(Equal("Running"))
-	}).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+			"-o", "jsonpath={.items[0].status.conditions[?(@.type=='Ready')].status}")
+		out, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(out).To(Equal("True"), "controller-manager should be Ready")
+	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
+	Eventually(func(g Gomega) {
+		cmd := exec.Command("kubectl", "get", "endpoints", "kurator-webhook-service", "-n", namespace,
+			"-o", "jsonpath={.subsets[0].addresses[0].ip}")
+		out, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(out).NotTo(BeEmpty(), "webhook service should have endpoints")
+	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }

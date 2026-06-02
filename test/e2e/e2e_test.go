@@ -61,6 +61,8 @@ var _ = Describe("Manager", Serial, Ordered, func() {
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", managerImage))
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+
+		waitForControllerAndWebhookReady()
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
@@ -152,17 +154,19 @@ var _ = Describe("Manager", Serial, Ordered, func() {
 
 				By("validating the pod's status")
 				cmd = exec.Command("kubectl", "get",
-					"pods", controllerPodName, "-o", "jsonpath={.status.phase}",
+					"pods", controllerPodName, "-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}",
 					"-n", namespace,
 				)
 				output, err := utils.Run(cmd)
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(Equal("Running"), "Incorrect controller-manager pod status")
+				g.Expect(output).To(Equal("True"), "Controller manager pod should be Ready")
 			}
 			Eventually(verifyControllerUp).Should(Succeed())
 		})
 
 		It("should reject invalid Queue at admission", func() {
+			waitForControllerAndWebhookReady()
+
 			By("validating that ValidatingWebhookConfiguration is installed")
 			cmd := exec.Command("kubectl", "get", "validatingwebhookconfiguration",
 				"kurator-validating-webhook-configuration")

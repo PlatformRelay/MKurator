@@ -266,6 +266,7 @@ tasks:
       CERT_MANAGER_INSTALL_SKIP: "true"
       KURATOR_E2E_MQ: "1"
       KIND_CLUSTER: "{{.CLUSTER_NAME}}"
+      KUBECONFIG: "{{.KUBECONFIG}}"
     cmds:
       - task: cluster:up
       - bash hack/ci/wait-mqweb.sh

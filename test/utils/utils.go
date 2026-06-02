@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2" // nolint:revive,staticcheck
@@ -16,8 +17,26 @@ const (
 	certmanagerURLTmpl = "https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml"
 
 	defaultKindBinary  = "kind"
-	defaultKindCluster = "kind"
+	defaultKindCluster = "kurator"
 )
+
+
+func defaultKubeconfigPath(projectDir string) string {
+	return filepath.Join(projectDir, "hack", "kind-cluster", ".state", "kubeconfig.yaml")
+}
+
+// ensureKubeconfigEnv sets KUBECONFIG when unset so kubectl targets the kind cluster
+// used by hack/kind-cluster (matches Taskfile and GitHub Actions e2e workflow).
+func ensureKubeconfigEnv(projectDir string) {
+	if os.Getenv("KUBECONFIG") != "" {
+		return
+	}
+	path := defaultKubeconfigPath(projectDir)
+	if _, err := os.Stat(path); err != nil {
+		return
+	}
+	_ = os.Setenv("KUBECONFIG", path)
+}
 
 func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
@@ -32,6 +51,7 @@ func Run(cmd *exec.Cmd) (string, error) {
 		_, _ = fmt.Fprintf(GinkgoWriter, "chdir dir: %q\n", err)
 	}
 
+	ensureKubeconfigEnv(dir)
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	command := strings.Join(cmd.Args, " ")
 	_, _ = fmt.Fprintf(GinkgoWriter, "running: %q\n", command)
