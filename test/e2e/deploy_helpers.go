@@ -35,6 +35,12 @@ metadata:
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
 
+	Eventually(func(g Gomega) {
+		check := exec.Command("kubectl", "get", "crd", "queuemanagerconnections.messaging.kurator.dev")
+		_, runErr := utils.Run(check)
+		g.Expect(runErr).NotTo(HaveOccurred(), "QueueManagerConnection CRD should be registered")
+	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
 	By("deploying the controller-manager for MQ e2e")
 	cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", managerImage))
 	_, err = utils.Run(cmd)
