@@ -20,6 +20,10 @@ copy_generated() {
     mkdir -p "$scratch/$(dirname "$f")"
     cp -a "$f" "$scratch/$f"
   done
+  if [[ -d test/mocks ]]; then
+    mkdir -p "$scratch/test"
+    cp -a test/mocks "$scratch/test/mocks"
+  fi
 }
 
 copy_generated
@@ -31,6 +35,10 @@ go tool controller-gen \
   webhook \
   paths="./api/...;./internal/controller/...;./internal/webhook/...;./cmd/..." \
   output:crd:artifacts:config=config/crd/bases
+
+if grep -q 'packages:' .mockery.yaml 2>/dev/null && ! grep -q 'packages: {}' .mockery.yaml; then
+  go tool mockery
+fi
 
 bash hack/helm-sync-crds.sh
 
@@ -52,5 +60,12 @@ for f in api/*/zz_generated.deepcopy.go; do
     exit 1
   fi
 done
+
+if [[ -d "$scratch/test/mocks" ]] || [[ -d test/mocks ]]; then
+  if ! diff -ru "$scratch/test/mocks" test/mocks; then
+    echo "verify: drift in test/mocks — run 'task generate'" >&2
+    exit 1
+  fi
+fi
 
 echo "verify: ok"
