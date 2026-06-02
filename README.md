@@ -97,7 +97,7 @@ Full index with paths by role: **[docs/README.md](docs/README.md)**.
 | 🎯 **Use Kurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/kurator/README.md) |
 | 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](docs/CONTRIBUTING.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
 | 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [Attribute reconciliation](docs/ATTRIBUTE_RECONCILIATION.md) · [ADRs](docs/adr/) |
-| 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
+| 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [Release guide](docs/RELEASE.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |
 | 📚 **IBM MQ reference** | [Objects (research)](docs/IBM_MQ_OBJECTS.md) · [REST API](docs/IBM_MQ_REST_API.md) · [Schemas](docs/schemas/README.md) |
 
 Contributors: [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) (guidelines, commits,
