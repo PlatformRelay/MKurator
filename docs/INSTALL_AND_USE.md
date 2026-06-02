@@ -22,7 +22,7 @@ Doc index: [README.md](README.md) · [../README.md](../README.md)
 | 🔧 | [Sample resources](#sample-resources-in-this-repository) |
 | 📅 | [Day-2 operations](#day-2-operations) |
 | 📊 | [Metrics and monitoring](OBSERVABILITY.md) |
-| ⬆️ | [Upgrading Kurator](UPGRADE.md) |
+| ⬆️ | [Upgrading from a previous release](#upgrading-from-a-previous-release) |
 | 🆘 | [Troubleshooting](#troubleshooting) |
 | 🗑️ | [Uninstall](#uninstall) |
 | ➡️ | [Next steps](#next-steps) |
@@ -496,7 +496,7 @@ Walkthrough with the web console and `runmqsc`: [IBM_MQ_101.md](IBM_MQ_101.md).
 
 ## Day-2 operations
 
-For version upgrades (CRDs, webhooks, cert-manager), see [UPGRADE.md](UPGRADE.md).
+For version upgrades, see [Upgrading from a previous release](#upgrading-from-a-previous-release).
 For Prometheus scrape and alerting, see [OBSERVABILITY.md](OBSERVABILITY.md).
 For log level and format, see [LOGGING.md](LOGGING.md).
 
@@ -538,6 +538,32 @@ was already gone on MQ, deletion still succeeds.
 Remove dependent `Queue`, `Topic`, and `Channel` objects first.
 `QueueManagerConnection` uses a finalizer for orderly teardown (connectivity
 only — it does not own MQ objects on the queue manager).
+
+---
+
+## Upgrading from a previous release
+
+When moving from an older Kurator release (for example **v0.3.x** or **v0.4.x**) to the
+current chart (**0.5.0**), apply updates in this order:
+
+1. **CRDs** — `install-crds.yaml` or `charts/kurator/crds/` (new kinds and schema changes
+   land here first).
+2. **Operator** — release `install.yaml` or `helm upgrade` with the target `VERSION`.
+3. **Your CRs** — re-apply samples or GitOps manifests after the controller is running and
+   webhooks are serving.
+
+**Webhooks and cert-manager:** releases from **0.4.0** onward enable validating webhooks by
+default. Ensure **cert-manager** is installed and the webhook certificate becomes
+`Available` before relying on admission. Skipping CRD apply first can leave the API server
+on an old schema while the controller expects new fields.
+
+**Before you upgrade:** read the [CHANGELOG](../CHANGELOG.md) and the
+[GitHub release notes](https://github.com/konih/kurator/releases) for your target tag.
+Jumping to **0.5.0+** adds `ChannelAuthRule` and `AuthorityRecord`; tags before **v0.5.0**
+do not ship those CRDs.
+
+Step-by-step procedures (Helm vs Kustomize, server-side CRD apply, rollback):
+**[UPGRADE.md](UPGRADE.md)**.
 
 ---
 

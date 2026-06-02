@@ -13,7 +13,7 @@
 
 | | Document | Covers |
 |---|----------|--------|
-| 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, troubleshooting, uninstall |
+| 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, upgrade summary, troubleshooting, uninstall |
 | 🎯 | [UPGRADE.md](UPGRADE.md) | Upgrade operator, CRDs, webhooks, cert-manager |
 | 🎯 | [OBSERVABILITY.md](OBSERVABILITY.md) | Prometheus metrics, ServiceMonitor, RBAC |
 | 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel, auth YAML |
