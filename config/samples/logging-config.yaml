@@ -1,0 +1,6 @@
+# Example logging configuration for Kurator.
+# Mount as a ConfigMap and set KURATOR_LOG_CONFIG=/etc/kurator/logging.yaml
+# See docs/LOGGING.md for precedence and environment variables.
+
+level: info
+format: json

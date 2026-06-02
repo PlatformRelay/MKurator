@@ -32,3 +32,4 @@ supersedes the old one rather than editing history.
 | [0004](0004-task-as-task-runner.md) | Use Task as the task runner | Accepted |
 | [0005](0005-keep-tooling-lean.md) | Keep tooling lean; borrow discipline, not org overhead | Accepted |
 | [0006](0006-project-name-kurator.md) | Project name and module identity (Kurator) | Accepted |
+| [0007](0007-structured-logging-logr-slog.md) | Structured logging with logr and slog | Accepted |

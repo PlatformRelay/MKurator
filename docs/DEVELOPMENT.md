@@ -48,6 +48,26 @@ Build the manager binary (CGO-free, static):
 task build
 ```
 
+### Logging
+
+Logging is configured via YAML file, environment variables, or flags (see
+[LOGGING.md](LOGGING.md)). Quick local examples:
+
+```sh
+# Human-readable logs on stderr (default when not in a pod)
+go run ./cmd/main.go --log-format=text --log-level=debug
+
+# JSON to stdout (production-style)
+go run ./cmd/main.go --log-format=json --log-level=info
+
+# File-based config
+export KURATOR_LOG_CONFIG=config/samples/logging-config.yaml
+go run ./cmd/main.go
+```
+
+In the cluster, the manager Deployment sets `KURATOR_LOG_FORMAT=json` and
+`KURATOR_LOG_LEVEL=info` by default.
+
 ## Local platform (kind + IBM MQ)
 
 The `hack/kind-cluster` tree provisions a complete environment: a kind cluster
