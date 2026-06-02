@@ -10,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
 	mqadmintest "github.com/konradheimel/kurator/test/mocks/mqadmin"
@@ -32,14 +31,13 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 	})
 
 	AfterEach(func() {
+		cleanupNamespace(context.Background(), ns)
 		cancel()
-		_ = k8sClient.DeleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnection{}, client.InNamespace(ns))
-		_ = k8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(ns))
 	})
 
 	It("sets Ready after a successful ping", func() {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns},
+			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
 			Data: map[string][]byte{
 				"username": []byte("admin"),
 				"password": []byte("secret"),
@@ -50,10 +48,10 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		conn := &messagingv1alpha1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
 			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-				QueueManager: "QM1",
-				Endpoint:     "https://mq.example:9443",
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
 				CredentialsSecretRef: messagingv1alpha1.SecretReference{
-					Name: "mq-credentials",
+					Name: testSecretName,
 				},
 			},
 		}

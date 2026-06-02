@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
@@ -33,25 +32,24 @@ var _ = Describe("QueueReconciler", func() {
 	})
 
 	AfterEach(func() {
+		cleanupNamespace(context.Background(), ns)
 		cancel()
-		_ = k8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Queue{}, client.InNamespace(ns))
-		_ = k8sClient.DeleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnection{}, client.InNamespace(ns))
 	})
 
 	It("requeues when the connection is not Ready", func() {
 		conn := &messagingv1alpha1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
 			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-				QueueManager: "QM1",
-				Endpoint:     "https://mq.example:9443",
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
 				CredentialsSecretRef: messagingv1alpha1.SecretReference{
-					Name: "mq-credentials",
+					Name: testSecretName,
 				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
 
-		q := sampleQueue(ns, key, "qm1", "APP.ORDERS")
+		q := sampleQueue(ns, key, "qm1", testQueueName)
 		Expect(k8sClient.Create(ctx, q)).To(Succeed())
 
 		rec := &QueueReconciler{
@@ -74,20 +72,29 @@ var _ = Describe("QueueReconciler", func() {
 	It("defines the queue when the connection is Ready", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
-		q := sampleQueue(ns, key, "qm1", "APP.ORDERS")
+		q := sampleQueue(ns, key, "qm1", testQueueName)
 		Expect(k8sClient.Create(ctx, q)).To(Succeed())
 
 		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
 		mockAdmin.EXPECT().
-			GetQueue(mock.Anything, "APP.ORDERS").
-			Return(nil, &mqadmin.NotFoundError{Object: "APP.ORDERS"})
+			GetQueue(mock.Anything, testQueueName).
+			Return(nil, &mqadmin.NotFoundError{Object: testQueueName})
 		mockAdmin.EXPECT().
 			DefineQueue(mock.Anything, mqadmin.QueueSpec{
-				Name: "APP.ORDERS",
+				Name: testQueueName,
 				Type: mqadmin.QueueTypeLocal,
 				Attributes: map[string]string{
-					"maxdepth": "5000",
+					testAttrMaxDepth: testMaxDepth,
 				},
 			}).
 			Return(nil)
@@ -131,7 +138,7 @@ func sampleQueue(ns, name, connName, queueName string) *messagingv1alpha1.Queue 
 			QueueName:     queueName,
 			Type:          messagingv1alpha1.QueueTypeLocal,
 			Attributes: map[string]string{
-				"maxdepth": "5000",
+				testAttrMaxDepth: testMaxDepth,
 			},
 		},
 	}
@@ -141,10 +148,10 @@ func readyConnection(ns, name string) *messagingv1alpha1.QueueManagerConnection 
 	return &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
 		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://mq.example:9443",
+			QueueManager: testQueueManager,
+			Endpoint:     testEndpoint,
 			CredentialsSecretRef: messagingv1alpha1.SecretReference{
-				Name: "mq-credentials",
+				Name: testSecretName,
 			},
 		},
 		Status: messagingv1alpha1.QueueManagerConnectionStatus{
