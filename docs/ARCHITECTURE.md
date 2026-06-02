@@ -29,7 +29,9 @@ flowchart TB
       mgr["controller-runtime Manager"]
       crec["QueueManagerConnectionReconciler"]
       qrec["QueueReconciler"]
-      port["MQAdmin port (interface)"]
+      trec["TopicReconciler"]
+      chrec["ChannelReconciler"]
+      port["mqadmin.Admin port"]
       rest["mqrest adapter (mqweb client)"]
     end
   end
@@ -38,8 +40,12 @@ flowchart TB
   apiserver --> mgr
   mgr --> crec
   mgr --> qrec
+  mgr --> trec
+  mgr --> chrec
   secret -.->|"resolved by"| crec
   qrec --> port
+  trec --> port
+  chrec --> port
   crec --> port
   port --> rest
   rest -->|"HTTPS REST / MQSC"| qm
@@ -48,22 +54,28 @@ flowchart TB
 | Component | Responsibility |
 |-----------|----------------|
 | **Manager** (`cmd/`) | Wires reconcilers, caches, health/metrics, leader election. |
-| **Reconcilers** (`internal/controller`) | Thin control loops. Translate desired vs. observed state and call the `MQAdmin` port. No HTTP/MQ details. |
-| **MQAdmin port** (`internal/mqadmin`) | Go interface describing MQ operations (define/inspect/delete queue, ping connection, etc.) plus domain types. The seam that makes controllers testable and backends swappable. |
+| **Reconcilers** (`internal/controller`) | Thin control loops for `QueueManagerConnection`, `Queue`, `Topic`, and `Channel`. Translate desired vs. observed state and call the `mqadmin.Admin` port. No HTTP/MQ details. |
+| **MQAdmin port** (`internal/mqadmin`) | Go interface (`Admin`) describing MQ operations (ping, queue/topic/channel define/inspect/delete) plus domain types. The seam that makes controllers testable and backends swappable. |
 | **mqrest adapter** (`internal/adapter/mqrest`) | The only `MQAdmin` implementation today. Talks to `mqweb` over HTTPS, posting MQSC commands and parsing responses. |
 | **Secret** | Holds mqweb credentials (and optionally TLS material), referenced by `QueueManagerConnection`. Never inlined in specs. |
 
 ### The MQAdmin port
 
-A representative shape (final signatures land in Phase 2):
+The live interface in `internal/mqadmin/admin.go` (abbreviated):
 
 ```go
-// MQAdmin is the seam between reconcilers and IBM MQ.
-type MQAdmin interface {
+// Admin is the seam between reconcilers and IBM MQ.
+type Admin interface {
     Ping(ctx context.Context) error
-    GetQueue(ctx context.Context, name string) (*QueueState, error)
+    GetQueue(ctx context.Context, spec QueueSpec) (*QueueState, error)
     DefineQueue(ctx context.Context, spec QueueSpec) error
-    DeleteQueue(ctx context.Context, name string) error
+    DeleteQueue(ctx context.Context, spec QueueSpec) error
+    GetTopic(ctx context.Context, name string) (*TopicState, error)
+    DefineTopic(ctx context.Context, spec TopicSpec) error
+    DeleteTopic(ctx context.Context, name string) error
+    GetChannel(ctx context.Context, spec ChannelSpec) (*ChannelState, error)
+    DefineChannel(ctx context.Context, spec ChannelSpec) error
+    DeleteChannel(ctx context.Context, spec ChannelSpec) error
 }
 ```
 
@@ -94,10 +106,12 @@ The operator ships a tightly scoped `ClusterRole` generated from
 `+kubebuilder:rbac` markers:
 
 - Full access to its own API group (`messaging.kurator.dev`): `queues`,
-  `queuemanagerconnections`, and their `/status` and `/finalizers` subresources.
+  `topics`, `channels`, `queuemanagerconnections`, and their `/status` and
+  `/finalizers` subresources.
 - `get`/`list`/`watch` on the referenced **`Secrets`** (credentials, CA bundles)
   — and nothing broader on core resources.
-- `create`/`patch` on `Events` for surfacing reconcile outcomes.
+- `create`/`patch` on `Events` (RBAC generated; reconcile outcomes are surfaced
+  via **status conditions** today).
 - `Lease` access in the operator namespace for leader election.
 
 No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
@@ -107,8 +121,11 @@ No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
 - A `QueueManagerConnection` resolves to an `MQAdmin` client: endpoint + TLS
   trust (from `caSecretRef`) + credentials (from `credentialsSecretRef`).
 - The adapter keeps a **pooled HTTPS client** per connection (reused across
-  reconciles) rather than dialing per request; clients are rebuilt when the
-  connection spec or referenced `Secret` changes.
+  reconciles) rather than dialing per request. The cache key is
+  `namespace/name/generation` today — clients are rebuilt when the connection
+  spec generation changes. Rotating a referenced `Secret` without a spec change
+  does not invalidate the cache until the connection is reconciled again with a
+  new generation.
 - TLS is verified by default; `insecureSkipVerify` is opt-in and intended only
   for local dev. The mqweb CSRF header (`ibm-mq-rest-csrf-token`) is sent on all
   mutating calls (see [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md)).
@@ -120,7 +137,7 @@ without string-parsing:
 
 | Class | Examples | Reconciler response |
 |-------|----------|---------------------|
-| **Terminal** | invalid MQSC, 400/403, auth misconfig | Set a failing condition with a clear reason; do **not** hot-loop. Surface via status + Event; wait for spec/Secret change. |
+| **Terminal** | invalid MQSC, 400/403, auth misconfig | Set a failing condition with a clear reason; do **not** hot-loop. Wait for spec/connection change. |
 | **Transient** | 5xx, network timeout, QM not running (503) | Return the error (or `RequeueAfter` with backoff) so controller-runtime retries with rate limiting. |
 | **NotFound** | object absent on QM | Treated as "needs create" on ensure, or "already gone" on delete. |
 
@@ -172,7 +189,8 @@ status:
 
 ### Queue
 
-A queue maintained on a referenced Queue Manager.
+A queue maintained on a referenced Queue Manager (`QLOCAL`, `QALIAS`, or
+`QREMOTE`).
 
 ```yaml
 apiVersion: messaging.kurator.dev/v1alpha1
@@ -183,10 +201,10 @@ spec:
   connectionRef:
     name: qm1                  # references a QueueManagerConnection
   queueName: APP.ORDERS        # MQ object name
-  type: local                  # local | alias | remote (start with local)
-  attributes:                  # MQSC attributes, e.g. MAXDEPTH
-    maxDepth: 5000
-    description: "Orders intake queue"
+  type: local                  # local | alias | remote
+  attributes:                  # lowercase MQSC keys
+    maxdepth: "5000"
+    descr: "Orders intake queue"
 status:
   conditions:                  # Synced=True when MQSC matches spec
     - type: Synced
@@ -194,48 +212,101 @@ status:
   observedGeneration: 3
 ```
 
-Design choices:
+### Topic
 
-- `connectionRef` decouples queue definitions from connection details and lets
-  many queues share one connection.
-- `attributes` map to MQSC attributes so new attributes can be supported
-  without API churn; a curated, validated subset is promoted to typed fields
-  over time.
+An administrative topic object (`DEFINE TOPIC`) on a referenced Queue Manager.
+
+```yaml
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Topic
+metadata:
+  name: retail-orders
+spec:
+  connectionRef:
+    name: qm1
+  topicName: RETAIL.ORDERS
+  attributes:
+    topstr: retail/orders
+    descr: Retail order events
+status:
+  conditions:
+    - type: Synced
+      status: "True"
+```
+
+### Channel
+
+A server-connection channel (`CHLTYPE(SVRCONN)`) on a referenced Queue Manager.
+
+```yaml
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: orders-app
+spec:
+  connectionRef:
+    name: qm1
+  channelName: ORDERS.APP
+  type: svrconn
+  attributes:
+    descr: Application SVRCONN channel
+    trptype: tcp
+status:
+  conditions:
+    - type: Synced
+      status: "True"
+```
+
+Design choices (Queue, Topic, Channel):
+
+- `connectionRef` decouples object definitions from connection details and lets
+  many resources share one connection.
+- `attributes` map to MQSC parameters (lowercase keys) so new attributes can be
+  supported without API churn. Drift-checked vs define-only keys are documented
+  in [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 ## Reconcile flow
+
+`Queue`, `Topic`, and `Channel` reconcilers share the same lifecycle pattern
+(connection wait → finalizer → display/define/delete via `mqadmin.Admin`).
+Example for a `Queue`:
 
 ```mermaid
 sequenceDiagram
   participant API as API server
   participant R as QueueReconciler
-  participant P as MQAdmin port
+  participant P as mqadmin.Admin port
   participant MQ as Queue Manager (mqweb)
 
   API->>R: Queue created/updated
-  R->>R: resolve QueueManagerConnection + Secret
+  R->>R: resolve QueueManagerConnection (wait until Ready)
   alt deletion (finalizer set)
-    R->>P: DeleteQueue(name)
-    P->>MQ: DELETE QLOCAL(...)
+    R->>P: DeleteQueue(spec)
+    P->>MQ: DELETE QLOCAL/QALIAS/QREMOTE(...)
     R->>API: remove finalizer
   else ensure desired state
-    R->>P: GetQueue(name)
-    P->>MQ: DISPLAY QLOCAL(...)
+    R->>P: GetQueue(spec)
+    P->>MQ: DISPLAY ...
     R->>P: DefineQueue(spec) (create or alter on drift)
-    P->>MQ: DEFINE/ALTER QLOCAL(...)
+    P->>MQ: DEFINE ... REPLACE
     R->>API: update status (Synced, observedGeneration)
   end
 ```
+
+`TopicReconciler` and `ChannelReconciler` call the corresponding topic/channel
+port methods with the same ensure/delete structure.
 
 Principles:
 
 - **Idempotent**: define/alter MQSC so repeated reconciles converge; safe to
   re-run.
 - **Drift detection**: compare observed MQSC attributes against spec each loop
-  and correct.
+  and correct (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md)).
 - **Finalizers**: a finalizer guarantees the MQ object is removed before the CR
   disappears.
-- **Status conditions**: `Ready` (connection reachable) and `Synced` (object
-  matches spec), plus `observedGeneration`, give clear, machine-readable state.
+- **Status conditions**: `Ready` on `QueueManagerConnection` (connectivity) and
+  `Synced` on workload CRs (object matches spec), plus `observedGeneration`,
+  give clear, machine-readable state.
 
 ## Why REST over PCF
 
@@ -254,23 +325,24 @@ are recorded in [ADR-0002](adr/0002-manage-mq-via-mqweb-rest.md).
 ## Local development topology
 
 Day-to-day development and e2e run against a self-contained local platform under
-`hack/kind-cluster`: a **kind** cluster with **ingress-nginx**, **cert-manager**,
-an optional **kube-prometheus-stack**, and a real **IBM MQ** Queue Manager
-(Helm chart) — all provisioned with **Terraform**. mkcert provides trusted TLS
-for `*.localhost`, so the web console and REST API are reachable over real HTTPS
-without `curl -k`. See [DEVELOPMENT.md](DEVELOPMENT.md) for commands.
+`hack/kind-cluster`: a **kind** cluster with **HAProxy Ingress** (NodePorts
+30080/30443), **cert-manager**, an optional **kube-prometheus-stack**, and a
+real **IBM MQ** Queue Manager (Helm chart) — all provisioned with **Terraform**.
+mkcert provides trusted TLS for `*.localhost`, so the web console and REST API
+are reachable over real HTTPS without `curl -k`. See
+[DEVELOPMENT.md](DEVELOPMENT.md) for commands.
 
 ```mermaid
 flowchart LR
   host["developer host (mkcert trust)"]
   subgraph kind [kind cluster]
-    ing["ingress-nginx (NodePorts 30080/30443)"]
+    ing["HAProxy Ingress (NodePorts 30080/30443)"]
     subgraph mqns [namespace ibm-mq]
       qm["IBM MQ Queue Manager + mqweb (Helm)"]
     end
     subgraph opns [operator namespace]
       op["operator (controller-manager)"]
-      crs["Queue / QueueManagerConnection CRs"]
+      crs["QMC / Queue / Topic / Channel CRs"]
     end
     mon["kube-prometheus-stack (optional)"]
   end
@@ -280,11 +352,11 @@ flowchart LR
   op -.->|"/metrics"| mon
 ```
 
-- **kind** hosts both day-to-day dev and e2e runs; Terraform provisions ingress,
-  TLS, monitoring, and the Queue Manager.
+- **kind** hosts both day-to-day dev and e2e runs; Terraform provisions HAProxy
+  ingress, TLS, monitoring, and the Queue Manager.
 - The operator reaches mqweb in-cluster (e.g. `https://ibm-mq.ibm-mq.svc:9443`);
   humans reach the console/REST via ingress at `https://mq.localhost:30443`.
-- e2e asserts that applying CRs produces the expected MQSC objects on the live
-  Queue Manager.
+- e2e (`KURATOR_E2E_MQ=1`) asserts that applying Queue, Topic, and Channel CRs
+  produces the expected MQSC objects on the live Queue Manager.
 - Unit/envtest layers need no MQ at all (port is mocked), keeping the inner loop
   fast.
