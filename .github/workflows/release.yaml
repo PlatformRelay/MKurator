@@ -94,6 +94,21 @@ jobs:
       - name: Build release assets
         run: bash hack/release-assets.sh "${{ steps.version.outputs.version }}" "${{ steps.image.outputs.repository }}"
 
+      - name: Log in to Helm registry (GHCR)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${{ env.REGISTRY }}" \
+            --username "${{ github.repository_owner }}" \
+            --password-stdin
+
+      - id: chart
+        run: |
+          OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          echo "oci=oci://${{ env.REGISTRY }}/${OWNER}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish Helm chart to GHCR
+        run: |
+          helm push "dist/kurator-${{ steps.version.outputs.version }}.tgz" "${{ steps.chart.outputs.oci }}"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
@@ -116,7 +131,18 @@ jobs:
             kubectl apply -f install.yaml
             ```
 
-            ## Install (Helm)
+            ## Install (Helm — OCI)
+
+            ```sh
+            helm upgrade --install kurator ${{ steps.chart.outputs.oci }}/kurator \
+              --version ${{ steps.version.outputs.version }} \
+              --namespace kurator-system \
+              --create-namespace \
+              --set image.repository=${{ steps.image.outputs.repository }} \
+              --set image.tag=${{ steps.version.outputs.version }}
+            ```
+
+            ## Install (Helm — GitHub Release tarball)
 
             ```sh
             helm upgrade --install kurator kurator-${{ steps.version.outputs.version }}.tgz \
