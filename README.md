@@ -58,6 +58,40 @@ Latest tagged release: [GitHub Releases](https://github.com/konih/kurator/releas
 It does **not** deploy or operate Queue Manager installations; the Queue
 Manager is assumed to already exist and expose `mqweb`.
 
+## Repository structure
+
+[Kubebuilder v4](https://book.kubebuilder.io/) layout — thin reconcilers, an
+[`MQAdmin`](internal/mqadmin) port, and an [`mqweb`](internal/adapter/mqrest)
+adapter. Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · extended map:
+[AGENTS.md](AGENTS.md#repository-layout).
+
+```text
+kurator/
+├── 📦 api/v1alpha1/                 CRD types + deepcopy (QMC, Queue, Topic, Channel)
+├── 🚀 cmd/                          Manager entrypoint (controller-runtime)
+├── 🧠 internal/
+│   ├── controller/                  Reconcilers (thin) + unit/envtest suites
+│   ├── validation/                  Admission validation rules (pure functions)
+│   ├── webhook/v1alpha1/            Validating webhook handlers
+│   ├── mqadmin/                     MQAdmin port — interface + domain errors
+│   ├── adapter/mqrest/              mqweb REST client (sole adapter today)
+│   ├── logging/                     Structured logging helpers
+│   └── metrics/                     Prometheus metrics
+├── ⚙️  config/                       Kustomize — CRDs, RBAC, manager, webhook, samples
+├── ⎈  charts/kurator/                Publishable Helm chart + sample CRs
+├── 🧪 test/
+│   ├── integration/                 Docker MQ tests (build tag `integration`)
+│   ├── e2e/                         kind + live QM1 (build tag `e2e`)
+│   └── mocks/                       mockery-generated MQAdmin mocks
+├── 🔧 hack/
+│   ├── kind-cluster/                Local platform: kind + Terraform + IBM MQ Helm
+│   ├── mq-docker/                   Standalone IBM MQ container for integration CI
+│   └── *.sh                         verify, release assets, tool install helpers
+├── 📚 docs/                         Guides, ADRs, MQ research (see docs/README.md)
+├── Taskfile.yml                     Primary task runner (`task local:up`, …)
+└── AGENTS.md                        Go conventions + agent entry point
+```
+
 ## Install and use
 
 **Start here:** [docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md) — install the
