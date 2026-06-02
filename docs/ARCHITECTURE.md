@@ -84,7 +84,7 @@ afterthoughts (NFRs in [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREME
 | **Metrics** | controller-runtime Prometheus metrics on `:8443` (HTTPS, authn/authz-protected) plus custom MQ counters/histograms. A `ServiceMonitor` is shipped (optional) for the local kube-prometheus-stack. |
 | **Graceful shutdown** | Manager stops on `SIGTERM`/`SIGINT`, draining in-flight reconciles within `terminationGracePeriodSeconds`. |
 | **Configuration** | Flags + env for metrics/health addresses, leader election, log level/format, and reconcile concurrency. No MQ endpoints in operator config — those live in `QueueManagerConnection` CRs. |
-| **Logging** | Structured logging via `logr`/`zap`; one logger per reconcile keyed by object. Never log secrets or full credentialed request bodies. |
+| **Logging** | Structured logging via **`logr` in application code** and **`slog` at bootstrap** ([ADR-0007](adr/0007-structured-logging-logr-slog.md), [LOGGING.md](LOGGING.md)); configurable via file, `KURATOR_LOG_*` env, or flags. JSON in cluster, text optional locally. Never log secrets or full credentialed request bodies. |
 | **Concurrency** | `MaxConcurrentReconciles` tuned per controller; work is queued and rate-limited by controller-runtime. |
 
 ### RBAC & least privilege

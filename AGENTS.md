@@ -15,6 +15,7 @@ Start here, then drill into the topic you need:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, runtime concerns, CRDs, reconcile flow, security. |
 | [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) | NFRs: security, reliability, observability, performance, supply chain. |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Prerequisites, tools, inner loop, local cluster, test tiers. |
+| [docs/LOGGING.md](docs/LOGGING.md) | Structured logging configuration, requirements, and guidelines. |
 | [docs/CICD.md](docs/CICD.md) | CI/CD pipeline design and the `verify` discipline. |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery plan. |
 | [docs/adr/](docs/adr/) | Architecture Decision Records (one file per significant decision). |
