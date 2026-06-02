@@ -7,9 +7,10 @@ package mqadmintest
 import (
 	"context"
 
+	mock "github.com/stretchr/testify/mock"
+
 	"github.com/konradheimel/kurator/api/v1alpha1"
 	"github.com/konradheimel/kurator/internal/mqadmin"
-	mock "github.com/stretchr/testify/mock"
 )
 
 // NewMockFactory creates a new instance of MockFactory. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
