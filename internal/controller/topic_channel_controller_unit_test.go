@@ -246,7 +246,9 @@ func TestTopicReconciler_DeletionDeleteFails(t *testing.T) {
 		Build()
 
 	mockAdmin := mqadmintest.NewMockAdmin(t)
-	mockAdmin.EXPECT().DeleteTopic(mock.Anything, "RETAIL.ORDERS").Return(&mqadmin.TerminalError{Message: "delete denied"})
+	mockAdmin.EXPECT().
+		DeleteTopic(mock.Anything, "RETAIL.ORDERS").
+		Return(&mqadmin.TerminalError{Message: "delete denied"})
 
 	mockFactory := mqadmintest.NewMockFactory(t)
 	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)

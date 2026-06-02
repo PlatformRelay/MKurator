@@ -5,9 +5,5 @@ resources:
 - service.yaml
 - manifests.yaml
 
-commonLabels:
-  app.kubernetes.io/name: kurator
-  app.kubernetes.io/managed-by: kustomize
-
 configurations:
 - kustomizeconfig.yaml

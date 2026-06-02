@@ -37,6 +37,17 @@ func ensureKubeconfigEnv(projectDir string) {
 	_ = os.Setenv("KUBECONFIG", path)
 }
 
+func environForSubprocess() []string {
+	env := make([]string, 0, len(os.Environ())+2)
+	for _, e := range os.Environ() {
+		if strings.HasPrefix(e, "GOTOOLCHAIN=") {
+			continue
+		}
+		env = append(env, e)
+	}
+	return append(env, "GO111MODULE=on", "GOTOOLCHAIN=local")
+}
+
 func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
 }
@@ -51,7 +62,7 @@ func Run(cmd *exec.Cmd) (string, error) {
 	}
 
 	ensureKubeconfigEnv(dir)
-	cmd.Env = append(os.Environ(), "GO111MODULE=on")
+	cmd.Env = environForSubprocess()
 	command := strings.Join(cmd.Args, " ")
 	_, _ = fmt.Fprintf(GinkgoWriter, "running: %q\n", command)
 	output, err := cmd.CombinedOutput()
