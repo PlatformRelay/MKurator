@@ -177,6 +177,20 @@ func TestPatchSyncedAvailable_Queue(t *testing.T) {
 	}
 }
 
+func TestPatchSyncedProgressing_Channel(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+	ch := &messagingv1alpha1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(ch).WithObjects(ch).Build()
+	if err := patchSyncedProgressing(ctx, cl.Status(), ch, 1, "waiting"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPatchSyncedDeleting_Topic(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

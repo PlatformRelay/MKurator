@@ -7,6 +7,14 @@ import (
 	"github.com/konradheimel/kurator/internal/mqadmin"
 )
 
+func TestMqscResponseOverallFailed_RESTErrorOnly(t *testing.T) {
+	t.Parallel()
+	resp := &mqscResponse{Error: []restErrorItem{{Message: "mqweb failure"}}}
+	if !resp.overallFailed() {
+		t.Fatal("expected failure when REST error present")
+	}
+}
+
 func TestMqscResponseOverallFailed(t *testing.T) {
 	t.Parallel()
 	ok := &mqscResponse{OverallCompletionCode: 0, CommandResponse: []commandResponseItem{{CompletionCode: 0}}}
