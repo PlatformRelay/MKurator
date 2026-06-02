@@ -100,7 +100,7 @@ Package the chart for an OCI registry or chart museum:
 
 ```sh
 task helm:package
-# artifact: dist/kurator-0.1.0.tgz
+# artifact: dist/kurator-0.5.0.tgz
 ```
 
 Bump `version` in `Chart.yaml` for each release and align `appVersion` with the
