@@ -104,6 +104,22 @@ Shipped: `SET AUTHREC` / `SET CHLAUTH` via `AuthorityRecord` and `ChannelAuthRul
 
 Sketch and rule-type roadmap: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
+## Manual and out-of-band MQ changes
+
+Kurator is **declarative**: the operator drives IBM MQ toward what your CRs specify. Changes made
+outside the operator (MQ console, `runmqsc`, another tool) are handled as follows:
+
+- **Drift-checked attributes** (see tables above) — on the next reconcile, DISPLAY shows a
+  difference and the operator issues **DEFINE … REPLACE** to match the CR.
+- **Define-only attributes** — manual edits are **not** detected; the CR must change (or you
+  must alter a drift-checked field) to trigger a new DEFINE.
+- **Objects with no CR** — Kurator does not delete queues, topics, or channels it does not
+  manage; it only creates/updates/deletes objects backed by a CR with a finalizer.
+
+There is no observe-only mode today. A future annotation
+`messaging.kurator.dev/drift-policy=observe-only` may allow reporting drift without apply — not
+implemented in v1alpha1.
+
 ## Known limitations
 
 1. **Manual MQ changes** to define-only attributes are not detected; re-applying the CR does not force a new DEFINE unless a drift-checked key changes.

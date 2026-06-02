@@ -57,6 +57,20 @@ Optional status fields and CLI aids for inspecting intended MQSC without applyin
 - [ ] Topic, Channel, auth CRs desiredMQSC
 - [ ] Optional `kubectl kurator` plugin (future)
 
+## Repository audit follow-ups (operator UX)
+
+From [repository audit plan](https://github.com/konih/kurator) — robustness items 1–5:
+
+- [x] Status UX — `status.message`, `lastSyncTime`, `mqObjectExists` on Queue/Topic/Channel
+- [x] Connection summary on dependents — QMC `Ready` reason/message in `status.message` while waiting
+- [x] Orphan / external drift — documented in ATTRIBUTE_RECONCILIATION + INSTALL_AND_USE
+- [x] `MaxConcurrentReconciles` — `--max-concurrent-reconciles` / `KURATOR_MAX_CONCURRENT_RECONCILES`
+- [ ] Operator NotReady when no QMC can ping (deferred; needs QMC health aggregation)
+
+Future (not started):
+
+- [ ] `messaging.kurator.dev/drift-policy=observe-only` reconcile mode
+
 ## Out of scope for 0.5.0
 
 - Additional CHLAUTH rule types beyond `ADDRESSMAP` (schema allows them; adapter validates at MQSC apply time)

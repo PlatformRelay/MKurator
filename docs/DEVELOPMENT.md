@@ -435,6 +435,21 @@ Guidelines:
   default `go test ./...`.
 - Keep coverage high on `internal/`; CI reports it.
 
+## Operator tuning
+
+**Concurrency (NFR PERF-3):** each reconciler uses `MaxConcurrentReconciles` workers.
+Increase when reconciling many CRs against one mqweb endpoint (watch mqweb load):
+
+```sh
+# Helm / Kustomize manager Deployment args:
+--max-concurrent-reconciles=4
+
+# Or environment (used as default before the flag is parsed):
+KURATOR_MAX_CONCURRENT_RECONCILES=4
+```
+
+Default is **1** (controller-runtime default). Values below 1 are clamped to 1.
+
 ## Troubleshooting
 
 - **`kustomize: command not found`**: use `task deploy` (invokes `go tool
