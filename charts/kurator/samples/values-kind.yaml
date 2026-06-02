@@ -1,0 +1,20 @@
+# Overrides for the Kurator local kind cluster (hack/kind-cluster).
+# Use with: task deploy:helm
+#
+# Prerequisites:
+#   task cluster:up
+#   task docker:build   # or rely on deploy:helm dependency
+
+image:
+  repository: kurator-controller-manager
+  tag: dev
+  pullPolicy: IfNotPresent
+
+createNamespace: true
+
+logging:
+  level: debug
+  format: text
+
+metrics:
+  enabled: true

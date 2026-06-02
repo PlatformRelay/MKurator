@@ -26,6 +26,8 @@ Manager is assumed to already exist and expose `mqweb`.
 - [docs/CICD.md](docs/CICD.md) — CI/CD pipeline design.
 - [docs/adr/](docs/adr/) — architecture decision records.
 - [docs/ROADMAP.md](docs/ROADMAP.md) — phased delivery plan.
+- [docs/REFERENCES.md.example](docs/REFERENCES.md.example) — IBM MQ sample repos map (local copy: `docs/REFERENCES.md`).
+- [charts/kurator/README.md](charts/kurator/README.md) — Helm chart to install the operator.
 - [SECURITY.md](SECURITY.md) — security posture and reporting.
 
 ## Planned workflow

@@ -1,0 +1,7 @@
+* Channel/auth prerequisites derived from ibm-messaging/mq-gitops-samples
+* queue-manager-basic-deployment/qmdemo-mqsc-config-map.yaml (Apache-2.0).
+* Used by e2e to validate mqweb MQSC execution; target for Phase 4 Channel/CHLAUTH CRs.
+
+DEFINE CHANNEL('DEV.APP.SVRCONN.0TLS') CHLTYPE(SVRCONN) TRPTYPE(TCP) MCAUSER('app') SSLCIPH('') SSLCAUTH(OPTIONAL) REPLACE
+
+SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') USERSRC(CHANNEL) CHCKCLNT(REQUIRED) DESCR('Allows connection via APP channel') ACTION(REPLACE)

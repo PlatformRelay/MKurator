@@ -1,0 +1,62 @@
+# Default values for the Kurator operator Helm chart.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# When true, create the release namespace (requires Helm --create-namespace or pre-created NS).
+createNamespace: false
+
+image:
+  repository: kurator-controller-manager
+  tag: dev
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+
+leaderElection:
+  enabled: true
+
+logging:
+  level: info
+  format: json
+
+metrics:
+  enabled: true
+  bindAddress: ":8443"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Extra arguments passed to /manager
+extraArgs: []

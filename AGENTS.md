@@ -21,6 +21,9 @@ Start here, then drill into the topic you need:
 | [docs/adr/](docs/adr/) | Architecture Decision Records (one file per significant decision). |
 | [docs/IBM_MQ_OBJECTS.md](docs/IBM_MQ_OBJECTS.md) | MQSC object model the operator manages. |
 | [docs/IBM_MQ_REST_API.md](docs/IBM_MQ_REST_API.md) | How the `mqweb` REST API is consumed. |
+| [docs/REFERENCES.md.example](docs/REFERENCES.md.example) | IBM MQ samples map (copy to gitignored `docs/REFERENCES.md` locally). |
+| [charts/kurator/README.md](charts/kurator/README.md) | Publishable Helm chart and kind install. |
+| [docs/PHASE4_CHANNEL_AUTH.md](docs/PHASE4_CHANNEL_AUTH.md) | Phase 4 channel/auth CR sketch from reference MQSC. |
 | [SECURITY.md](SECURITY.md) | Security posture and vulnerability reporting. |
 
 ## Overview
@@ -92,6 +95,7 @@ trees land during scaffolding (see [ROADMAP.md](docs/ROADMAP.md), Phase 1).
 │   ├── controller/           # reconcilers (thin) + their tests                           [Phase 2+]
 │   ├── mqadmin/              # MQAdmin port (interface) + domain types                     [Phase 2+]
 │   └── adapter/mqrest/       # mqweb REST client implementing MQAdmin                       [Phase 2+]
+├── charts/kurator/            # publishable Helm chart + kind sample CRs                    [Phase 3+]
 ├── config/                    # Kustomize: CRDs, RBAC, manager, samples                    [Phase 1+]
 ├── test/
 │   ├── e2e/                  # kind-based end-to-end suites                                 [Phase 3+]
@@ -226,7 +230,10 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to run each tier.
 | `task build` | Build the manager binary (CGO-free, static) |
 | `task docker:build` | Build the controller-manager image |
 | `task cluster:up` / `task cluster:down` | Bring up/tear down the local kind platform (`hack/kind-cluster`) |
-| `task deploy` / `task undeploy` | Apply/remove operator + CRDs |
+| `task deploy` / `task deploy:helm` | Install operator (Kustomize or Helm) |
+| `task deploy:samples` | Apply sample CRs after install |
+| `task undeploy` / `task undeploy:helm` | Remove operator |
+| `task helm:package` | Package `charts/kurator` for publish |
 | `task test:run` | Run unit + envtest suites (Ginkgo) |
 | `task test:e2e` | Run kind-based e2e suite |
 

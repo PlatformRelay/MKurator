@@ -396,7 +396,7 @@ Reference: [REST API discovery](https://www.ibm.com/docs/en/ibm-mq/9.3.x?topic=a
 
 ## 8. Container / Kubernetes notes
 
-IBM MQ Helm chart exposes mqweb on the queue manager pod (default `ClusterIP`; optional Route/NodePort). `mqwebuser.xml` can be mounted from a ConfigMap — see `references/cluster-setup/ibm-mq/`.
+IBM MQ Helm chart exposes mqweb on the queue manager pod (default `ClusterIP`; optional Route/NodePort). `mqwebuser.xml` can be mounted from a ConfigMap — see `hack/kind-cluster/charts/ibm-mq/`.
 
 Typical gaps in default dev images:
 

@@ -109,6 +109,35 @@ func TestClient_GetQueueNotFound(t *testing.T) {
 	}
 }
 
+func TestClient_RunMQSC(t *testing.T) {
+	t.Parallel()
+	var lastBody map[string]any
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&lastBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 0,
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	cmd := "DEFINE CHANNEL('APP.CH') CHLTYPE(SVRCONN) REPLACE"
+	if err := c.RunMQSC(context.Background(), cmd); err != nil {
+		t.Fatalf("RunMQSC: %v", err)
+	}
+	if lastBody["type"] != "runCommand" {
+		t.Fatalf("type = %v", lastBody["type"])
+	}
+	params, _ := lastBody["parameters"].(map[string]any)
+	if params["command"] != cmd {
+		t.Fatalf("command = %v", params["command"])
+	}
+}
+
 func newTestClient(t *testing.T, endpoint string, hc *http.Client) *mqrest.Client {
 	t.Helper()
 	u, err := url.Parse(endpoint)

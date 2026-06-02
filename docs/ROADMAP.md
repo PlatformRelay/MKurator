@@ -60,7 +60,9 @@ adapter unit tests cover success + error paths.
 
 - e2e suite (`test/e2e`, build tag `e2e`) on **kind** against the real IBM MQ
   Queue Manager from `hack/kind-cluster`; assert real MQSC objects for
-  create/update/delete and re-apply idempotency (NFR REL-1).
+  create/update/delete and re-apply idempotency (NFR REL-1). MQ scenarios require
+  `KURATOR_E2E_MQ=1`; channel/auth fixtures under `test/e2e/fixtures/` (from
+  mq-gitops-samples — see `test/e2e/fixtures/`).
 - Wire e2e into CI (kind in GitHub Actions) on a dedicated job.
 - Release workflow: multi-arch distroless image publish + Trivy image scan +
   published Kustomize install manifests (NFR OPS-1/OPS-2, SEC-4/SEC-6).
@@ -73,7 +75,9 @@ Manager; release pipeline produces a scanned image and install manifests.
 ## Phase 4 — User & authority management
 
 - Extend the API toward MQ access control: authority records / channel auth /
-  user-style resources (exact CRDs decided when reached).
+  user-style resources (exact CRDs decided when reached). See
+  [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md) for a CR sketch mapped from
+  reference MQSC.
 - Corresponding `MQAdmin` operations, adapter support, and tests at all layers.
 
 ## Later / candidate work

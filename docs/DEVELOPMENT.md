@@ -134,13 +134,102 @@ Defaults (override via Terraform variables): Queue Manager `QM1`, MQ admin user
 `admin`, namespace `ibm-mq`, credentials in the `mq-credentials` Secret. These
 are **local-dev defaults only** — never reuse them anywhere real.
 
-### Deploy the operator
+## Deploying a queue manager for Kurator
+
+Kurator requires an **existing** queue manager with **mqweb** enabled. It does not
+install or upgrade Queue Managers. Choose one of the options below; then point a
+`QueueManagerConnection` at the in-cluster mqweb URL (or a reachable equivalent).
+
+See also [REFERENCES.md.example](REFERENCES.md.example) (copy to gitignored
+`docs/REFERENCES.md` when using a local `references/` clone).
+
+### Option A — mq-helm on kind (recommended for local dev)
+
+This is what `hack/kind-cluster` provisions: the upstream
+[ibm-messaging/mq-helm](https://github.com/ibm-messaging/mq-helm) chart with
+`web.enable: true` and a `mq-credentials` Secret (`mqAdminPassword` / `mqAppPassword`).
 
 ```sh
-task deploy        # build image, load into kind, apply CRDs + manager
-# point a QueueManagerConnection at https://ibm-mq.ibm-mq.svc:9443
+task cluster:up
+# In-cluster endpoint for QueueManagerConnection:
+#   https://ibm-mq.ibm-mq.svc:9443
 kubectl apply -k config/samples
 ```
+
+The operator pod resolves cluster DNS; your laptop can use the ingress URLs from
+`task cluster:info` for manual REST/console checks.
+
+### Option B — IBM MQ Operator (OpenShift or EKS preview)
+
+Use when the queue manager is already managed by IBM’s operator. Kurator only needs
+mqweb credentials and network reachability from the operator namespace.
+
+**OpenShift:** install the IBM Operator Catalog (`icr.io/cpopen/ibm-operator-catalog`)
+and the **IBM MQ** operator from OperatorHub. See
+[ibm-messaging/mq-gitops-samples](https://github.com/ibm-messaging/mq-gitops-samples/tree/main/queue-manager-basic-deployment) (local clone under `references/`, gitignored).
+
+**Amazon EKS (preview):** Helm chart and CRD in
+[ibm-messaging/mq-operator-eks-preview-2025](https://github.com/ibm-messaging/mq-operator-eks-preview-2025); no
+controller source is published.
+
+Minimum `QueueManager` fields for mqweb (adapt namespace/license as required):
+
+| Field | Purpose |
+|-------|---------|
+| `spec.web.enabled: true` | Enables IBM MQ Console and REST APIs on the QM pod |
+| `spec.web.console.authentication.provider` / `authorization.provider` | e.g. `manual` for basic registry (see gitops `qmdemo-qm.yaml`) |
+| `spec.pki.keys` / `spec.pki.trust` | TLS material for the QM pod (often from cert-manager Secrets) |
+| `spec.queueManager.name` | QM name — must match `QueueManagerConnection.spec.queueManager` |
+| `spec.queueManager.mqsc` | Optional bootstrap MQSC via ConfigMap (channels, CHLAUTH at install). Kurator reconciles **additional** objects later via CRs. |
+
+On **EKS**, disable OpenShift-only routes in the `QueueManager` spec (see
+[Ingress for IBM MQ Console and REST APIs](https://github.com/ibm-messaging/mq-operator-eks-preview-2025/blob/main/configuring_Ingress_and_LoadBalancers/Ingress_for_IBM_MQ_Console_and_REST_APIs.md)):
+
+- `spec.web.route.enabled: false`
+- `spec.queueManager.route.enabled: false`
+- `spec.queueManager.metrics.serviceMonitor.enabled: false` (unless you run Prometheus Operator)
+
+Create a Kubernetes Secret with mqweb admin credentials. Kurator accepts `username` +
+`password` or `mqAdminPassword` (see `internal/adapter/mqrest/factory.go`).
+
+Example `QueueManagerConnection` (same as [samples](../config/samples/)):
+
+```yaml
+spec:
+  queueManager: QM1   # or your spec.queueManager.name
+  endpoint: https://<qm-service>.<namespace>.svc:9443
+  tls:
+    caSecretRef:
+      name: <ca-secret>   # omit insecureSkipVerify in production
+  credentialsSecretRef:
+    name: mq-credentials
+```
+
+### Option C — Other environments
+
+Any queue manager (VM, container, Cloud Pak) works if mqweb is reachable and
+admin credentials are in a referenced Secret. Use [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md)
+for CSRF, TLS, and MQSC endpoint details.
+
+### Deploy the operator
+
+**Helm (recommended for kind):**
+
+```sh
+task deploy:helm     # build image, load into kind, helm install charts/kurator
+task deploy:samples  # Secret + QueueManagerConnection + Queue for QM1
+```
+
+**Kustomize (Kubebuilder default):**
+
+```sh
+task deploy          # build image, load into kind, apply CRDs + manager
+kubectl apply -k config/samples
+```
+
+Both paths target namespace `kurator-system` and expect mqweb at
+`https://ibm-mq.ibm-mq.svc:9443` after `task cluster:up`. Chart details:
+[charts/kurator/README.md](../charts/kurator/README.md).
 
 ### Tear down
 
@@ -158,6 +247,13 @@ DELETE_CLUSTER=true ./scripts/cleanup.sh   # also delete the cluster
 | **Unit** | Reconciler logic + REST adapter vs mocks / `httptest` | No | `task test:run` |
 | **envtest** | Controller + API against a real API server (`setup-envtest`), `MQAdmin` mocked | No (downloads control-plane binaries) | `task test:run` |
 | **e2e** | Operator in kind against live IBM MQ; asserts real MQSC | Yes (`task cluster:up`) | `task test:e2e` |
+
+**IBM MQ e2e scenarios** (queue reconcile, channel/auth fixtures) run only when
+`KURATOR_E2E_MQ=1` is set and the kind platform with IBM MQ is up. Without that,
+the scaffold e2e suite (controller pod, metrics) still runs. MQ-specific tests use
+defaults aligned with `hack/kind-cluster` (`QM1`, `admin` / `passw0rd`, endpoint
+`https://ibm-mq.ibm-mq.svc:9443`). Override with `KURATOR_E2E_MQ_*` env vars
+documented in [`test/e2e/fixtures/README.md`](../test/e2e/fixtures/README.md).
 
 Guidelines:
 

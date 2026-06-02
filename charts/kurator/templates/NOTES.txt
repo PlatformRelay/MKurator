@@ -1,0 +1,16 @@
+Kurator has been installed in namespace {{ .Release.Namespace }}.
+
+1. Verify the controller pod:
+
+  kubectl get pods -n {{ .Release.Namespace }} -l control-plane=controller-manager
+
+2. Apply a QueueManagerConnection and Queue (see charts/kurator/samples/resources/).
+
+3. For the local kind dev platform (IBM MQ in namespace ibm-mq):
+
+  task cluster:up
+  kubectl apply -f charts/kurator/samples/resources/
+
+CRDs were installed from charts/kurator/crds/ (Helm CRD install). After API changes, run:
+
+  task manifests && task helm:sync-crds

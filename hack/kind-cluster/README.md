@@ -47,6 +47,17 @@ kind clusters blocking NodePorts 30080/30443 are removed automatically.
 
 In-cluster: `https://ibm-mq.ibm-mq.svc:9443` (`QueueManagerConnection.endpoint`).
 
+## Kurator operator on this cluster
+
+From the repository root (after `task cluster:up`):
+
+```sh
+task deploy:helm
+task deploy:samples
+```
+
+See [charts/kurator/README.md](../../charts/kurator/README.md).
+
 ## Notes
 
 - Cluster name defaults to `kurator` (`CLUSTER_NAME` env var overrides).

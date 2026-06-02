@@ -168,6 +168,14 @@ func (c *Client) DefineQueue(ctx context.Context, spec mqadmin.QueueSpec) error 
 	return err
 }
 
+// RunMQSC executes a single MQSC command string via the runCommand API.
+func (c *Client) RunMQSC(ctx context.Context, command string) error {
+	body := runCommandRequest{Type: "runCommand"}
+	body.Parameters.Command = command
+	_, err := c.postMQSC(ctx, body)
+	return err
+}
+
 // DeleteQueue removes a local queue.
 func (c *Client) DeleteQueue(ctx context.Context, name string) error {
 	_, err := c.runCommandJSON(ctx, runCommandJSONRequest{
@@ -183,6 +191,10 @@ func (c *Client) DeleteQueue(ctx context.Context, name string) error {
 }
 
 func (c *Client) runCommandJSON(ctx context.Context, body runCommandJSONRequest) (*mqscResponse, error) {
+	return c.postMQSC(ctx, body)
+}
+
+func (c *Client) postMQSC(ctx context.Context, body any) (*mqscResponse, error) {
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("marshal mqsc request: %w", err)
@@ -235,7 +247,11 @@ func (c *Client) runCommandJSON(ctx context.Context, body runCommandJSONRequest)
 	}
 	if parsed.overallFailed() {
 		if parsed.isObjectMissing() {
-			return &parsed, &mqadmin.NotFoundError{Object: body.Name}
+			obj := ""
+			if req, ok := body.(runCommandJSONRequest); ok {
+				obj = req.Name
+			}
+			return &parsed, &mqadmin.NotFoundError{Object: obj}
 		}
 		return &parsed, parsed.terminalError("mqsc command failed")
 	}

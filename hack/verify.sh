@@ -9,7 +9,7 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
 copy_generated() {
-  for path in config/crd/bases config/rbac; do
+  for path in config/crd/bases config/rbac charts/kurator/crds; do
     if [[ -d "$path" ]]; then
       mkdir -p "$scratch/$(dirname "$path")"
       cp -a "$path" "$scratch/$path"
@@ -32,9 +32,11 @@ go tool controller-gen \
   paths="./api/...;./internal/controller/...;./cmd/..." \
   output:crd:artifacts:config=config/crd/bases
 
+bash hack/helm-sync-crds.sh
+
 echo "verify: comparing generated artifacts..."
 
-for path in config/crd/bases config/rbac; do
+for path in config/crd/bases config/rbac charts/kurator/crds; do
   if [[ -d "$scratch/$path" ]] || [[ -d "$path" ]]; then
     if ! diff -ru "$scratch/$path" "$path"; then
       echo "verify: drift in $path — run 'task generate && task manifests'" >&2

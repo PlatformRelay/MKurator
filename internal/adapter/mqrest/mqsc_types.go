@@ -7,6 +7,14 @@ import (
 	"github.com/konradheimel/kurator/internal/mqadmin"
 )
 
+// runCommandRequest matches docs/schemas/mqsc-runcommand.schema.json runCommand.
+type runCommandRequest struct {
+	Type       string `json:"type"`
+	Parameters struct {
+		Command string `json:"command"`
+	} `json:"parameters"`
+}
+
 // runCommandJSONRequest matches docs/schemas/mqsc-runcommand.schema.json runCommandJSON.
 type runCommandJSONRequest struct {
 	Type               string         `json:"type"`
