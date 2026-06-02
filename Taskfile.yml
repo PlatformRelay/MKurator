@@ -70,6 +70,11 @@ tasks:
     cmds:
       - bash hack/verify.sh
 
+  secrets:scan:
+    desc: Scan git history for hardcoded secrets (gitleaks)
+    cmds:
+      - gitleaks detect --source . --verbose
+
   build:
     desc: Build the manager binary (CGO-free, static)
     deps: [install]
@@ -89,7 +94,7 @@ tasks:
       - "{{.CONTAINER_TOOL | default `docker`}} build -t {{.DOCKER_IMAGE}} ."
 
   deploy:
-    desc: Build image, load into kind (if present), apply install manifests
+    desc: Build image, load into kind (if present), apply install manifests (Kustomize)
     deps: [docker:build]
     cmds:
       - |
@@ -98,13 +103,65 @@ tasks:
         fi
       - |
         cd config/manager && kustomize edit set image controller={{.DOCKER_IMAGE}}
+      - kubectl apply --server-side -f config/crd/bases
       - kubectl apply --server-side -k config/default
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
+  deploy:helm:
+    desc: Build image, load into kind, install operator via Helm chart (local dev)
+    deps: [docker:build, helm:sync-crds]
+    cmds:
+      - |
+        if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME:-kurator}"; then
+          kind load docker-image {{.DOCKER_IMAGE}} --name "${CLUSTER_NAME:-kurator}"
+        fi
+      - |
+        helm upgrade --install kurator ./charts/kurator \
+          --namespace kurator-system \
+          --create-namespace \
+          -f ./charts/kurator/samples/values-kind.yaml \
+          --set image.repository={{.DOCKER_IMAGE | splitList ":" | first}} \
+          --set image.tag={{.DOCKER_IMAGE | splitList ":" | last}} \
+          --wait --timeout 5m
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  deploy:samples:
+    desc: Apply sample QueueManagerConnection, Secret, and Queue (after deploy)
+    cmds:
+      - kubectl apply -k charts/kurator/samples/resources/
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
   undeploy:
-    desc: Remove operator install manifests from the cluster
+    desc: Remove operator install manifests from the cluster (Kustomize)
     cmds:
       - kubectl delete --ignore-not-found -k config/default
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
+
+  undeploy:helm:
+    desc: Uninstall Helm release and sample CRs
+    cmds:
+      - kubectl delete --ignore-not-found -k charts/kurator/samples/resources/
+      - helm uninstall kurator --namespace kurator-system || true
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  helm:sync-crds:
+    desc: Copy config/crd/bases into charts/kurator/crds
+    cmds:
+      - bash hack/helm-sync-crds.sh
+
+  helm:lint:
+    desc: Lint the publishable Kurator Helm chart
+    cmds:
+      - helm lint ./charts/kurator
+
+  helm:package:
+    desc: Package charts/kurator to dist/
+    deps: [helm:sync-crds]
+    cmds:
+      - mkdir -p dist
+      - helm package ./charts/kurator -d dist/
