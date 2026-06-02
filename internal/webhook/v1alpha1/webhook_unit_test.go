@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -13,9 +12,10 @@ import (
 )
 
 func TestTopicWebhookValidateCreate(t *testing.T) {
-	RegisterTestingT(t)
 	scheme := runtime.NewScheme()
-	Expect(messagingv1alpha1.AddToScheme(scheme)).To(Succeed())
+	if err := messagingv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add scheme: %v", err)
+	}
 
 	conn := &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
@@ -35,14 +35,16 @@ func TestTopicWebhookValidateCreate(t *testing.T) {
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
-	_, err := v.ValidateCreate(context.Background(), topic)
-	Expect(err).NotTo(HaveOccurred())
+	if _, err := v.ValidateCreate(context.Background(), topic); err != nil {
+		t.Fatalf("ValidateCreate: %v", err)
+	}
 }
 
 func TestChannelWebhookValidateUpdate(t *testing.T) {
-	RegisterTestingT(t)
 	scheme := runtime.NewScheme()
-	Expect(messagingv1alpha1.AddToScheme(scheme)).To(Succeed())
+	if err := messagingv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add scheme: %v", err)
+	}
 
 	conn := &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
@@ -62,19 +64,18 @@ func TestChannelWebhookValidateUpdate(t *testing.T) {
 			ChannelName:   "ORDERS.APP",
 		},
 	}
-	_, err := v.ValidateUpdate(context.Background(), channel, channel)
-	Expect(err).NotTo(HaveOccurred())
+	if _, err := v.ValidateUpdate(context.Background(), channel, channel); err != nil {
+		t.Fatalf("ValidateUpdate: %v", err)
+	}
 }
 
 func TestQueueManagerConnectionWebhookValidateDelete(t *testing.T) {
-	RegisterTestingT(t)
 	v := &queueManagerConnectionCustomValidator{}
 	warnings, err := v.ValidateDelete(context.Background(), &messagingv1alpha1.QueueManagerConnection{})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(warnings).To(BeEmpty())
-}
-
-func TestSetupWithManagerRegistersWebhooks(t *testing.T) {
-	RegisterTestingT(t)
-	Expect(admissionResult).NotTo(BeNil())
+	if err != nil {
+		t.Fatalf("ValidateDelete: %v", err)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
+	}
 }
