@@ -1,0 +1,3 @@
+# Document false positives here with a rationale comment per finding.
+# Example:
+# CVE-2024-12345  # distroless base; no fix available; not reachable from controller
