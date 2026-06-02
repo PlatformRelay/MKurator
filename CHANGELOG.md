@@ -9,6 +9,35 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **task:** Propagate KURATOR_E2E_MQ into test:e2e task env [eaa4300](https://github.com/konih/kurator/commit/eaa4300a0a6c89d35e6a11c5214d83745583c55a)
+
+- **e2e:** Race-safe subprocess output and webhook assertion [46e9cde](https://github.com/konih/kurator/commit/46e9cdef52f041bac8236b42b3dff6a94d122c59)
+
+- **task:** Resolve kustomize path with go tool -n [bd4bd49](https://github.com/konih/kurator/commit/bd4bd495c502944a8b25b0b6c315ba01d9f94146)
+
+- **samples:** Let kustomization set namespace on Helm samples [2fa4097](https://github.com/konih/kurator/commit/2fa409725905068b095813830676c3bdee39db7b)
+
+- **ci:** Bump Go 1.26.4 and sync verify artifacts [98116c6](https://github.com/konih/kurator/commit/98116c6fd14ebf8bf3807d4d9ce3c4027fb53b04)
+
+- **ci:** Align CRDs with go tool controller-gen [513094f](https://github.com/konih/kurator/commit/513094ffd71895622bc5b96a12c58a5c5198d56b)
+
+- **makefile:** Use go tool kustomize for deploy targets [cf78511](https://github.com/konih/kurator/commit/cf78511fce8fc8bc6a3eecf0a67a668badf5b961)
+
+- **e2e:** Wait for webhook cert and rollout before MQ tests [0e51d30](https://github.com/konih/kurator/commit/0e51d30334969b3cae9e34dccdd4121e8a554407)
+
+- **config:** Fix webhook kustomize for e2e make deploy [7243b13](https://github.com/konih/kurator/commit/7243b136cd0093b01aa5841ef76b9c06865dcddc)
+
+
+### Features
+
+- **auth:** Add GetChannelAuth and GetAuthority MQAdmin paths [32720e9](https://github.com/konih/kurator/commit/32720e9bf55462aa3223939918f25fb1a3cd062c)
+
+- **auth:** Add ChannelAuthRule and AuthorityRecord CRDs [13c842e](https://github.com/konih/kurator/commit/13c842e7ab41f7a4968d45c8baefc9fb2239b13e)
+
+## [0.4.0](https://github.com/konih/kurator/compare/v0.3.0..v0.4.0) - 2026-06-02
+
 ### Features
 
 - **webhook:** Deny QMC delete when dependents exist [a8fc034](https://github.com/konih/kurator/commit/a8fc034fea91bab5f9cc5401a4abef8801786c61)

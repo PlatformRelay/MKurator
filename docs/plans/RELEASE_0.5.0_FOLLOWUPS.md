@@ -38,7 +38,7 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 
 ## Release mechanics
 
-- [ ] Bump `charts/kurator/Chart.yaml` `version` / `appVersion` to **0.5.0**
+- [x] Bump `charts/kurator/Chart.yaml` `version` / `appVersion` to **0.5.0**
 - [ ] `task changelog:write` and commit `CHANGELOG.md`
 - [ ] `git tag v0.5.0` · `gh release create` · `git push origin main` · `git push origin v0.5.0`
 - [ ] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green on the tag push
