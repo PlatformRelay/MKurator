@@ -23,7 +23,8 @@ if [[ -d "${ROOT_DIR}/terraform" && -f "$KUBECONFIG_PATH" ]]; then
     -var="kubeconfig=${KUBECONFIG_PATH}" \
     -var="state_dir=${ROOT_DIR}/.state" \
     -var="tls_cert_string=${TLS_CERT_STRING:-}" \
-    -var="tls_key_string=${TLS_KEY_STRING:-}" || true
+    -var="tls_key_string=${TLS_KEY_STRING:-}" \
+    -var="enable_argocd=${ENABLE_ARGOCD:-false}" || true
 else
   echo "Kubeconfig or terraform dir missing; skipping terraform destroy."
 fi

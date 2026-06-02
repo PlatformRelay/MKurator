@@ -24,19 +24,24 @@ output "grafana_admin_password" {
 }
 
 output "argocd_url" {
-  value       = "https://argocd.localhost:30443/"
-  description = "Argo CD UI URL (via HAProxy ingress NodePort)."
+  value       = var.enable_argocd ? "https://argocd.localhost:30443/" : null
+  description = "Argo CD UI URL when enable_argocd is true."
 }
 
 output "argocd_admin_password" {
-  value       = data.kubernetes_secret_v1.argocd_initial_admin.data["password"]
+  value       = var.enable_argocd ? data.kubernetes_secret_v1.argocd_initial_admin[0].data["password"] : null
   description = "Initial Argo CD admin password (also written to .state/argocd.env)."
   sensitive   = true
 }
 
 output "argocd_env_file" {
-  value       = local_file.argocd_env.filename
-  description = "Path to .state/argocd.env with Argo CD URL and admin password."
+  value       = var.enable_argocd ? local_file.argocd_env[0].filename : null
+  description = "Path to .state/argocd.env when Argo CD is enabled."
+}
+
+output "enable_argocd" {
+  value       = var.enable_argocd
+  description = "Whether Argo CD was installed."
 }
 
 output "mq_web_console_url" {
