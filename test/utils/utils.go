@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	. "github.com/onsi/ginkgo/v2" // nolint:revive,staticcheck
 )
@@ -53,6 +54,24 @@ func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
 }
 
+// syncBuffer collects subprocess output from concurrent stdout/stderr writers (-race safe).
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (sb *syncBuffer) Write(p []byte) (int, error) {
+	sb.mu.Lock()
+	defer sb.mu.Unlock()
+	return sb.buf.Write(p)
+}
+
+func (sb *syncBuffer) String() string {
+	sb.mu.Lock()
+	defer sb.mu.Unlock()
+	return sb.buf.String()
+}
+
 // Run executes the provided command within this context
 func Run(cmd *exec.Cmd) (string, error) {
 	dir, _ := GetProjectDir()
@@ -68,11 +87,11 @@ func Run(cmd *exec.Cmd) (string, error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "running: %q\n", command)
 	_, _ = fmt.Fprintf(os.Stderr, ">>> running: %s\n", command)
 
-	var buf bytes.Buffer
-	cmd.Stdout = io.MultiWriter(os.Stderr, &buf)
-	cmd.Stderr = io.MultiWriter(os.Stderr, &buf)
+	var out syncBuffer
+	cmd.Stdout = io.MultiWriter(os.Stderr, &out)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &out)
 	err := cmd.Run()
-	output := buf.String()
+	output := out.String()
 	if err != nil {
 		return output, fmt.Errorf("%q failed with error %q: %w", command, output, err)
 	}

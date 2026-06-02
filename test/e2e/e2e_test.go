@@ -190,6 +190,7 @@ spec:
 				ContainSubstring("denied"),
 				ContainSubstring("Forbidden"),
 				ContainSubstring("Invalid"),
+				ContainSubstring("is invalid"),
 			))
 		})
 
