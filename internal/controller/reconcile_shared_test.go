@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 	"github.com/konih/kurator/internal/mqadmin"
@@ -253,6 +254,78 @@ func TestSetSyncedError_TerminalQueue(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected warning event")
+	}
+}
+
+func TestConnectionWatchPredicates(t *testing.T) {
+	t.Parallel()
+	pred := connectionWatchPredicates()
+	ready := readyConnForUnit("ns")
+	notReady := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
+	}
+
+	if !pred.Create(event.CreateEvent{Object: ready}) {
+		t.Fatal("expected create for ready connection")
+	}
+	if pred.Create(event.CreateEvent{Object: notReady}) {
+		t.Fatal("expected create skip when connection not ready")
+	}
+	if pred.Create(event.CreateEvent{Object: &messagingv1alpha1.Queue{}}) {
+		t.Fatal("expected create skip for non-connection object")
+	}
+
+	old := notReady.DeepCopy()
+	newReady := ready.DeepCopy()
+	newReady.Generation = 2
+	if !pred.Update(event.UpdateEvent{ObjectOld: old, ObjectNew: newReady}) {
+		t.Fatal("expected update on ready transition")
+	}
+	prev := ready.DeepCopy()
+	prev.Generation = 2
+	next := ready.DeepCopy()
+	next.Generation = 3
+	if !pred.Update(event.UpdateEvent{ObjectOld: prev, ObjectNew: next}) {
+		t.Fatal("expected update on generation change")
+	}
+	if pred.Update(event.UpdateEvent{ObjectOld: &messagingv1alpha1.Queue{}, ObjectNew: next}) {
+		t.Fatal("expected update skip for wrong types")
+	}
+}
+
+func TestWatchConnectionStatus(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := unitSchemeOrFatal(t)
+
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
+	}
+	queue := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(conn, queue).Build()
+
+	mapFn := connectionEnqueueMapper(cl)
+	reqs := mapFn(ctx, conn)
+	if len(reqs) != 1 {
+		t.Fatalf("requests = %d, want 1", len(reqs))
+	}
+	if reqs := mapFn(ctx, queue); len(reqs) != 0 {
+		t.Fatalf("non-connection object should yield no requests, got %d", len(reqs))
+	}
+	_ = watchConnectionStatus(cl)
+}
+
+func TestConnectionRefName_Unsupported(t *testing.T) {
+	t.Parallel()
+	if _, err := connectionRefName(&messagingv1alpha1.QueueManagerConnection{}); err == nil {
+		t.Fatal("expected error for unsupported type")
 	}
 }
 

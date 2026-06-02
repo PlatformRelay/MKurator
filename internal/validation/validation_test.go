@@ -159,6 +159,34 @@ func TestValidateQueueSpec(t *testing.T) {
 	})
 }
 
+func TestValidateQueueManagerConnectionSpecRequiredFields(t *testing.T) {
+	t.Parallel()
+	cl := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+
+	spec := &messagingv1alpha1.QueueManagerConnectionSpec{}
+	if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", spec); len(errs) < 3 {
+		t.Fatalf("expected required field errors, got %v", errs)
+	}
+}
+
+func TestValidateQueueManagerConnectionDeleteWithChannel(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	conn := sampleConnection("ns", "qm1")
+	channel := &messagingv1alpha1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "ns"},
+		Spec: messagingv1alpha1.ChannelSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, channel).Build()
+	if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
+		t.Fatal("expected delete blocked when channel dependent exists")
+	}
+}
+
 func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()

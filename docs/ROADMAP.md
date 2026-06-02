@@ -93,7 +93,7 @@ locally and in CI — **met**.
 - [x] Fix **DISPLAY QLOCAL** on live MQ — drop `maxmsglen` from display parameters
   (mqweb 9.4 returns `MQWB0120E`); coerce numeric DEFINE attrs; **Queue** reaches
   **Synced=True** on `task local:up`.
-- [x] Raise `internal/` coverage to **≥85%** (enforced in `task test:run`).
+- [x] Raise `internal/` coverage to **≥90%** (enforced in `task test:run`).
 
 Exit criteria: envtest + adapter tests + live queue on kind — **met**.
 
@@ -151,7 +151,7 @@ before access-control work.
   compatibility testing; TLS channel attrs (`sslciph`, `sslcauth`) for drift.
 
 Exit criteria: at least **Topic** and one **Channel** kind reconcile end-to-end on
-kind with the same quality bar as Phase 2 (`verify`, ≥85% `internal/` coverage,
+kind with the same quality bar as Phase 2 (`verify`, ≥90% `internal/` coverage,
 e2e green) — **met** (optional DISPLAY/TLS drift extensions above remain open).
 
 ## Phase 4b — Validating admission webhooks (pre–Phase 5)

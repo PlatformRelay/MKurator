@@ -15,6 +15,17 @@ func TestMqscResponseOverallFailed_RESTErrorOnly(t *testing.T) {
 	}
 }
 
+func TestMqscResponseOverallFailed_CommandCompletionNonZero(t *testing.T) {
+	t.Parallel()
+	resp := &mqscResponse{
+		OverallCompletionCode: 0,
+		CommandResponse:       []commandResponseItem{{CompletionCode: 2, Message: []string{"failed"}}},
+	}
+	if !resp.overallFailed() {
+		t.Fatal("expected failure when command completion is non-zero")
+	}
+}
+
 func TestMqscResponseOverallFailed(t *testing.T) {
 	t.Parallel()
 	ok := &mqscResponse{OverallCompletionCode: 0, CommandResponse: []commandResponseItem{{CompletionCode: 0}}}
