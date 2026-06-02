@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/konradheimel/kurator/internal/metrics"
 	"github.com/konradheimel/kurator/internal/mqadmin"
 )
 
@@ -84,6 +85,9 @@ func NewClient(cfg Config) (*Client, error) {
 
 // Ping verifies mqweb can reach the queue manager.
 func (c *Client) Ping(ctx context.Context) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpPing, err) }()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.adminQMURL, nil)
 	if err != nil {
 		return fmt.Errorf("build ping request: %w", err)
@@ -116,6 +120,9 @@ func (c *Client) Ping(ctx context.Context) error {
 
 // GetQueue returns observed attributes for a local queue.
 func (c *Client) GetQueue(ctx context.Context, name string) (*mqadmin.QueueState, error) {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpGetQueue, err) }()
+
 	resp, err := c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:               mqscType,
 		Command:            "display",
@@ -127,7 +134,8 @@ func (c *Client) GetQueue(ctx context.Context, name string) (*mqadmin.QueueState
 		return nil, err
 	}
 	if len(resp.CommandResponse) == 0 {
-		return nil, &mqadmin.NotFoundError{Object: name}
+		err = &mqadmin.NotFoundError{Object: name}
+		return nil, err
 	}
 	attrs := map[string]string{}
 	for _, cr := range resp.CommandResponse {
@@ -137,23 +145,29 @@ func (c *Client) GetQueue(ctx context.Context, name string) (*mqadmin.QueueState
 	}
 	if len(attrs) == 0 && resp.overallFailed() {
 		if resp.isObjectMissing() {
-			return nil, &mqadmin.NotFoundError{Object: name}
+			err = &mqadmin.NotFoundError{Object: name}
+			return nil, err
 		}
-		return nil, resp.terminalError("display queue")
+		err = resp.terminalError("display queue")
+		return nil, err
 	}
 	return &mqadmin.QueueState{Name: name, Attributes: attrs}, nil
 }
 
 // DefineQueue creates or updates a local queue (REPLACE).
 func (c *Client) DefineQueue(ctx context.Context, spec mqadmin.QueueSpec) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpDefineQueue, err) }()
+
 	if spec.Type != "" && spec.Type != mqadmin.QueueTypeLocal {
-		return &mqadmin.TerminalError{
+		err = &mqadmin.TerminalError{
 			Reason:  "UnsupportedQueueType",
 			Message: fmt.Sprintf("queue type %q is not supported yet", spec.Type),
 		}
+		return err
 	}
 	params := defineQueueParameters(spec)
-	_, err := c.runCommandJSON(ctx, runCommandJSONRequest{
+	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:       mqscType,
 		Command:    "define",
 		Qualifier:  qualifierQLocal,
@@ -165,21 +179,28 @@ func (c *Client) DefineQueue(ctx context.Context, spec mqadmin.QueueSpec) error 
 
 // RunMQSC executes a single MQSC command string via the runCommand API.
 func (c *Client) RunMQSC(ctx context.Context, command string) error {
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpRunMQSC, err) }()
+
 	body := runCommandRequest{Type: "runCommand"}
 	body.Parameters.Command = command
-	_, err := c.postMQSC(ctx, body)
+	_, err = c.postMQSC(ctx, body)
 	return err
 }
 
 // DeleteQueue removes a local queue.
 func (c *Client) DeleteQueue(ctx context.Context, name string) error {
-	_, err := c.runCommandJSON(ctx, runCommandJSONRequest{
+	var err error
+	defer func() { metrics.RecordMQOperation(metrics.MQOpDeleteQueue, err) }()
+
+	_, err = c.runCommandJSON(ctx, runCommandJSONRequest{
 		Type:      mqscType,
 		Command:   "delete",
 		Qualifier: qualifierQLocal,
 		Name:      name,
 	})
 	if err != nil && errors.Is(err, mqadmin.ErrNotFound) {
+		err = nil
 		return nil
 	}
 	return err

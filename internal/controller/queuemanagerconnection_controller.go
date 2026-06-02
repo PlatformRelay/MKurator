@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/konradheimel/kurator/internal/metrics"
 	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
 	"github.com/konradheimel/kurator/internal/mqadmin"
 )
@@ -35,6 +36,12 @@ type QueueManagerConnectionReconciler struct {
 
 // Reconcile tests connectivity to mqweb and sets Ready.
 func (r *QueueManagerConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	result, err := r.reconcile(ctx, req)
+	metrics.RecordReconcile(metrics.ControllerQueueManagerConnection, err)
+	return result, err
+}
+
+func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	conn := &messagingv1alpha1.QueueManagerConnection{}
 	if err := r.Get(ctx, req.NamespacedName, conn); err != nil {

@@ -46,7 +46,10 @@ Kustomize install (`task deploy`) remains available for controller-runtime workf
 | `image.repository` | Controller image repository | `kurator-controller-manager` |
 | `image.tag` | Image tag | `dev` |
 | `leaderElection.enabled` | Pass `--leader-elect` | `true` |
-| `metrics.enabled` | Expose HTTPS metrics on :8443 | `true` |
+| `metrics.enabled` | Expose Prometheus metrics on `:8443` | `true` |
+| `metrics.secure` | HTTPS metrics with kube authn/authz | `true` |
+| `metrics.serviceMonitor.enabled` | Create a `ServiceMonitor` (needs Prometheus Operator) | `false` |
+| `metrics.prometheusRule.enabled` | Create alerting rules | `false` |
 | `logging.level` | `KURATOR_LOG_LEVEL` | `info` |
 | `logging.format` | `KURATOR_LOG_FORMAT` | `json` |
 
@@ -61,6 +64,27 @@ task helm:sync-crds
 
 Helm installs CRDs on first install; upgrading CRDs may require a manual `kubectl apply`
 when the API changes.
+
+## Metrics and alerting
+
+The controller exposes Prometheus metrics on `/metrics` (port `8443`, HTTPS with
+Kubernetes API authentication by default). Custom metrics include:
+
+- `kurator_reconcile_total{controller,result}`
+- `kurator_reconcile_errors_total{controller}`
+- `kurator_mq_operations_total{operation,result}`
+
+On a cluster with **kube-prometheus-stack** (the local kind platform), enable
+scraping and alerts:
+
+```sh
+helm upgrade --install kurator . \
+  --namespace kurator-system \
+  -f samples/values-kind.yaml
+```
+
+`values-kind.yaml` sets `metrics.serviceMonitor` and `metrics.prometheusRule`
+labels to `release: kube-prometheus-stack` for operator discovery.
 
 ## Publishing
 
