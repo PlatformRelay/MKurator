@@ -28,7 +28,7 @@ tasks:
       - ./scripts/mkcert-gen.sh
 
   apply:
-    desc: Terraform apply (HAProxy ingress, cert-manager, Argo CD, monitoring, IBM MQ)
+    desc: Terraform apply (HAProxy ingress, cert-manager, optional Argo CD, monitoring, IBM MQ)
     deps: [tls]
     cmds:
       - ./scripts/terraform-apply.sh

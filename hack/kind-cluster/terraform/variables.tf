@@ -52,6 +52,12 @@ variable "enable_monitoring" {
   default     = true
 }
 
+variable "enable_argocd" {
+  description = "Whether to install Argo CD on the local kind cluster."
+  type        = bool
+  default     = false
+}
+
 variable "mq_namespace" {
   description = "Namespace for the IBM MQ queue manager."
   type        = string

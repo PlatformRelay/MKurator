@@ -6,7 +6,7 @@ via Terraform + Helm, installs:
 
 - **HAProxy Ingress** (NodePort 30080/30443, mapped to the host).
 - **cert-manager** (for future operator webhook certificates).
-- **Argo CD** (GitOps UI; initial admin password written to `.state/argocd.env`).
+- **Argo CD** (optional; `ENABLE_ARGOCD=true` on apply — GitOps UI, password in `.state/argocd.env`).
 - **kube-prometheus-stack** (Prometheus + **Grafana**).
 - **IBM MQ** queue manager (`QM1`) from the [upstream IBM MQ Helm chart](https://ibm-messaging.github.io/mq-helm),
   with mqweb exposed through a Terraform-managed HAProxy Ingress (the upstream
@@ -40,7 +40,7 @@ kind clusters blocking NodePorts 30080/30443 are removed automatically.
 
 | What | URL | Credentials |
 |------|-----|---------------|
-| Argo CD | https://argocd.localhost:30443/ | `admin` — password in `.state/argocd.env` |
+| Argo CD (optional) | https://argocd.localhost:30443/ | `admin` — `ENABLE_ARGOCD=true task cluster:apply`; password in `.state/argocd.env` |
 | IBM MQ web console (UI) | https://mq.localhost:30443/ibmmq/console/ | `admin` / `passw0rd` |
 | IBM MQ admin REST | https://mq.localhost:30443/ibmmq/rest/v3/admin/qmgr | `admin` / `passw0rd` |
 | MQSC CLI | `task mq:cli` or `task mq:runmqsc -- "DISPLAY QLOCAL(*)"` | (in-cluster `runmqsc`) |

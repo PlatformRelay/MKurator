@@ -41,7 +41,10 @@ fi
 
 # Extra explicit DNS names to include in the certificate SANs.
 # Some TLS clients are picky about "*.localhost" wildcards.
-EXTRA_DNS_NAMES="${EXTRA_DNS_NAMES:-mq.localhost grafana.localhost argocd.localhost}"
+EXTRA_DNS_NAMES="${EXTRA_DNS_NAMES:-mq.localhost grafana.localhost}"
+if [[ "${ENABLE_ARGOCD:-false}" == "true" ]]; then
+  EXTRA_DNS_NAMES="${EXTRA_DNS_NAMES} argocd.localhost"
+fi
 
 # Generate a certificate covering our local DNS scheme:
 # - localhost: direct access

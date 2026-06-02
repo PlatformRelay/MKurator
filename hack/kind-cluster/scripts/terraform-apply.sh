@@ -34,4 +34,5 @@ terraform -chdir="${ROOT_DIR}/terraform" apply -auto-approve \
   -var="kubeconfig=${KUBECONFIG_PATH}" \
   -var="state_dir=${STATE_DIR}" \
   -var="tls_cert_string=${TLS_CERT_STRING}" \
-  -var="tls_key_string=${TLS_KEY_STRING}"
+  -var="tls_key_string=${TLS_KEY_STRING}" \
+  -var="enable_argocd=${ENABLE_ARGOCD:-false}"
