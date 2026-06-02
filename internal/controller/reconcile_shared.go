@@ -45,7 +45,7 @@ func waitForConnectionReady(
 	if connectionReady(conn) {
 		return ctrl.Result{}, false, nil
 	}
-	msg := fmt.Sprintf("waiting for connection %q to become Ready", conn.Name)
+	msg := connectionWaitMessage(conn)
 	if err := patchSyncedProgressing(ctx, status, recorder, obj, generation, msg); err != nil {
 		return ctrl.Result{}, true, err
 	}
@@ -95,14 +95,17 @@ func patchSyncedProgressing(
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Topic:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Channel:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
@@ -124,10 +127,11 @@ func setSyncedError(
 	obj client.Object,
 	generation int64,
 	err error,
+	opts syncStatusOpts,
 ) (ctrl.Result, error) {
 	recordReconcileWarning(recorder, obj, err)
 
-	reason := messagingv1alpha1.ReasonError
+	reason, message := classifyReconcileError(err)
 	requeue := ctrl.Result{}
 	if errors.Is(err, mqadmin.ErrTransient) {
 		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
@@ -136,31 +140,34 @@ func setSyncedError(
 	switch o := obj.(type) {
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, err.Error(), generation)
+			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
 	case *messagingv1alpha1.Topic:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, err.Error(), generation)
+			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
 	case *messagingv1alpha1.Channel:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, err.Error(), generation)
+			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, err.Error(), generation)
+			metav1.ConditionFalse, reason, message, generation)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
 	case *messagingv1alpha1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, err.Error(), generation)
+			metav1.ConditionFalse, reason, message, generation)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
@@ -181,24 +188,29 @@ func patchSyncedAvailable(
 	obj client.Object,
 	generation int64,
 	message string,
+	opts syncStatusOpts,
 ) error {
 	emitSyncedTransitionEvent(recorder, obj, metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message)
+	now := metav1.Now()
 
 	switch o := obj.(type) {
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
 		o.Status.ObservedGeneration = generation
+		applyMQObjectStatusFields(o, opts, message, &now)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Topic:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
 		o.Status.ObservedGeneration = generation
+		applyMQObjectStatusFields(o, opts, message, &now)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Channel:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
 		o.Status.ObservedGeneration = generation
+		applyMQObjectStatusFields(o, opts, message, &now)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
@@ -230,14 +242,17 @@ func patchSyncedDeleting(
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Topic:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.Channel:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
@@ -387,6 +402,7 @@ func connectionWatchPredicates() predicate.Funcs {
 func setupMQObjectController(mgr ctrl.Manager, reconciler reconcile.Reconciler, forObj client.Object) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(forObj).
+		WithOptions(controllerOptions()).
 		Watches(
 			&messagingv1alpha1.QueueManagerConnection{},
 			watchConnectionStatus(mgr.GetClient()),

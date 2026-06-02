@@ -57,7 +57,7 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 	conn, err := resolveConnection(ctx, r.Client, topic.Namespace, connRef)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err, syncStatusOpts{})
 	}
 
 	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), r.Recorder, topic, conn, topic.Generation)
@@ -67,7 +67,7 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err, syncStatusOpts{})
 	}
 
 	if !topic.DeletionTimestamp.IsZero() {
@@ -76,36 +76,40 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	if !controllerutil.ContainsFinalizer(topic, messagingv1alpha1.TopicFinalizer) {
 		controllerutil.AddFinalizer(topic, messagingv1alpha1.TopicFinalizer)
-		if err := r.Update(ctx, topic); err != nil {
-			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
+		if updateErr := r.Update(ctx, topic); updateErr != nil {
+			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
 		return ctrl.Result{}, nil
 	}
 
 	spec := toMQTopicSpec(topic)
-	if err := r.ensureTopic(ctx, admin, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
+	mqExists, err := r.ensureTopic(ctx, admin, spec)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err,
+			syncStatusOpts{mqObjectExists: &mqExists})
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, topic, topic.Generation,
-		"Topic matches spec"); err != nil {
+		"Topic matches spec", syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Topic synced", "topic", topic.Spec.TopicName)
 	return ctrl.Result{}, nil
 }
 
-func (r *TopicReconciler) ensureTopic(ctx context.Context, admin mqadmin.Admin, spec mqadmin.TopicSpec) error {
+func (r *TopicReconciler) ensureTopic(ctx context.Context, admin mqadmin.Admin, spec mqadmin.TopicSpec) (bool, error) {
 	observed, err := admin.GetTopic(ctx, spec.Name)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
-		return err
+		return false, err
 	}
+	exists := observed != nil
 	if observed == nil || topicNeedsUpdate(spec, observed) {
 		if err := admin.DefineTopic(ctx, spec); err != nil {
-			return err
+			return exists, err
 		}
+		return true, nil
 	}
-	return nil
+	return exists, nil
 }
 
 func topicNeedsUpdate(desired mqadmin.TopicSpec, observed *mqadmin.TopicState) bool {
@@ -123,7 +127,7 @@ func (r *TopicReconciler) handleDeletion(
 	}
 
 	if err := admin.DeleteTopic(ctx, topic.Spec.TopicName); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err, syncStatusOpts{})
 	}
 
 	recordNormalEvent(r.Recorder, topic, EventReasonDeleted, "Topic removed from IBM MQ")

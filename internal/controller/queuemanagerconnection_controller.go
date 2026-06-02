@@ -133,5 +133,6 @@ func (r *QueueManagerConnectionReconciler) fail(
 func (r *QueueManagerConnectionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&messagingv1alpha1.QueueManagerConnection{}).
+		WithOptions(controllerOptions()).
 		Complete(r)
 }

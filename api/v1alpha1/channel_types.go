@@ -49,6 +49,8 @@ type ChannelStatus struct {
 	// ObservedGeneration reflects the generation last successfully synced.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	MQObjectStatusFields `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

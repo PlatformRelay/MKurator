@@ -57,7 +57,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	conn, err := resolveConnection(ctx, r.Client, channel.Namespace, connRef)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err, syncStatusOpts{})
 	}
 
 	waitResult, waitDone, waitErr := waitForConnectionReady(
@@ -74,7 +74,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err, syncStatusOpts{})
 	}
 
 	if !channel.DeletionTimestamp.IsZero() {
@@ -83,8 +83,8 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if !controllerutil.ContainsFinalizer(channel, messagingv1alpha1.ChannelFinalizer) {
 		controllerutil.AddFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
-		if err := r.Update(ctx, channel); err != nil {
-			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
+		if updateErr := r.Update(ctx, channel); updateErr != nil {
+			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
 		return ctrl.Result{}, nil
 	}
@@ -93,33 +93,41 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, &mqadmin.TerminalError{
 			Reason:  "UnsupportedChannelType",
 			Message: fmt.Sprintf("channel type %q is not supported in v1alpha1", channel.Spec.Type),
-		})
+		}, syncStatusOpts{})
 	}
 
 	spec := toMQChannelSpec(channel)
-	if err := r.ensureChannel(ctx, admin, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
+	mqExists, err := r.ensureChannel(ctx, admin, spec)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err,
+			syncStatusOpts{mqObjectExists: &mqExists})
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, channel, channel.Generation,
-		"Channel matches spec"); err != nil {
+		"Channel matches spec", syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Channel synced", "channel", channel.Spec.ChannelName, "type", spec.Type)
 	return ctrl.Result{}, nil
 }
 
-func (r *ChannelReconciler) ensureChannel(ctx context.Context, admin mqadmin.Admin, spec mqadmin.ChannelSpec) error {
+func (r *ChannelReconciler) ensureChannel(
+	ctx context.Context,
+	admin mqadmin.Admin,
+	spec mqadmin.ChannelSpec,
+) (bool, error) {
 	observed, err := admin.GetChannel(ctx, spec)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
-		return err
+		return false, err
 	}
+	exists := observed != nil
 	if observed == nil || channelNeedsUpdate(spec, observed) {
 		if err := admin.DefineChannel(ctx, spec); err != nil {
-			return err
+			return exists, err
 		}
+		return true, nil
 	}
-	return nil
+	return exists, nil
 }
 
 func channelNeedsUpdate(desired mqadmin.ChannelSpec, observed *mqadmin.ChannelState) bool {
@@ -138,7 +146,7 @@ func (r *ChannelReconciler) handleDeletion(
 
 	spec := toMQChannelSpec(channel)
 	if err := admin.DeleteChannel(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err, syncStatusOpts{})
 	}
 
 	recordNormalEvent(r.Recorder, channel, EventReasonDeleted, "Channel removed from IBM MQ")
