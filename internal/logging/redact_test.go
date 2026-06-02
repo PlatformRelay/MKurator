@@ -29,3 +29,32 @@ func TestRedactHandlerWithSlogLogger(t *testing.T) {
 		t.Fatalf("token: got %v", entry["token"])
 	}
 }
+
+func TestRedactHandlerWithAttrsAndGroup(t *testing.T) {
+	var buf bytes.Buffer
+	handler, err := logging.NewHandler(logging.Config{
+		Level:  logging.LevelInfo,
+		Format: logging.FormatJSON,
+	}, &buf)
+	if err != nil {
+		t.Fatalf("NewHandler: %v", err)
+	}
+
+	child := handler.WithAttrs([]slog.Attr{slog.String("password", "secret")}).WithGroup("conn")
+	slog.New(child).Info("connected", slog.String("channel", "DEV.APP.SVRCONN"))
+
+	var entry map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &entry); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if entry["password"] != "[REDACTED]" {
+		t.Fatalf("password: got %v", entry["password"])
+	}
+	conn, ok := entry["conn"].(map[string]any)
+	if !ok {
+		t.Fatalf("conn group: %v", entry)
+	}
+	if conn["channel"] != "DEV.APP.SVRCONN" {
+		t.Fatalf("channel: got %v", conn["channel"])
+	}
+}

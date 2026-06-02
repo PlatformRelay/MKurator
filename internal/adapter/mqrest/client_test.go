@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/konradheimel/kurator/internal/adapter/mqrest"
@@ -168,4 +169,134 @@ func newTestClient(t *testing.T, endpoint string, hc *http.Client) *mqrest.Clien
 		t.Fatal(err)
 	}
 	return c
+}
+
+func TestNewClientValidation(t *testing.T) {
+	t.Parallel()
+	_, err := mqrest.NewClient(mqrest.Config{})
+	if err == nil {
+		t.Fatal("expected error for missing endpoint")
+	}
+	u, _ := url.Parse("https://mq.example:9443")
+	_, err = mqrest.NewClient(mqrest.Config{Endpoint: u})
+	if err == nil {
+		t.Fatal("expected error for missing queue manager")
+	}
+}
+
+func TestClient_PingUnauthorized(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.Ping(context.Background())
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_DeleteQueue(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyOverallCompletionCode: 0,
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	if err := c.DeleteQueue(context.Background(), "APP.ORDERS"); err != nil {
+		t.Fatalf("DeleteQueue: %v", err)
+	}
+}
+
+func TestClient_DeleteQueueNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 2,
+				"message":             []string{"AMQ8147E: IBM MQ object APP.GONE not found."},
+			}},
+			testKeyOverallCompletionCode: 2,
+		})
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	if err := c.DeleteQueue(context.Background(), "APP.GONE"); err != nil {
+		t.Fatalf("DeleteQueue not found should succeed: %v", err)
+	}
+}
+
+func TestClient_DefineQueueUnsupportedType(t *testing.T) {
+	t.Parallel()
+	u, _ := url.Parse("https://mq.example:9443")
+	c, err := mqrest.NewClient(mqrest.Config{
+		Endpoint: u, QueueManager: "QM1", Username: "a", Password: "b",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = c.DefineQueue(context.Background(), mqadmin.QueueSpec{
+		Name: "X", Type: mqadmin.QueueType("remote"),
+	})
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_PostMQSCServerError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.RunMQSC(context.Background(), "DISPLAY QMGR")
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("expected transient error, got %v", err)
+	}
+}
+
+func TestClient_PostMQSCBadRequestLongBody(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(strings.Repeat("x", 300)))
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.RunMQSC(context.Background(), "DISPLAY QMGR")
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_PostMQSCInvalidJSON(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("not-json"))
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.RunMQSC(context.Background(), "DISPLAY QMGR")
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_PingServerError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.Ping(context.Background())
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("expected transient error, got %v", err)
+	}
 }
