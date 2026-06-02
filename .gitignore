@@ -9,7 +9,7 @@
 *.dylib
 references/
 AGENT.md
-
+.envrc
 # Test binary, built with `go test -c`
 *.test
 
@@ -28,6 +28,12 @@ go.work.sum
 
 # env file
 .env
+
+# Local cluster state (kubeconfig, TLS material, terraform state)
+hack/kind-cluster/.state/
+hack/kind-cluster/terraform/.terraform/
+hack/kind-cluster/terraform/*.tfstate
+hack/kind-cluster/terraform/*.tfstate.*
 
 # Local kind dev cluster state (kubeconfig, mkcert certs, tls.env)
 .state/

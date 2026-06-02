@@ -1,35 +1,46 @@
 # Roadmap
 
 Phased delivery plan for the IBM Message Queue Operator. Each phase is shippable
-on its own and keeps the tree green (build + lint + tests pass). See
-[ARCHITECTURE.md](ARCHITECTURE.md) for design and [../AGENTS.md](../AGENTS.md)
-for conventions.
+on its own and keeps the tree green (build + lint + tests + `verify` pass). See
+[ARCHITECTURE.md](ARCHITECTURE.md) for design, [../AGENTS.md](../AGENTS.md) for
+conventions, [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) for
+quality bars, and [CICD.md](CICD.md) for the pipeline.
 
 ## Guiding principles
 
 - Small, atomic, fully-tested increments over big drops.
 - Every external interaction sits behind the `MQAdmin` port so it can be mocked.
 - The build stays pure Go (`CGO_ENABLED=0`); no native MQ client.
+- Generated artifacts are committed and verified fresh (`task verify`).
+- NFRs (security, reliability, observability) are built in per phase, not bolted
+  on at the end.
 
 ## Phase 0 — Foundations (this step)
 
-- [x] `AGENTS.md` with context and conventions.
-- [x] `docs/ARCHITECTURE.md` and `docs/ROADMAP.md`.
-- [x] `README.md`.
+- [x] `AGENTS.md` with context, conventions, toolchain, and doc map.
+- [x] `docs/ARCHITECTURE.md` (runtime concerns, RBAC, error/requeue, security).
+- [x] `docs/NON_FUNCTIONAL_REQUIREMENTS.md`, `docs/DEVELOPMENT.md`, `docs/CICD.md`.
+- [x] `docs/adr/` with template, index, and initial decisions.
+- [x] `SECURITY.md`, `README.md`, `docs/ROADMAP.md`.
+- [x] Local platform under `hack/kind-cluster` (kind + Terraform + IBM MQ).
 
 ## Phase 1 — Scaffold & toolchain
 
-- Confirm module path and API group, then scaffold with **Kubebuilder**
-  (manager entrypoint, `PROJECT`, empty `api/v1alpha1`, `internal/controller`).
+- Confirm module path and API group (record as an ADR), then scaffold with
+  **Kubebuilder v4** (manager entrypoint, `PROJECT`, empty `api/v1alpha1`,
+  `internal/controller`).
 - `Taskfile.yml` + `Taskfile.test.yml` (install, format, lint, manifests,
-  generate, build, docker:build, kind:up/down, deploy/undeploy, test:run,
-  test:e2e).
+  generate, **verify**, build, docker:build, cluster:up/down, deploy/undeploy,
+  test:run, test:e2e), with Go tools pinned via `go.mod` `tool` directives.
 - `.golangci.yaml` (v2, linter set per AGENTS.md), `.mockery.yaml`,
-  `.pre-commit-config.yaml`, `.editorconfig`, `Dockerfile`.
-- GitHub Actions skeleton: lint + unit tests + `govulncheck` on PRs.
+  `.pre-commit-config.yaml`, `.editorconfig`, distroless nonroot `Dockerfile`.
+- Manager wiring with leader election, health/readiness probes, and a protected
+  metrics endpoint (NFR REL-3/OBS-3).
+- GitHub Actions per [CICD.md](CICD.md): `verify` + lint + unit tests +
+  `govulncheck` on PRs; pinned action SHAs; dependency bot (Renovate/Dependabot).
 
-Exit criteria: `task build`, `task lint`, and an empty `task test:run` pass
-locally and in CI.
+Exit criteria: `task build`, `task lint`, `task verify`, and an empty
+`task test:run` pass locally and in CI.
 
 ## Phase 2 — Core API, adapter & tests
 
@@ -48,13 +59,17 @@ adapter unit tests cover success + error paths.
 
 ## Phase 3 — End-to-end & CI hardening
 
-- e2e suite (`test/e2e`) on **kind** against a real IBM MQ container exposing
-  `mqweb`; assert real MQSC objects for create/update/delete.
+- e2e suite (`test/e2e`, build tag `e2e`) on **kind** against the real IBM MQ
+  Queue Manager from `hack/kind-cluster`; assert real MQSC objects for
+  create/update/delete and re-apply idempotency (NFR REL-1).
 - Wire e2e into CI (kind in GitHub Actions) on a dedicated job.
-- Image publishing workflow; SBOM/vuln scanning as desired.
+- Release workflow: multi-arch distroless image publish + Trivy image scan +
+  published Kustomize install manifests (NFR OPS-1/OPS-2, SEC-4/SEC-6).
+- Optional supply-chain extras (SBOM, signing) deferred per
+  [ADR-0005](adr/0005-keep-tooling-lean.md).
 
 Exit criteria: `task test:e2e` green locally and in CI against a live Queue
-Manager container.
+Manager; release pipeline produces a scanned image and install manifests.
 
 ## Phase 4 — User & authority management
 
