@@ -41,6 +41,13 @@ Kustomize install (`task deploy`) remains available for controller-runtime workf
 
 ## Configuration
 
+Helm validates critical values against [`values.schema.json`](values.schema.json)
+(image repository/tag, metrics TLS and ServiceMonitor toggles, webhook cert-manager
+settings). The schema catches empty image fields and invalid enums at install time;
+operational prerequisites (cert-manager running, Prometheus Operator labels, production
+image tags) are spelled out in the post-install [`templates/NOTES.txt`](templates/NOTES.txt)
+output.
+
 | Value | Description | Default |
 |-------|-------------|---------|
 | `image.repository` | Controller image repository | `kurator-controller-manager` |

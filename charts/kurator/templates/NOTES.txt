@@ -1,5 +1,108 @@
 Kurator has been installed in namespace {{ .Release.Namespace }}.
 
+================================================================================
+Image (required for a working controller)
+================================================================================
+
+  image.repository: {{ .Values.image.repository | quote }}
+  image.tag:        {{ .Values.image.tag | quote }}
+  Resolved image:   {{ include "kurator.image" . }}
+
+{{- if or (eq .Values.image.tag "dev") (eq .Values.image.repository "kurator-controller-manager") }}
+
+  Production: set image.repository and image.tag to your published controller image
+  (match Chart appVersion {{ .Chart.AppVersion | quote }} on release installs).
+  Local kind dev: build and load the image, or use task deploy:helm with
+  charts/kurator/samples/values-kind.yaml.
+{{- end }}
+
+{{- if .Values.imagePullSecrets }}
+
+  imagePullSecrets are configured for private registry pulls.
+{{- end }}
+
+================================================================================
+Validating webhooks and TLS (cert-manager)
+================================================================================
+{{- if .Values.webhooks.enabled }}
+
+  webhooks.enabled=true — the API server calls Kurator admission webhooks over HTTPS.
+
+{{- if .Values.webhooks.certManager.create }}
+
+  cert-manager: Helm created an Issuer + Certificate; the signed Secret
+  {{ .Values.webhooks.certManager.secretName | quote }} is mounted at
+  /tmp/k8s-webhook-server/serving-certs.
+
+  Prerequisites:
+    - cert-manager must be installed and healthy in the cluster
+    - Wait until the Certificate is Ready before relying on admission
+
+  Verify:
+    kubectl -n cert-manager get pods
+    kubectl -n {{ .Release.Namespace }} get certificate,secret {{ .Values.webhooks.certManager.secretName }}
+    kubectl -n {{ .Release.Namespace }} describe certificate {{ .Values.webhooks.certManager.secretName }}
+
+  If webhooks fail with TLS errors after cert rotation, restart the controller once:
+    kubectl -n {{ .Release.Namespace }} rollout restart deployment/{{ include "kurator.fullname" . }}-controller-manager
+{{- else }}
+
+  webhooks.certManager.create=false — you must supply TLS material in Secret
+  {{ .Values.webhooks.certManager.secretName | quote }} (tls.crt, tls.key) before
+  the controller can serve webhooks.
+{{- end }}
+{{- else }}
+
+  webhooks.enabled=false — admission validation is OFF. Invalid specs will fail
+  at reconcile instead of at kubectl apply. Not recommended for production.
+{{- end }}
+
+================================================================================
+Metrics (HTTPS) and Prometheus scraping
+================================================================================
+{{- if .Values.metrics.enabled }}
+
+  metrics.enabled=true — controller exposes /metrics on {{ .Values.metrics.bindAddress }}.
+
+{{- if .Values.metrics.secure }}
+
+  metrics.secure=true — scrapes must use HTTPS and a Kubernetes service account
+  token authorized via the metrics-reader ClusterRole (see docs/OBSERVABILITY.md).
+{{- else }}
+
+  WARNING: metrics.secure=false — /metrics is exposed without Kubernetes API auth.
+  Use only behind strict network isolation.
+{{- end }}
+
+  Metrics Service: {{ include "kurator.fullname" . }}-metrics (port 8443, HTTPS).
+
+{{- if .Values.metrics.serviceMonitor.enabled }}
+
+  metrics.serviceMonitor.enabled=true — a ServiceMonitor CR was created.
+  Ensure Prometheus Operator is installed and metrics.serviceMonitor.labels match
+  your Prometheus serviceMonitorSelector (e.g. release: kube-prometheus-stack).
+{{- else }}
+
+  metrics.serviceMonitor.enabled=false — Prometheus will NOT scrape automatically.
+  Opt in when Prometheus Operator CRDs are present:
+
+    helm upgrade {{ .Release.Name }} ./charts/kurator \
+      --namespace {{ .Release.Namespace }} \
+      --reuse-values \
+      --set metrics.serviceMonitor.enabled=true \
+      --set metrics.serviceMonitor.labels.release=kube-prometheus-stack
+
+  See charts/kurator/samples/values-kind.yaml for a local kube-prometheus-stack example.
+{{- end }}
+{{- else }}
+
+  metrics.enabled=false — no metrics Service or /metrics endpoint on the controller.
+{{- end }}
+
+================================================================================
+Next steps
+================================================================================
+
 1. Verify the controller pod:
 
   kubectl get pods -n {{ .Release.Namespace }} -l control-plane=controller-manager
@@ -11,6 +114,8 @@ Kurator has been installed in namespace {{ .Release.Namespace }}.
   task cluster:up
   kubectl apply -f charts/kurator/samples/resources/
 
-CRDs were installed from charts/kurator/crds/ (Helm CRD install). After API changes, run:
+CRDs were installed from charts/kurator/crds/ (Helm CRD install). After API changes:
 
   task manifests && task helm:sync-crds
+
+Documentation: charts/kurator/README.md · docs/INSTALL_AND_USE.md · docs/OBSERVABILITY.md
