@@ -32,3 +32,20 @@ func TestMqscResponseOverallFailed(t *testing.T) {
 		t.Fatalf("expected TerminalError, got %T", err)
 	}
 }
+
+func TestMqscResponseFirstMessageVariants(t *testing.T) {
+	t.Parallel()
+	text := &mqscResponse{
+		CommandResponse: []commandResponseItem{{
+			CompletionCode: 2,
+			Text:           []string{"text error"},
+		}},
+	}
+	if text.firstMessage() != "text error" {
+		t.Fatalf("firstMessage = %q", text.firstMessage())
+	}
+	rest := &mqscResponse{Error: []restErrorItem{{Message: "rest error"}}}
+	if rest.firstMessage() != "rest error" {
+		t.Fatalf("firstMessage = %q", rest.firstMessage())
+	}
+}

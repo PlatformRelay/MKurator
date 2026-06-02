@@ -1,6 +1,7 @@
 package logging_test
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -69,5 +70,43 @@ func TestLoadInvalidLevel(t *testing.T) {
 	_, err := logging.Load(logging.Options{Level: "trace"})
 	if err == nil {
 		t.Fatal("expected error for invalid level")
+	}
+}
+
+func TestLoadInvalidFormat(t *testing.T) {
+	_, err := logging.Load(logging.Options{Format: "xml"})
+	if err == nil {
+		t.Fatal("expected error for invalid format")
+	}
+}
+
+func TestSetupWithWriter(t *testing.T) {
+	var buf bytes.Buffer
+	if err := logging.SetupWithWriter(logging.Config{
+		Level:  logging.LevelWarn,
+		Format: logging.FormatText,
+	}, &buf); err != nil {
+		t.Fatalf("SetupWithWriter: %v", err)
+	}
+	logger, err := logging.NewLogger(logging.Config{
+		Level:  logging.LevelError,
+		Format: logging.FormatJSON,
+	}, &buf)
+	if err != nil {
+		t.Fatalf("NewLogger: %v", err)
+	}
+	logger.Info("ignored at error level")
+	if buf.Len() != 0 {
+		t.Fatalf("expected no output at error level for info, got %q", buf.String())
+	}
+}
+
+func TestNewHandlerUnsupportedFormat(t *testing.T) {
+	_, err := logging.NewHandler(logging.Config{
+		Level:  logging.LevelInfo,
+		Format: logging.Format("xml"),
+	}, &bytes.Buffer{})
+	if err == nil {
+		t.Fatal("expected error for unsupported format")
 	}
 }

@@ -8,7 +8,7 @@ set:
 run: once
 
 env:
-  GOTOOLCHAIN: go1.26.0
+  GOTOOLCHAIN: go1.26.3
   SETUP_ENVTEST_K8S_VERSION: "1.35.x!"
 
 tasks:
@@ -42,11 +42,19 @@ tasks:
       - |
         set -euo pipefail
         pkgs="$(go list ./... | grep -v /e2e)"
-        go test -race -coverprofile=coverage.out ${pkgs}
+        go test -race -coverpkg=./internal/... -coverprofile=coverage.out ${pkgs}
+        go tool cover -func=coverage.out | tee coverage-summary.txt | tail -1
+        pct="$(awk '/^total:/ {gsub(/%/,"",$3); print $3}' coverage-summary.txt)"
+        min=80
+        awk -v p="${pct}" -v m="${min}" 'BEGIN { if (p+0 < m+0) { printf "internal/ coverage %.1f%% is below %d%% floor\n", p, m; exit 1 } }'
 
   e2e:
-    desc: Run end-to-end tests (requires kind cluster + IBM MQ)
+    desc: Run end-to-end tests (requires kind cluster; set KURATOR_E2E_MQ=1 for IBM MQ scenarios)
     env:
       CGO_ENABLED: "1"
+      KIND_CLUSTER:
+        sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
+      KUBECONFIG:
+        sh: echo "${KUBECONFIG:-$(pwd)/hack/kind-cluster/.state/kubeconfig.yaml}"
     cmds:
       - go test -tags=e2e ./test/e2e/... -race -v
