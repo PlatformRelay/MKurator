@@ -14,7 +14,7 @@
 | | Document | Covers |
 |---|----------|--------|
 | 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, troubleshooting, uninstall |
-| 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel YAML |
+| 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel, auth YAML |
 | 🔧 | [../charts/kurator/README.md](../charts/kurator/README.md) | Helm chart to install the operator |
 | 🛠️ | [LOCAL_SETUP.md](LOCAL_SETUP.md) | Install Go, Task, Docker, kind, Terraform, and other dev tools |
 | 🛠️ | [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, inner loop, local platform, deploy, test tiers |
@@ -27,7 +27,8 @@
 | 🏗️ | [LOGGING.md](LOGGING.md) | Structured logging configuration and guidelines |
 | 🏗️ | [adr/](adr/) | Architecture Decision Records |
 | 📋 | [ROADMAP.md](ROADMAP.md) | Phased delivery plan |
-| 📋 | [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) | Phase 5 CHLAUTH / AUTHREC CR sketch |
+| 📋 | [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) | Phase 5 CHLAUTH / AUTHREC (shipped + roadmap) |
+| 📋 | [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md) | Release 0.5.0 checklist (e2e auth, tag, CI) |
 | 📋 | [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) | Security, reliability, observability, performance |
 | 📋 | [CICD.md](CICD.md) | CI/CD pipeline and `verify` discipline |
 | 🔒 | [../SECURITY.md](../SECURITY.md) | Security posture and vulnerability reporting |

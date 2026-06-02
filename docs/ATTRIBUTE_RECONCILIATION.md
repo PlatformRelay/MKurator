@@ -26,7 +26,9 @@ See [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) for MQSC semantics.
 | `Channel` | `CHANNEL` | `svrconn` only (default) |
 | `QueueManagerConnection` | (connectivity, not MQSC) | n/a |
 
-Planned: `SET AUTHREC` / `SET CHLAUTH` (Phase 5).
+Planned: additional CHLAUTH rule types and AUTHREC drift (Phase 5 follow-ups).
+Shipped: `SET AUTHREC` / `SET CHLAUTH` via `AuthorityRecord` and `ChannelAuthRule`
+(replace-on-reconcile; no DISPLAY drift matrix yet).
 
 ## Attribute coverage by object
 
@@ -86,15 +88,21 @@ Planned: `SET AUTHREC` / `SET CHLAUTH` (Phase 5).
 
 | MQ surface | MQSC | Phase |
 |------------|------|-------|
-| OAM | `SET AUTHREC` | 5 |
-| Channel auth | `SET CHLAUTH` | 5 |
 | Durable subscription | `DEFINE SUB` | Later |
-| Alias / remote queue | `QALIAS`, `QREMOTE` | 4 (shipped) |
 | Model queue | `QMODEL` | Later |
 | Message channels | `CHLTYPE(SDR\|RCVR\|…)` | Later |
 | Connection auth | `AUTHINFO`, `ALTER QMGR CONNAUTH` | Platform |
 
-Sketch for Phase 5: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
+**Shipped (Phase 5):** OAM via `AuthorityRecord` (`SET AUTHREC`); channel auth via
+`ChannelAuthRule` (`SET CHLAUTH`). No DISPLAY-based drift detection for auth yet.
+
+| MQ surface | CRD | MQSC |
+|------------|-----|------|
+| OAM | `AuthorityRecord` | `SET AUTHREC` |
+| Channel auth | `ChannelAuthRule` | `SET CHLAUTH` |
+| Alias / remote queue | `Queue` | `QALIAS`, `QREMOTE` (Phase 4) |
+
+Sketch and rule-type roadmap: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
 ## Known limitations
 

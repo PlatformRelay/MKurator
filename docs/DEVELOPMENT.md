@@ -140,9 +140,9 @@ without re-running `task generate && task manifests`. It is unrelated to
 **Task is the canonical entry point** ([ADR-0004](adr/0004-task-as-task-runner.md)):
 humans, pre-commit, and CI all run `task <target>`. The root `Makefile` is
 **Kubebuilder scaffold** — it ships with `kubebuilder init` and is still used
-by the default e2e suite (`make docker-build`, `make deploy`). Prefer `task`
-for day-to-day work; ignore `make` unless you are running that scaffold as-is.
-A future cleanup can rewire e2e to `task deploy` and trim the Makefile.
+by the default e2e suite (`task docker:build`, `task install:crds`,
+`task deploy:operator`). Prefer `task` for day-to-day work; ignore `make` unless
+you are running Kubebuilder scaffold targets as-is.
 
 Build the manager binary (CGO-free, static):
 
@@ -360,7 +360,7 @@ Commands and env vars below.
 |------|-------|------------------|---------|
 | **Unit** | Reconciler logic + REST adapter vs mocks / `httptest` | No | `task test:run` |
 | **envtest** | Controller + API against a real API server (`setup-envtest`), `MQAdmin` mocked | No (downloads control-plane binaries) | `task test:run` |
-| **Integration** | `mqrest` / `mqadmin.Admin` queue CRUD against live mqweb | No (Docker MQ only) | `task test:integration` / `task test:integration:local` |
+| **Integration** | `mqrest` / `mqadmin.Admin` queue, topic, channel, CHLAUTH, AUTHREC against live mqweb | No (Docker MQ only) | `task test:integration` / `task test:integration:local` |
 | **e2e** | Operator in kind against live IBM MQ; asserts real MQSC | Yes (`task cluster:up` or `task ci:e2e`) | `task test:e2e` / `task ci:e2e` |
 
 ### IBM MQ integration tests (Docker)
@@ -398,12 +398,14 @@ task test:integration
 
 See [`hack/mq-docker/README.md`](../hack/mq-docker/README.md).
 
-**IBM MQ e2e scenarios** (queue reconcile, channel/auth fixtures) run only when
-`KURATOR_E2E_MQ=1` is set and the kind platform with IBM MQ is up. Without that,
-the scaffold e2e suite (controller pod, metrics) still runs. MQ-specific tests use
-defaults aligned with `hack/kind-cluster` (`QM1`, `admin` / `passw0rd`, endpoint
+**IBM MQ e2e scenarios** (Queue, Topic, Channel reconcile; channel/auth fixtures;
+auth CR e2e planned) run only when `KURATOR_E2E_MQ=1` is set and the kind
+platform with IBM MQ is up. Without that, the scaffold e2e suite (controller pod,
+metrics) still runs. MQ-specific tests use defaults aligned with
+`hack/kind-cluster` (`QM1`, `admin` / `passw0rd`, endpoint
 `https://ibm-mq.ibm-mq.svc:9443`). Override with `KURATOR_E2E_MQ_*` env vars
 documented in [`test/e2e/fixtures/README.md`](../test/e2e/fixtures/README.md).
+Remaining auth e2e: [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md).
 
 Guidelines:
 

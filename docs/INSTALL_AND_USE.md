@@ -33,15 +33,16 @@ Doc index: [README.md](README.md) · [../README.md](../README.md)
 | `Queue` | `mq` | Local, alias, or remote queue (`QLOCAL` / `QALIAS` / `QREMOTE`) |
 | `Topic` | `tp` | An administrative topic object (`DEFINE TOPIC`) |
 | `Channel` | `chl` | A server-connection channel (`CHLTYPE(SVRCONN)`) |
+| `ChannelAuthRule` | `car` | A channel authentication rule (`SET CHLAUTH`) |
+| `AuthorityRecord` | `auth` | An OAM authority record (`SET AUTHREC`) |
 
 The operator translates desired state into MQSC via `mqweb`, reports **conditions**
 on each resource, and removes MQ objects when you delete a CR (finalizers).
 
-**v1alpha1 scope:** all four CR kinds above. Queue `spec.type` supports `local`
-(default), `alias`, and `remote`. Attribute drift behaviour is documented in
-[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). Access control
-(`SET CHLAUTH`, `SET AUTHREC`) is planned for Phase 5 — see
-[PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
+**v1alpha1 scope:** queue `spec.type` supports `local` (default), `alias`, and
+`remote`. `ChannelAuthRule` ships with `ADDRESSMAP` rules; other `ruleType`
+values are accepted by the API and validated at MQ apply time. Attribute drift
+behaviour is documented in [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
 
@@ -71,8 +72,8 @@ Test coverage: [README.md#what-ci-proves](../README.md#what-ci-proves) and
 ### Recommended layout
 
 Install the **operator** into a dedicated namespace (for example
-`kurator-system`). Put **`QueueManagerConnection` and all workload CRs** (`Queue`,
-`Topic`, `Channel`) **in the same namespace** as the credentials `Secret` they
+`kurator-system`). Put **`QueueManagerConnection` and all workload CRs** (`Queue`, `Topic`,
+`Channel`, `ChannelAuthRule`, `AuthorityRecord`) **in the same namespace** as the credentials `Secret` they
 reference — typically that same `kurator-system` namespace, or a team namespace
 where you store MQ connection secrets.
 
@@ -86,12 +87,12 @@ Pick one method. All paths install the same CRDs and controller.
 
 Download the release tag you intend to run from
 [GitHub Releases](https://github.com/konih/kurator/releases). The examples below
-use **`0.1.0`** — match `VERSION` to the tag you downloaded. **`main`** and newer
-tags include Topic, Channel, and alias/remote queue support beyond the first
-release; check the release notes before upgrading.
+use **`0.4.0`** (or the tag you downloaded from GitHub Releases). **`main`** and
+tags after `v0.4.0` add `ChannelAuthRule` and `AuthorityRecord`; check release
+notes before upgrading.
 
 ```sh
-VERSION=0.1.0   # replace with your release tag
+VERSION=0.4.0   # replace with your release tag
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install-crds.yaml"
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install.yaml"
 
@@ -112,7 +113,7 @@ The release `install.yaml` pins the controller image to
 ### Option B — Helm chart (GitHub Release tarball)
 
 ```sh
-VERSION=0.1.0
+VERSION=0.4.0
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/kurator-${VERSION}.tgz"
 
 helm upgrade --install kurator "kurator-${VERSION}.tgz" \
@@ -125,7 +126,7 @@ helm upgrade --install kurator "kurator-${VERSION}.tgz" \
 ### Option C — Helm chart (OCI registry on GHCR)
 
 ```sh
-VERSION=0.1.0
+VERSION=0.4.0
 helm upgrade --install kurator oci://ghcr.io/konih/kurator \
   --version "${VERSION}" \
   --namespace kurator-system \
@@ -428,9 +429,35 @@ Full matrix: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). MQSC re
 | `descr` | `"App channel"` | yes | Description |
 | `maxmsgl` | `"4194304"` | yes | Coerced to numeric in mqweb JSON |
 | `sharecnv` | `"10"` | yes | Shared conversations (SVRCONN) |
-| `mcauser` | `appuser` | yes | Use with OAM/CHLAUTH in production (Phase 5) |
+| `mcauser` | `appuser` | yes | Pair with `AuthorityRecord` / `ChannelAuthRule` in production |
 | `maxinst` / `maxinstc` | `"100"` | yes | Connection limits |
 | `sslciph`, `sslcauth` | various | no | TLS — DEFINE only until DISPLAY support |
+
+**Status:** same `Synced` condition semantics as `Queue`.
+
+### ChannelAuthRule
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
+| `spec.channelName` | yes | Channel name in `SET CHLAUTH('…')` |
+| `spec.ruleType` | yes | CHLAUTH `TYPE` — `ADDRESSMAP` in samples; others per IBM MQ |
+| `spec.address` | yes* | `ADDRESS` — required when `ruleType` is `ADDRESSMAP` |
+| `spec.userSource` | no | `USERSRC` (e.g. `CHANNEL`) |
+| `spec.checkClient` | no | `CHCKCLNT` (e.g. `REQUIRED`) |
+| `spec.description` | no | `DESCR` |
+
+**Status:** same `Synced` condition semantics as `Queue`.
+
+### AuthorityRecord
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
+| `spec.profile` | yes | `PROFILE('…')` — queue or channel name |
+| `spec.objectType` | yes | `OBJTYPE` — e.g. `QUEUE`, `CHANNEL` |
+| `spec.principal` or `spec.group` | yes | Exactly one of `PRINCIPAL` / `GROUP` |
+| `spec.authorities` | yes | `AUTHADD` list — e.g. `GET`, `PUT`, `CONNECT` |
 
 **Status:** same `Synced` condition semantics as `Queue`.
 
@@ -447,6 +474,8 @@ kind platform.
 | [`config/samples/messaging_v1alpha1_queue.yaml`](../config/samples/messaging_v1alpha1_queue.yaml) | Sample `APP.ORDERS` local queue |
 | [`config/samples/messaging_v1alpha1_topic.yaml`](../config/samples/messaging_v1alpha1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
 | [`config/samples/messaging_v1alpha1_channel.yaml`](../config/samples/messaging_v1alpha1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
+| [`config/samples/messaging_v1alpha1_channelauthrule.yaml`](../config/samples/messaging_v1alpha1_channelauthrule.yaml) | Sample `ADDRESSMAP` CHLAUTH for gitops channel |
+| [`config/samples/messaging_v1alpha1_authorityrecord.yaml`](../config/samples/messaging_v1alpha1_authorityrecord.yaml) | Sample OAM grant on `APP.ORDERS` |
 | [`charts/kurator/samples/resources/`](../charts/kurator/samples/resources/) | Same samples for Helm workflows |
 | [`config/samples/README.md`](../config/samples/README.md) | Field-by-field annotations |
 
