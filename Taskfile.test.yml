@@ -36,6 +36,8 @@ tasks:
     desc: Run unit tests (excludes e2e build tag), with race detector
     env:
       CGO_ENABLED: "1"
+      KUBEBUILDER_ASSETS:
+        sh: go tool setup-envtest use ${SETUP_ENVTEST_K8S_VERSION} -p path
     cmds:
       - |
         set -euo pipefail
