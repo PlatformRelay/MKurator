@@ -13,8 +13,8 @@ const (
 
 // Controller names used as the controller label value.
 const (
-	ControllerQueue                   = "queue"
-	ControllerQueueManagerConnection  = "queuemanagerconnection"
+	ControllerQueue                  = "queue"
+	ControllerQueueManagerConnection = "queuemanagerconnection"
 )
 
 // MQ operation names for mqweb adapter metrics.
