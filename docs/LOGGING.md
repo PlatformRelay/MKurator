@@ -66,13 +66,12 @@ env:
     value: info
   - name: KURATOR_LOG_FORMAT
     value: json
+  - name: KURATOR_LOG_CONFIG
+    value: /etc/kurator/logging.yaml
 volumeMounts:
   - name: logging-config
     mountPath: /etc/kurator
     readOnly: true
-env:
-  - name: KURATOR_LOG_CONFIG
-    value: /etc/kurator/logging.yaml
 ```
 
 Mount a `ConfigMap` at `/etc/kurator/logging.yaml` to change logging without
