@@ -29,8 +29,14 @@ cluster, Queue Manager, and operator with sample CRs:
 
 task local:up      # cluster + IBM MQ + operator (Helm) + sample Queue/Connection
 task local:info    # URLs, credentials, CR status
+task mq:console    # IBM MQ web UI URL (https://mq.localhost:30443/ibmmq/console/)
+task mq:cli        # interactive runmqsc on QM1
 task local:down    # tear everything down
 ```
+
+IBM MQ on the kind cluster includes the **web console** and **`runmqsc`** in the
+MQ pod. See [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) to confirm the operator
+created `APP.ORDERS` on the queue manager.
 
 **Inner loop** (no cluster — mocks + envtest):
 

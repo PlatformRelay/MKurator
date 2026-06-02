@@ -21,6 +21,7 @@ Start here, then drill into the topic you need:
 | [docs/adr/](docs/adr/) | Architecture Decision Records (one file per significant decision). |
 | [docs/IBM_MQ_OBJECTS.md](docs/IBM_MQ_OBJECTS.md) | MQSC object model the operator manages. |
 | [docs/IBM_MQ_REST_API.md](docs/IBM_MQ_REST_API.md) | How the `mqweb` REST API is consumed. |
+| [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) | Local MQ console, `runmqsc` CLI, verify Kurator on kind. |
 | [docs/REFERENCES.md.example](docs/REFERENCES.md.example) | IBM MQ samples map (copy to gitignored `docs/REFERENCES.md` locally). |
 | [charts/kurator/README.md](charts/kurator/README.md) | Publishable Helm chart and kind install. |
 | [docs/PHASE4_CHANNEL_AUTH.md](docs/PHASE4_CHANNEL_AUTH.md) | Phase 4 channel/auth CR sketch from reference MQSC. |
@@ -233,6 +234,7 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to run each tier.
 | `task local:deploy` / `task local:info` | Refresh operator on existing cluster / URLs + CR status |
 | `task cluster:up` / `task cluster:down` | Platform only (`hack/kind-cluster`) |
 | `task cluster:info` | Print MQ/Grafana/Argo CD URLs and credentials |
+| `task mq:console` / `task mq:cli` / `task mq:runmqsc` | IBM MQ web UI URL; interactive or one-shot `runmqsc` on kind QM1 |
 | `task deploy` / `task deploy:helm` | Install operator (Kustomize or Helm; uses `go tool kustomize`) |
 | `task deploy:samples` | Apply sample Secret + CRs (`charts/kurator/samples/resources/`) |
 | `task undeploy` / `task undeploy:helm` | Remove operator |
