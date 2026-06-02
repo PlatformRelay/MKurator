@@ -181,7 +181,7 @@ cosign verify \
 4. Smoke install from release YAML (see [INSTALL_AND_USE.md](INSTALL_AND_USE.md)):
 
 ```sh
-VERSION=0.4.0
+VERSION=0.5.0   # replace with the tag you just published
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install-crds.yaml"
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install.yaml"
 kubectl apply -f install-crds.yaml
