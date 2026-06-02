@@ -35,7 +35,11 @@ ones.
 - klone + Makefile modules + self-upgrade bots.
 - Generated `LICENSES` allowlist and CNCF license gating.
 - Multi-module `go.mod` per binary.
-- Signed releases, SBOM, SLSA provenance, OpenSSF Scorecard.
+- OpenSSF Scorecard and SLSA Level 3 dedicated builders.
+
+**Added (release pipeline, 2026):** OCI SBOM + SLSA provenance attestations on GHCR
+push, SPDX SBOM on GitHub Releases, and cosign keyless signing — scoped to tagged
+releases only, not full cert-manager-style KMS signing.
 
 ## Consequences
 

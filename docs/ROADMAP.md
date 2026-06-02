@@ -95,7 +95,7 @@ locally and in CI — **met**.
 - [x] Fix **DISPLAY QLOCAL** on live MQ — drop `maxmsglen` from display parameters
   (mqweb 9.4 returns `MQWB0120E`); coerce numeric DEFINE attrs; **Queue** reaches
   **Synced=True** on `task local:up`.
-- [x] Raise `internal/` coverage with focused tests (mqrest ~56%, controller ~55%).
+- [x] Raise `internal/` coverage to **≥80%** (enforced in `task test:run`).
 
 Exit criteria: envtest + adapter tests + live queue on kind — **met**.
 
@@ -107,13 +107,15 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
   idempotency (NFR REL-1) once DEFINE QLOCAL is fixed (Phase 2 blocker).
 - [x] `test/e2e/fixtures/` — MQSC bootstrap for channels/auth (from
   mq-gitops-samples); see [PHASE4_CHANNEL_AUTH.md](PHASE4_CHANNEL_AUTH.md).
-- [ ] Wire e2e into CI (kind in GitHub Actions) on a dedicated job.
+- [x] Wire e2e into CI (`.github/workflows/e2e.yaml`: kind + IBM MQ + `task test:e2e`;
+  `task ci:e2e` for local parity).
 - [x] Release workflow (`.github/workflows/release.yaml`): multi-arch distroless
   image publish to GHCR + Trivy image scan + published Kustomize/Helm install
   manifests (`hack/release-assets.sh`, `charts/kurator/samples/values-release.yaml`,
   `.trivyignore`) on `v*.*.*` tags (NFR OPS-1/OPS-2, SEC-4/SEC-6).
-- [ ] Optional supply-chain extras (SBOM, signing) deferred per
-  [ADR-0005](adr/0005-keep-tooling-lean.md).
+- [x] Release supply chain — OCI SBOM + SLSA provenance (`docker/build-push-action`),
+  SPDX SBOM on GitHub Releases (`anchore/sbom-action`), cosign keyless signing
+  (`sigstore/cosign-installer`).
 
 **Also delivered in Phase 3:**
 
@@ -122,9 +124,8 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
   groundwork for e2e fixtures and Phase 4 MQSC.
 
 Exit criteria: `task test:e2e` green locally and in CI against a live Queue
-Manager; release pipeline produces a scanned image and install manifests —
-**partially met** (release pipeline done; e2e green locally blocked on DEFINE
-QLOCAL; e2e not yet in CI).
+Manager; release pipeline produces a scanned, signed image with SBOM and install
+manifests — **met** (e2e in CI via `e2e.yaml`; signing/SBOM on release tags).
 
 ## Phase 4 — User & authority management
 
@@ -133,6 +134,19 @@ QLOCAL; e2e not yet in CI).
 - [ ] Extend the API toward MQ access control: authority records / channel auth /
   user-style resources (exact CRDs decided when reached).
 - [ ] Corresponding `MQAdmin` operations, adapter support, and tests at all layers.
+
+## Repo visibility
+
+- [x] README badges — CI, MIT license, Codecov, Go module / pkg.go.dev
+  ([konih/kurator](https://github.com/konih/kurator)).
+- [x] CI coverage export — `coverage.out` artifact, job summary, Codecov upload
+  (`codecov.yml`; first green `main` run registers the project).
+- [ ] **Go Report Card** — request a scan at
+  [goreportcard.com/report/github.com/konradheimel/kurator](https://goreportcard.com/report/github.com/konradheimel/kurator)
+  (module path from `go.mod`), then add
+  `[![Go Report Card](https://goreportcard.com/badge/github.com/konradheimel/kurator)](https://goreportcard.com/report/github.com/konradheimel/kurator)`
+  to `README.md`.
+- [x] Release badge — [`README.md`](../README.md) links GitHub Releases (`v0.1.0`).
 
 ## Later / candidate work
 

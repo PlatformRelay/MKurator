@@ -1,10 +1,18 @@
 # Kurator
 
+[![CI](https://github.com/konih/kurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/konih/kurator/actions/workflows/ci.yaml)
+[![E2E](https://github.com/konih/kurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/konih/kurator/actions/workflows/e2e.yaml)
+[![License: MIT](https://img.shields.io/github/license/konih/kurator)](https://github.com/konih/kurator/blob/main/LICENSE)
+[![codecov](https://codecov.io/gh/konih/kurator/graph/badge.svg)](https://codecov.io/gh/konih/kurator)
+[![Go](https://img.shields.io/github/go-mod/go-version/konih/kurator)](https://pkg.go.dev/github.com/konradheimel/kurator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/konradheimel/kurator.svg)](https://pkg.go.dev/github.com/konradheimel/kurator)
+[![Release](https://img.shields.io/github/v/release/konih/kurator)](https://github.com/konih/kurator/releases)
+
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues today, users/authorities and more later.
 
-> Status: **early / work in progress.** Core reconcile paths exist; see the
-> [roadmap](docs/ROADMAP.md).
+> Status: **v0.1.0** — first release; queue reconcile on existing IBM MQ via `mqweb`.
+> See the [roadmap](docs/ROADMAP.md) for what is next.
 
 ## What it does
 
@@ -61,6 +69,7 @@ task deploy:samples        # only sample Secret + CRs
 | `task deploy:samples` | `mq-credentials` Secret + `QueueManagerConnection` + `Queue` for `QM1` |
 | `task test:run` | Unit + envtest (`-race`) |
 | `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
+| `task ci:e2e` | Same as GitHub Actions e2e job (`cluster:up` + MQ wait + tests) |
 
 After `task local:up`, check reconciliation:
 

@@ -282,7 +282,7 @@ task cluster:down    # full platform teardown
 |------|-------|------------------|---------|
 | **Unit** | Reconciler logic + REST adapter vs mocks / `httptest` | No | `task test:run` |
 | **envtest** | Controller + API against a real API server (`setup-envtest`), `MQAdmin` mocked | No (downloads control-plane binaries) | `task test:run` |
-| **e2e** | Operator in kind against live IBM MQ; asserts real MQSC | Yes (`task cluster:up`) | `task test:e2e` |
+| **e2e** | Operator in kind against live IBM MQ; asserts real MQSC | Yes (`task cluster:up` or `task ci:e2e`) | `task test:e2e` / `task ci:e2e` |
 
 **IBM MQ e2e scenarios** (queue reconcile, channel/auth fixtures) run only when
 `KURATOR_E2E_MQ=1` is set and the kind platform with IBM MQ is up. Without that,

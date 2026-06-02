@@ -25,6 +25,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write # cosign keyless signing (OIDC)
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -73,6 +74,7 @@ jobs:
           echo "tags=${IMAGE}:${{ steps.version.outputs.version }},${IMAGE}:${{ steps.version.outputs.tag }}" >> "${GITHUB_OUTPUT}"
 
       - name: Build and push controller image
+        id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
@@ -81,6 +83,8 @@ jobs:
           tags: ${{ steps.image.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          sbom: true
+          provenance: mode=max
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -90,6 +94,24 @@ jobs:
           exit-code: 1
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+
+      - uses: sigstore/cosign-installer@b4da77ecad80ff9afe572690e3ce4a55a58e629c # v3.9.1
+
+      - name: Sign container image
+        run: |
+          cosign sign --yes \
+            "${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
+
+      - name: Prepare dist directory
+        run: mkdir -p dist
+
+      - uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        with:
+          image: ${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}
+          output-file: dist/sbom.spdx.json
+          format: spdx-json
+          registry-username: ${{ github.repository_owner }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build release assets
         run: bash hack/release-assets.sh "${{ steps.version.outputs.version }}" "${{ steps.image.outputs.repository }}"
@@ -124,6 +146,15 @@ jobs:
 
             Multi-arch (`linux/amd64`, `linux/arm64`), distroless nonroot base.
 
+            OCI attestations (SBOM + SLSA provenance) are attached in GHCR. Verify the signature:
+
+            ```sh
+            cosign verify \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.+' \
+              ${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}
+            ```
+
             ## Install (Kustomize)
 
             ```sh
@@ -157,4 +188,5 @@ jobs:
             dist/install-crds.yaml
             dist/install.yaml
             dist/kurator-${{ steps.version.outputs.version }}.tgz
+            dist/sbom.spdx.json
             dist/checksums.txt

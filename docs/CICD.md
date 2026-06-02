@@ -37,7 +37,7 @@ flowchart LR
 
 | Event | Runs |
 |-------|------|
-| PR / push to default branch | `verify`, `lint`, `test`, `build`, `govulncheck`, `e2e` |
+| PR / push to default branch | `ci.yaml`: verify, lint, test, build, govulncheck; `e2e.yaml`: kind + IBM MQ e2e |
 | Tag `v*` | `release` (build + push image, publish install manifests) + image scan |
 | Schedule (e.g. weekly) | `govulncheck`, image scan, dependency bot |
 
@@ -54,8 +54,10 @@ finding or formatting diff.
 
 ### `test`
 `task test:run` — Ginkgo unit + envtest with the race detector and a coverage
-profile. envtest control-plane binaries come from `setup-envtest` (pinned K8s
-API version). Coverage is uploaded as an artifact / summary; a regression is
+profile (`coverage.out`). envtest control-plane binaries come from
+`setup-envtest` (pinned K8s API version). CI uploads `coverage.out` as a workflow
+artifact, prints a **job summary** (`go tool cover -func`), and publishes to
+[Codecov](https://codecov.io/gh/konih/kurator) (`codecov.yml`). A regression is
 investigated, not ignored.
 
 ### `build`
@@ -68,14 +70,18 @@ built but not pushed.
 schedule so newly disclosed CVEs surface even without code changes.
 
 ### `e2e`
-Spins up the local platform (`hack/kind-cluster`: kind + ingress + cert-manager
-+ IBM MQ) and runs `task test:e2e` (build tag `e2e`) to assert real MQSC objects
-are created/updated/deleted. Heavier, so it may be path-filtered or scheduled.
+Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml)
+on PRs and `main`: `task cluster:up` (kind + Terraform + IBM MQ), `hack/ci/wait-mqweb.sh`,
+then `task test:e2e` with `KURATOR_E2E_MQ=1` and `CERT_MANAGER_INSTALL_SKIP=true`
+(cert-manager is already installed by Terraform). Tears down with `task cluster:down`
+on completion. Local equivalent: `task ci:e2e`.
 
 ### `release` (tags only)
-Builds and pushes the controller image to the registry, generates pinned
-install manifests (Kustomize), and attaches them to the GitHub Release. Runs
-only on `v*` tags on protected refs.
+Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and
+**SLSA provenance** attestations, scans with Trivy, **cosign-signs** the image
+digest (keyless OIDC), generates an SPDX SBOM (`dist/sbom.spdx.json`), then
+publishes Kustomize/Helm install manifests on the GitHub Release. Runs only on
+`v*.*.*` tags (or `workflow_dispatch` for testing).
 
 ### image scan
 **Trivy** scans the built image for OS/dependency vulnerabilities; documented
@@ -100,10 +106,12 @@ findings fail the job.
 | Minimal permissions | `permissions:` block per workflow; default read-only |
 | Reproducible build | CGO-free, pinned toolchain, committed `go.sum` |
 | Nonroot runtime | distroless nonroot base, read-only FS, dropped caps |
+| Release SBOM | BuildKit attestation on push + SPDX file on GitHub Release |
+| Image signing | cosign keyless (`sigstore/cosign-installer`) on image digest |
+| SLSA provenance | `provenance: mode=max` on `docker/build-push-action` |
 
-Optional hardening to add as the project matures: SBOM generation, image signing
-(cosign), and SLSA provenance — deferred until there are external consumers (see
-the cert-manager-scale practices we deliberately skip in [adr/](adr/)).
+Further supply-chain hardening (OpenSSF Scorecard, SLSA Level 3 builders) remains
+optional; see [ADR-0005](adr/0005-keep-tooling-lean.md).
 
 ## Branch protection
 
@@ -120,7 +128,7 @@ pushes to the default branch.
 | test | `task test:run` |
 | build | `task build` |
 | govulncheck | `govulncheck ./...` |
-| e2e | `task cluster:up && task test:e2e` |
+| e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
 
 pre-commit runs `gofmt`/`goimports`, `golangci-lint`, and `task verify` so most
 CI failures are caught before pushing.

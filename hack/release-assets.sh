@@ -36,7 +36,11 @@ helm package "${ROOT}/charts/kurator" \
 
 (
   cd "${DIST}"
-  sha256sum install-crds.yaml install.yaml "kurator-${VERSION}.tgz" >checksums.txt
+  files=(install-crds.yaml install.yaml "kurator-${VERSION}.tgz")
+  if [[ -f "sbom.spdx.json" ]]; then
+    files+=("sbom.spdx.json")
+  fi
+  sha256sum "${files[@]}" >checksums.txt
 )
 
 echo "release assets written to ${DIST}/"

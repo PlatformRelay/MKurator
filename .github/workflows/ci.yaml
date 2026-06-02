@@ -60,6 +60,9 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Codecov OIDC upload (public repo)
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -74,6 +77,25 @@ jobs:
         run: task test:run
         env:
           CI: "true"
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tee coverage-summary.txt
+      - name: Job summary
+        run: |
+          echo "### Coverage" >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+          tail -20 coverage-summary.txt >> "${GITHUB_STEP_SUMMARY}"
+          echo '```' >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage
+          path: |
+            coverage.out
+            coverage-summary.txt
+          if-no-files-found: error
+      - uses: codecov/codecov-action@0565863df21f3cdea94fdd5411e4efae765cfb57 # v5.4.0
+        with:
+          files: coverage.out
+          fail_ci_if_error: false
 
   build:
     name: build

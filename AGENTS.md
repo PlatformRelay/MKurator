@@ -241,6 +241,7 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to run each tier.
 | `task helm:package` | Package `charts/kurator` for publish |
 | `task test:run` | Run unit + envtest suites (Ginkgo) |
 | `task test:e2e` | Run kind-based e2e suite |
+| `task ci:e2e` | Full e2e parity with CI (`cluster:up` + MQ wait + `test:e2e`) |
 
 **Local dev** uses kind for both the dev cluster and e2e, provisioned by
 `hack/kind-cluster` (kind + Terraform + IBM MQ Helm chart). See
