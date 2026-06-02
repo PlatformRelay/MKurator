@@ -80,6 +80,19 @@ func TestLoadInvalidFormat(t *testing.T) {
 	}
 }
 
+func TestLoadInvalidConfigFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "logging.yaml")
+	if err := os.WriteFile(path, []byte("level: [\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(logging.EnvConfig, path)
+	_, err := logging.Load(logging.Options{})
+	if err == nil {
+		t.Fatal("expected error for invalid YAML")
+	}
+}
+
 func TestSetupWithWriter(t *testing.T) {
 	var buf bytes.Buffer
 	if err := logging.SetupWithWriter(logging.Config{
