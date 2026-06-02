@@ -20,6 +20,8 @@ env:
   CERT_MANAGER_INSTALL_SKIP: "true"
   KURATOR_E2E_MQ: "1"
   GOTOOLCHAIN: go1.26.3
+  # Prefer our pinned kind binary over any preinstalled runner copy.
+  KIND: ${{ runner.tool_cache }}/bin/kind
 
 jobs:
   e2e:
@@ -49,8 +51,9 @@ jobs:
             "https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64"
           chmod +x "${bindir}/kind" "${bindir}/mkcert"
           echo "${bindir}" >> "${GITHUB_PATH}"
-          kind version
-          mkcert -version
+          echo "PATH=${bindir}:${PATH}" >> "${GITHUB_ENV}"
+          "${bindir}/kind" version
+          "${bindir}/mkcert" -version
 
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
 
