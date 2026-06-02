@@ -44,7 +44,7 @@ func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, fmt.Errorf("get Queue: %w", err)
 	}
 
-	conn, admin, err := r.resolveAdmin(ctx, q)
+	conn, err := r.getConnection(ctx, q)
 	if err != nil {
 		return r.setSyncedError(ctx, q, err)
 	}
@@ -53,10 +53,15 @@ func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		setCondition(&q.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing,
 			fmt.Sprintf("waiting for connection %q to become Ready", conn.Name), q.Generation)
-		if err := r.Status().Update(ctx, q); err != nil {
-			return ctrl.Result{}, err
+		if statusErr := r.Status().Update(ctx, q); statusErr != nil {
+			return ctrl.Result{}, statusErr
 		}
 		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
+	admin, err := r.MQFactory.ForConnection(ctx, conn)
+	if err != nil {
+		return r.setSyncedError(ctx, q, err)
 	}
 
 	if !q.DeletionTimestamp.IsZero() {
@@ -93,22 +98,18 @@ func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return ctrl.Result{}, nil
 }
 
-func (r *QueueReconciler) resolveAdmin(
+func (r *QueueReconciler) getConnection(
 	ctx context.Context,
 	q *messagingv1alpha1.Queue,
-) (*messagingv1alpha1.QueueManagerConnection, mqadmin.Admin, error) {
+) (*messagingv1alpha1.QueueManagerConnection, error) {
 	conn := &messagingv1alpha1.QueueManagerConnection{}
 	if err := r.Get(ctx, client.ObjectKey{
 		Namespace: q.Namespace,
 		Name:      q.Spec.ConnectionRef.Name,
 	}, conn); err != nil {
-		return nil, nil, fmt.Errorf("get connection %q: %w", q.Spec.ConnectionRef.Name, err)
+		return nil, fmt.Errorf("get connection %q: %w", q.Spec.ConnectionRef.Name, err)
 	}
-	admin, err := r.MQFactory.ForConnection(ctx, conn)
-	if err != nil {
-		return conn, nil, err
-	}
-	return conn, admin, nil
+	return conn, nil
 }
 
 func (r *QueueReconciler) ensureQueue(ctx context.Context, admin mqadmin.Admin, spec mqadmin.QueueSpec) error {
