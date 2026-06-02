@@ -527,3 +527,117 @@ func TestClient_GetChannelNotFound(t *testing.T) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
+
+func TestClient_DefineAndGetAliasQueue(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body["command"] == "display" {
+			if body["qualifier"] != "qalias" {
+				t.Errorf("qualifier = %v", body["qualifier"])
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 0,
+					"parameters":          map[string]any{"target": "APP.BASE", "descr": "alias"},
+				}},
+				testKeyOverallCompletionCode: 0,
+			})
+			return
+		}
+		if body["qualifier"] != "qalias" {
+			t.Errorf("define qualifier = %v", body["qualifier"])
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+			testKeyOverallCompletionCode: 0,
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.QueueSpec{
+		Name: "APP.ALIAS",
+		Type: mqadmin.QueueTypeAlias,
+		Attributes: map[string]string{
+			"targq": "APP.BASE",
+			"descr": "alias",
+		},
+	}
+	if err := c.DefineQueue(context.Background(), spec); err != nil {
+		t.Fatalf("DefineQueue: %v", err)
+	}
+	state, err := c.GetQueue(context.Background(), spec)
+	if err != nil {
+		t.Fatalf("GetQueue: %v", err)
+	}
+	if state.Attributes["targq"] != "APP.BASE" {
+		t.Fatalf("targq = %q", state.Attributes["targq"])
+	}
+}
+
+func TestClient_DefineAndGetRemoteQueue(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body["command"] == "display" {
+			if body["qualifier"] != "qremote" {
+				t.Errorf("qualifier = %v", body["qualifier"])
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 0,
+					"parameters": map[string]any{
+						"remotequeue":       "REMOTE.Q",
+						"remotemanager":     "QM2",
+						"transmissionqueue": "XMIT.Q",
+					},
+				}},
+				testKeyOverallCompletionCode: 0,
+			})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse:       []map[string]any{{testKeyCompletionCode: 0}},
+			testKeyOverallCompletionCode: 0,
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.QueueSpec{
+		Name: "APP.REMOTE",
+		Type: mqadmin.QueueTypeRemote,
+		Attributes: map[string]string{
+			"rname":   "REMOTE.Q",
+			"rqmname": "QM2",
+			"xmitq":   "XMIT.Q",
+		},
+	}
+	if err := c.DefineQueue(context.Background(), spec); err != nil {
+		t.Fatalf("DefineQueue: %v", err)
+	}
+	state, err := c.GetQueue(context.Background(), spec)
+	if err != nil {
+		t.Fatalf("GetQueue: %v", err)
+	}
+	if state.Attributes["rname"] != "REMOTE.Q" || state.Attributes["rqmname"] != "QM2" {
+		t.Fatalf("attrs = %v", state.Attributes)
+	}
+}

@@ -178,3 +178,12 @@ func conditionStatus(conditions []metav1.Condition, condType string) metav1.Cond
 	}
 	return ""
 }
+
+func conditionReason(conditions []metav1.Condition, condType string) string {
+	for _, c := range conditions {
+		if c.Type == condType {
+			return c.Reason
+		}
+	}
+	return ""
+}

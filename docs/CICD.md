@@ -1,6 +1,6 @@
 # CI/CD
 
-This document describes the continuous integration and delivery design for the
+This document describes the continuous integration and delivery design for
 **Kurator**. The guiding principle: **the same checks run locally
 (via Task and pre-commit) and in CI**, so "green locally" means "green in CI".
 
@@ -49,8 +49,8 @@ Regenerates CRDs, RBAC, deepcopy, and mocks and fails on any diff
 
 ### `lint`
 `task lint` — golangci-lint v2 (`default: none`, curated linter set per
-[AGENTS.md](../AGENTS.md)) plus `gofmt`/`goimports`/`golines`. Fails on any
-finding or formatting diff.
+[AGENTS.md](../AGENTS.md), including **gosec**) plus `gofmt`/`goimports`/`golines`.
+Fails on any finding or formatting diff.
 
 ### `test`
 `task test:run` — Ginkgo unit + envtest with the race detector and a coverage
@@ -73,9 +73,9 @@ schedule so newly disclosed CVEs surface even without code changes.
 ### `integration`
 Dedicated workflow [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml)
 on PRs and `main`: `task ci:integration` (Docker Compose IBM MQ, mqweb wait,
-`task test:integration`, teardown). Exercises `mqadmin.Admin` queue operations
-against live mqweb without kind. Local equivalent: `task test:integration:local`
-or `task ci:integration`.
+`task test:integration`, teardown). Exercises `mqadmin.Admin` queue, topic, and
+channel operations against live mqweb without kind. Local equivalent:
+`task test:integration:local` or `task ci:integration`.
 
 ### `e2e`
 Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml)
@@ -136,6 +136,7 @@ pushes to the default branch.
 | test | `task test:run` |
 | build | `task build` |
 | govulncheck | `govulncheck ./...` |
+| integration | `task ci:integration` (or `task test:integration:local`) |
 | e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
 
 pre-commit runs `gofmt`/`goimports`, `golangci-lint`, and `task verify` so most

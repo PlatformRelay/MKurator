@@ -156,6 +156,46 @@ func TestClientFactory_CacheKeyChangesWithSecretResourceVersion(t *testing.T) {
 	}
 }
 
+func TestClientFactory_BuildConfigInvalidEndpoint(t *testing.T) {
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := runtime.NewScheme()
+	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := corev1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns},
+		Data: map[string][]byte{
+			"username":        []byte("admin"),
+			"mqAdminPassword": []byte("passw0rd"),
+		},
+	}
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "://bad-url",
+			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
+	factory := NewClientFactory(cl).(*ClientFactory)
+	if _, err := factory.buildConfig(ctx, conn); err == nil {
+		t.Fatal("expected parse error")
+	}
+}
+
+func TestFirstBytes_PrefersFirstKey(t *testing.T) {
+	t.Parallel()
+	got := firstBytes(map[string][]byte{"ca.crt": []byte("a"), "tls.crt": []byte("b")}, "tls.crt", "ca.crt")
+	if string(got) != "b" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func testCAPEM(t *testing.T) []byte {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)

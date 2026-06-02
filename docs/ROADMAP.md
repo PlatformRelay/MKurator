@@ -85,7 +85,8 @@ locally and in CI — **met**.
   `local:deploy` / `local:info` / `local:down`.
 - [x] README + [DEVELOPMENT.md](DEVELOPMENT.md) — full local setup documented;
   `hack/kind-cluster/README.md` cross-linked.
-- [x] [REFERENCES.md](REFERENCES.md) — vendored IBM MQ samples: what to reuse vs skip.
+- [x] [REFERENCES.md.example](REFERENCES.md.example) — IBM MQ samples map; copy
+  locally to gitignored `docs/REFERENCES.md` when using a `references/` clone.
 - [x] `setup-envtest` wired in `Taskfile.test.yml` (`KUBEBUILDER_ASSETS`).
 - [x] Manual validation on kind: `QueueManagerConnection` reaches **Ready** against
   live `QM1`; operator reaches mqweb in-cluster.
@@ -175,11 +176,9 @@ reconciled on kind with e2e coverage.
   [config/samples/README.md](../config/samples/README.md).
 - [x] CI coverage export — `coverage.out` artifact, job summary, Codecov upload
   (`codecov.yml`; first green `main` run registers the project).
-- [ ] **Go Report Card** — request a scan at
+- [x] **Go Report Card** — badge in [README.md](../README.md); refresh at
   [goreportcard.com/report/github.com/konradheimel/kurator](https://goreportcard.com/report/github.com/konradheimel/kurator)
-  (module path from `go.mod`), then add
-  `[![Go Report Card](https://goreportcard.com/badge/github.com/konradheimel/kurator)](https://goreportcard.com/report/github.com/konradheimel/kurator)`
-  to `README.md`.
+  after significant API changes (uses module path from `go.mod`).
 - [x] Release badge — [`README.md`](../README.md) links GitHub Releases (`v0.1.0`).
 
 ## Later / candidate work

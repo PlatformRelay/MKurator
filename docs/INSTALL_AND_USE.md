@@ -27,6 +27,17 @@ on each resource, and removes MQ objects when you delete a CR (finalizers).
 
 Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
 
+### What CI proves
+
+| Tier | Scope |
+|------|-------|
+| Unit + envtest | Reconcilers and adapter (mocked MQ); Queue, Topic, Channel, and QMC envtest |
+| Docker integration | Queue (local/alias/remote), Topic, Channel against live mqweb |
+| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, and Channel CR reconcile + delete on live `QM1` |
+
+See [README.md](../README.md#what-ships-in-v1alpha1-today) for release vs `main`
+and the konih / konradheimel identity split.
+
 ---
 
 ## Before you install
@@ -62,11 +73,14 @@ Pick one method. All paths install the same CRDs and controller.
 
 ### Option A — GitHub Release manifests (Kustomize)
 
-Download the release that matches your version from
-[GitHub Releases](https://github.com/konih/kurator/releases).
+Download the release tag you intend to run from
+[GitHub Releases](https://github.com/konih/kurator/releases). The examples below
+use **`0.1.0`** — match `VERSION` to the tag you downloaded. **`main`** and newer
+tags include Topic, Channel, and alias/remote queue support beyond the first
+release; check the release notes before upgrading.
 
 ```sh
-VERSION=0.1.0
+VERSION=0.1.0   # replace with your release tag
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install-crds.yaml"
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install.yaml"
 
@@ -454,9 +468,9 @@ Reuse the existing `QueueManagerConnection`; add another `Queue` with a differen
 
 ### Rotate credentials
 
-Update the Secret data. The mqweb client cache is keyed by connection spec
-generation today — bump the `QueueManagerConnection` spec (for example add or
-change an annotation) so the operator rebuilds the client with new credentials.
+Update the Secret data. The mqweb client cache includes each referenced Secret's
+`resourceVersion`, so the operator rebuilds the client on the next reconcile
+after the Secret change (no spec bump required).
 
 ### Delete a queue, topic, or channel
 

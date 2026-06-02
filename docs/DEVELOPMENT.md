@@ -108,9 +108,14 @@ In the cluster, the manager Deployment sets `KURATOR_LOG_FORMAT=json` and
 ## Local platform (kind + IBM MQ)
 
 The `hack/kind-cluster` tree provisions a complete environment: a kind cluster
-with **ingress-nginx**, **cert-manager**, an optional **kube-prometheus-stack**,
-and a real **IBM MQ** Queue Manager exposing `mqweb` — wired with **Terraform**
-and trusted TLS from **mkcert**.
+with **HAProxy Ingress** (NodePorts 30080/30443), **cert-manager**, an optional
+**kube-prometheus-stack**, and a real **IBM MQ** Queue Manager exposing `mqweb`
+— wired with **Terraform** and trusted TLS from **mkcert**.
+
+> **Canonical reference** for local URLs, credentials, task targets, and test
+> tiers is this section and [hack/kind-cluster/README.md](../hack/kind-cluster/README.md).
+> [README.md](../README.md) and [INSTALL_AND_USE.md](INSTALL_AND_USE.md) link here
+> for quick start only.
 
 Cluster name: `kurator` (override with `CLUSTER_NAME` if you have an existing
 `ibm-mq-operator` cluster from before the rename). State (kubeconfig, TLS) is
@@ -143,7 +148,7 @@ Printed by `task cluster:info` / `./scripts/info.sh` after bring-up:
 | Target | URL |
 |--------|-----|
 | IBM MQ web console | `https://mq.localhost:30443/ibmmq/console/` |
-| IBM MQ admin REST (via ingress) | `https://mq.localhost:30443/ibmmq/rest/v2/admin/qmgr` |
+| IBM MQ admin REST (via ingress) | `https://mq.localhost:30443/ibmmq/rest/v3/admin/qmgr` |
 | Argo CD | `https://argocd.localhost:30443/` |
 | Grafana | `https://grafana.localhost:30443/` |
 | In-cluster mqweb (`QueueManagerConnection.spec.endpoint`) | `https://ibm-mq.ibm-mq.svc:9443` |
