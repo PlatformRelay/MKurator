@@ -45,9 +45,9 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 
 ## CI hardening (nice-to-have, post-0.5.0)
 
-- [ ] Add `task format:check` to `ci.yaml` (Task target already exists)
-- [ ] Path filters on integration/e2e workflows to skip when only docs change
-- [ ] Scheduled `govulncheck` workflow (if not already covered by Renovate weekly)
+- [x] Add `task format:check` to `ci.yaml` (Task target already exists)
+- [x] Path filters on integration/e2e workflows to skip when only docs change
+- [x] Scheduled `govulncheck` workflow (if not already covered by Renovate weekly) — covered by CI `govulncheck` job on every push/PR
 
 ## GitOps debugging
 
