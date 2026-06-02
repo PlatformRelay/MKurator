@@ -499,6 +499,8 @@ kind: QueueManagerConnection
 metadata:
   name: %s
   namespace: %s
+  annotations:
+    messaging.kurator.dev/allow-insecure-tls: "true"
 spec:
   queueManager: %s
   endpoint: https://ibm-mq.ibm-mq.svc:9443
