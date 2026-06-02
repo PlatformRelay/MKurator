@@ -55,5 +55,5 @@ func (v *authorityRecordCustomValidator) validateRecord(
 	reader client.Reader,
 	auth *messagingv1alpha1.AuthorityRecord,
 ) ([]string, field.ErrorList) {
-	return nil, validation.ValidateAuthorityRecordSpec(ctx, reader, auth.Namespace, &auth.Spec)
+	return nil, validation.ValidateAuthorityRecordSpec(ctx, reader, auth.Namespace, auth.Name, &auth.Spec)
 }

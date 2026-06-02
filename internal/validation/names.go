@@ -4,12 +4,36 @@ import (
 	"strconv"
 	"strings"
 
+	apivalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const maxMQObjectNameLen = 48
 
-// ValidateMQObjectName checks IBM MQ object name constraints for queues, topics, and channels.
+// mqReservedPrefixes lists IBM MQ reserved name prefixes (case-insensitive).
+// See docs/IBM_MQ_OBJECTS.md and IBM MQ naming reference (SYSTEM.* objects).
+var mqReservedPrefixes = []struct {
+	prefix  string
+	message string
+}{
+	{prefix: "SYSTEM.", message: "names with prefix SYSTEM. are reserved for queue manager objects"},
+	{prefix: "AMQ", message: "names with prefix AMQ are reserved for IBM MQ internal use"},
+}
+
+// ValidateKubernetesResourceName checks metadata.name against DNS-1123 subdomain rules.
+// An empty name is allowed when the API server assigns one from generateName.
+func ValidateKubernetesResourceName(path *field.Path, name string) field.ErrorList {
+	if name == "" {
+		return nil
+	}
+	var errs field.ErrorList
+	for _, msg := range apivalidation.IsDNS1123Subdomain(name) {
+		errs = append(errs, field.Invalid(path, name, msg))
+	}
+	return errs
+}
+
+// ValidateMQObjectName checks IBM MQ object name constraints for queues, topics, channels, and profiles.
 func ValidateMQObjectName(path *field.Path, name string) field.ErrorList {
 	var errs field.ErrorList
 
@@ -20,8 +44,12 @@ func ValidateMQObjectName(path *field.Path, name string) field.ErrorList {
 	if trimmed != name {
 		errs = append(errs, field.Invalid(path, name, "name must not have leading or trailing whitespace"))
 	}
-	if strings.HasPrefix(strings.ToUpper(trimmed), "SYSTEM.") {
-		errs = append(errs, field.Invalid(path, name, "names with prefix SYSTEM. are reserved"))
+	upper := strings.ToUpper(trimmed)
+	for _, reserved := range mqReservedPrefixes {
+		if strings.HasPrefix(upper, reserved.prefix) {
+			errs = append(errs, field.Invalid(path, name, reserved.message))
+			break
+		}
 	}
 	if strings.HasPrefix(trimmed, ".") || strings.HasSuffix(trimmed, ".") {
 		errs = append(errs, field.Invalid(path, name, "name must not start or end with '.'"))

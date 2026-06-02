@@ -14,11 +14,12 @@ import (
 func ValidateChannelAuthRuleSpec(
 	ctx context.Context,
 	reader client.Reader,
-	namespace string,
+	namespace, resourceName string,
 	spec *messagingv1alpha1.ChannelAuthRuleSpec,
 ) field.ErrorList {
 	var errs field.ErrorList
 
+	errs = append(errs, ValidateKubernetesResourceName(field.NewPath("metadata").Child("name"), resourceName)...)
 	errs = append(errs, ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))...)
 	errs = append(errs, ValidateMQObjectName(field.NewPath("spec").Child("channelName"), spec.ChannelName)...)
@@ -40,11 +41,12 @@ func ValidateChannelAuthRuleSpec(
 func ValidateAuthorityRecordSpec(
 	ctx context.Context,
 	reader client.Reader,
-	namespace string,
+	namespace, resourceName string,
 	spec *messagingv1alpha1.AuthorityRecordSpec,
 ) field.ErrorList {
 	var errs field.ErrorList
 
+	errs = append(errs, ValidateKubernetesResourceName(field.NewPath("metadata").Child("name"), resourceName)...)
 	errs = append(errs, ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))...)
 	errs = append(errs, ValidateMQObjectName(field.NewPath("spec").Child("profile"), spec.Profile)...)

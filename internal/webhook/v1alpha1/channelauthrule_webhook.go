@@ -55,5 +55,5 @@ func (v *channelAuthRuleCustomValidator) validateRule(
 	reader client.Reader,
 	rule *messagingv1alpha1.ChannelAuthRule,
 ) ([]string, field.ErrorList) {
-	return nil, validation.ValidateChannelAuthRuleSpec(ctx, reader, rule.Namespace, &rule.Spec)
+	return nil, validation.ValidateChannelAuthRuleSpec(ctx, reader, rule.Namespace, rule.Name, &rule.Spec)
 }

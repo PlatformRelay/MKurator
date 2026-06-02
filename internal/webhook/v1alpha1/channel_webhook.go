@@ -55,5 +55,5 @@ func (v *channelCustomValidator) validateChannel(
 	reader client.Reader,
 	channel *messagingv1alpha1.Channel,
 ) ([]string, field.ErrorList) {
-	return validation.ValidateChannelSpec(ctx, reader, channel.Namespace, &channel.Spec)
+	return validation.ValidateChannelSpec(ctx, reader, channel.Namespace, channel.Name, &channel.Spec)
 }

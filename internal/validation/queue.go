@@ -14,7 +14,7 @@ import (
 func ValidateQueueSpec(
 	ctx context.Context,
 	reader client.Reader,
-	namespace string,
+	namespace, resourceName string,
 	spec *messagingv1alpha1.QueueSpec,
 ) ([]string, field.ErrorList) {
 	var (
@@ -23,6 +23,7 @@ func ValidateQueueSpec(
 		errs     field.ErrorList
 	)
 
+	errs = append(errs, ValidateKubernetesResourceName(field.NewPath("metadata").Child("name"), resourceName)...)
 	errs = append(errs, ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))...)
 	errs = append(errs, ValidateMQObjectName(field.NewPath("spec").Child("queueName"), spec.QueueName)...)

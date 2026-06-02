@@ -55,5 +55,5 @@ func (v *topicCustomValidator) validateTopic(
 	reader client.Reader,
 	topic *messagingv1alpha1.Topic,
 ) ([]string, field.ErrorList) {
-	return validation.ValidateTopicSpec(ctx, reader, topic.Namespace, &topic.Spec)
+	return validation.ValidateTopicSpec(ctx, reader, topic.Namespace, topic.Name, &topic.Spec)
 }

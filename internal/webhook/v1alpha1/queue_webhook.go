@@ -55,5 +55,5 @@ func (v *queueCustomValidator) validateQueue(
 	reader client.Reader,
 	queue *messagingv1alpha1.Queue,
 ) ([]string, field.ErrorList) {
-	return validation.ValidateQueueSpec(ctx, reader, queue.Namespace, &queue.Spec)
+	return validation.ValidateQueueSpec(ctx, reader, queue.Namespace, queue.Name, &queue.Spec)
 }

@@ -30,7 +30,7 @@ func TestValidateChannelAuthRuleSpecAddressMapRequiresAddress(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default",
+	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default", "dev-app-addressmap",
 		&messagingv1alpha1.ChannelAuthRuleSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
@@ -67,7 +67,7 @@ func TestValidateAuthorityRecordSpecRequiresPrincipalOrGroup(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default",
+	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default", "auth1",
 		&messagingv1alpha1.AuthorityRecordSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
@@ -102,7 +102,7 @@ func TestValidateAuthorityRecordSpecValid(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default",
+	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default", "auth1",
 		&messagingv1alpha1.AuthorityRecordSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
@@ -132,7 +132,7 @@ func TestValidateChannelAuthRuleSpecValid(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default",
+	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default", "dev-app-addressmap",
 		&messagingv1alpha1.ChannelAuthRuleSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
@@ -162,7 +162,7 @@ func TestValidateAuthorityRecordSpecBothPrincipalAndGroup(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default",
+	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default", "auth1",
 		&messagingv1alpha1.AuthorityRecordSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
@@ -199,7 +199,7 @@ func TestValidateAuthorityRecordSpecEmptyAuthority(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default",
+	errs := ValidateAuthorityRecordSpec(context.Background(), cl, "default", "auth1",
 		&messagingv1alpha1.AuthorityRecordSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
@@ -235,7 +235,7 @@ func TestValidateChannelAuthRuleSpecMissingRuleType(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
 
-	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default",
+	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default", "car1",
 		&messagingv1alpha1.ChannelAuthRuleSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",

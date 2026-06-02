@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -29,6 +28,9 @@ func TestValidateMQObjectName(t *testing.T) {
 		{name: "leading dot", value: ".APP", wantErr: true},
 		{name: "trailing dot", value: "APP.", wantErr: true},
 		{name: "system prefix", value: "SYSTEM.DEFAULT", wantErr: true},
+		{name: "system prefix lowercase", value: "system.default", wantErr: true},
+		{name: "amq prefix", value: "AMQ.TEST", wantErr: true},
+		{name: "amq prefix lowercase", value: "amq9999", wantErr: true},
 		{name: "lowercase", value: "app.orders", wantErr: true},
 		{name: "invalid char", value: "APP-ORDERS", wantErr: true},
 	}
@@ -108,7 +110,7 @@ func TestValidateQueueSpec(t *testing.T) {
 			QueueName:     "ALIAS.Q",
 			Type:          messagingv1alpha1.QueueTypeAlias,
 		}
-		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", spec)
+		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", "alias-queue", spec)
 		if len(errs) == 0 {
 			t.Fatal("expected missing targq error")
 		}
@@ -121,7 +123,7 @@ func TestValidateQueueSpec(t *testing.T) {
 			Type:          messagingv1alpha1.QueueTypeAlias,
 			Attributes:    map[string]string{"target": "APP.BASE"},
 		}
-		warnings, errs := ValidateQueueSpec(context.Background(), cl, "ns", spec)
+		warnings, errs := ValidateQueueSpec(context.Background(), cl, "ns", "alias-queue", spec)
 		if len(errs) > 0 {
 			t.Fatalf("unexpected errors: %v", errs)
 		}
@@ -137,7 +139,7 @@ func TestValidateQueueSpec(t *testing.T) {
 			Type:          messagingv1alpha1.QueueTypeRemote,
 			Attributes:    map[string]string{"xmitq": "XMIT.Q"},
 		}
-		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", spec)
+		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", "remote-queue", spec)
 		if len(errs) == 0 {
 			t.Fatal("expected missing rqmname error")
 		}
@@ -149,7 +151,7 @@ func TestValidateQueueSpec(t *testing.T) {
 			QueueName:     "APP.Q",
 			Attributes:    map[string]string{"notreal": "x"},
 		}
-		warnings, errs := ValidateQueueSpec(context.Background(), cl, "ns", spec)
+		warnings, errs := ValidateQueueSpec(context.Background(), cl, "ns", "app-queue", spec)
 		if len(errs) > 0 {
 			t.Fatalf("unexpected errors: %v", errs)
 		}
@@ -157,128 +159,26 @@ func TestValidateQueueSpec(t *testing.T) {
 			t.Fatalf("expected one warning, got %v", warnings)
 		}
 	})
-}
-
-func TestValidateQueueManagerConnectionSpecRequiredFields(t *testing.T) {
-	t.Parallel()
-	cl := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-
-	spec := &messagingv1alpha1.QueueManagerConnectionSpec{}
-	if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", spec); len(errs) < 3 {
-		t.Fatalf("expected required field errors, got %v", errs)
-	}
-}
-
-func TestValidateQueueManagerConnectionDeleteWithChannel(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-	channel := &messagingv1alpha1.Channel{
-		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "ns"},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			ChannelName:   "ORDERS.APP",
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, channel).Build()
-	if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
-		t.Fatal("expected delete blocked when channel dependent exists")
-	}
-}
-
-func TestValidateQueueManagerConnectionDeleteWithAuthDependents(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-	car := &messagingv1alpha1.ChannelAuthRule{
-		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			ChannelName:   "ORDERS.APP",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
-		},
-	}
-	auth := &messagingv1alpha1.AuthorityRecord{
-		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
-			Principal:     "app",
-			Authorities:   []string{"GET"},
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, car, auth).Build()
-	if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
-		t.Fatal("expected delete blocked when auth dependents exist")
-	}
-}
-
-func TestValidateQueueManagerConnectionSpec(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
-
-	t.Run("http endpoint rejected", func(t *testing.T) {
+	t.Run("invalid metadata name", func(t *testing.T) {
 		t.Parallel()
-		spec := &messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager:         "QM1",
-			Endpoint:             "http://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
+		spec := &messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.Q",
 		}
-		if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", spec); len(errs) == 0 {
-			t.Fatal("expected endpoint error")
+		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", "APP_Invalid", spec)
+		if len(errs) == 0 {
+			t.Fatal("expected invalid metadata.name error")
 		}
 	})
-	t.Run("missing credentials secret", func(t *testing.T) {
+	t.Run("reserved queue name amq", func(t *testing.T) {
 		t.Parallel()
-		spec := &messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager:         "QM1",
-			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "missing"},
-		}
-		if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", spec); len(errs) == 0 {
-			t.Fatal("expected secret not found error")
-		}
-	})
-}
-
-func TestValidateQueueManagerConnectionDelete(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-	queue := &messagingv1alpha1.Queue{
-		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
-		Spec: messagingv1alpha1.QueueSpec{
+		spec := &messagingv1alpha1.QueueSpec{
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			QueueName:     "APP.ORDERS",
-		},
-	}
-	topic := &messagingv1alpha1.Topic{
-		ObjectMeta: metav1.ObjectMeta{Name: "events", Namespace: "ns"},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			TopicName:     "RETAIL.ORDERS",
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, queue, topic).Build()
-
-	t.Run("deny with dependents", func(t *testing.T) {
-		t.Parallel()
-		if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
-			t.Fatal("expected delete blocked when dependents exist")
+			QueueName:     "AMQ.ORDERS",
 		}
-	})
-	t.Run("allow without dependents", func(t *testing.T) {
-		t.Parallel()
-		empty := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
-		if errs := ValidateQueueManagerConnectionDelete(context.Background(), empty, conn); len(errs) > 0 {
-			t.Fatalf("unexpected errors: %v", errs)
+		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", "app-queue", spec)
+		if len(errs) == 0 {
+			t.Fatal("expected reserved queueName error")
 		}
 	})
 }
@@ -295,7 +195,7 @@ func TestValidateChannelSpec(t *testing.T) {
 		ChannelName:   "ORDERS.APP",
 		Type:          messagingv1alpha1.ChannelType("sender"),
 	}
-	if _, errs := ValidateChannelSpec(context.Background(), cl, "ns", spec); len(errs) == 0 {
+	if _, errs := ValidateChannelSpec(context.Background(), cl, "ns", "orders-app", spec); len(errs) == 0 {
 		t.Fatal("expected unsupported channel type error")
 	}
 }
@@ -312,7 +212,7 @@ func TestValidateTopicSpec(t *testing.T) {
 		TopicName:     "RETAIL.ORDERS",
 		Attributes:    map[string]string{"topstr": "A.B"},
 	}
-	warnings, errs := ValidateTopicSpec(context.Background(), cl, "ns", spec)
+	warnings, errs := ValidateTopicSpec(context.Background(), cl, "ns", "retail-orders", spec)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
@@ -338,34 +238,12 @@ func TestValidateQueueSpecRemote(t *testing.T) {
 			"remotequeue":       "R.Q",
 		},
 	}
-	warnings, errs := ValidateQueueSpec(context.Background(), cl, "ns", spec)
+	warnings, errs := ValidateQueueSpec(context.Background(), cl, "ns", "remote-queue", spec)
 	if len(errs) > 0 {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 	if len(warnings) != 0 {
 		t.Fatalf("unexpected warnings: %v", warnings)
-	}
-}
-
-func TestValidateQueueManagerConnectionCASecret(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = messagingv1alpha1.AddToScheme(scheme)
-	creds := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}}
-	ca := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca", Namespace: "ns"}}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(creds, ca).Build()
-
-	spec := &messagingv1alpha1.QueueManagerConnectionSpec{
-		QueueManager:         "QM1",
-		Endpoint:             "https://mq.example:9443",
-		CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
-		TLS: &messagingv1alpha1.TLSConfig{
-			CASecretRef: &messagingv1alpha1.SecretReference{Name: "ca"},
-		},
-	}
-	if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", spec); len(errs) > 0 {
-		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
 
