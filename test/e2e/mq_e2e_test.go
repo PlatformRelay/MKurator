@@ -116,6 +116,8 @@ spec:
 				g.Expect(out).To(Equal("True"))
 			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 
+			eventuallyExpectQueueAvailableEvent(namespace, mqQueueCRName)
+
 			client, err := newMQClient()
 			Expect(err).NotTo(HaveOccurred())
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
