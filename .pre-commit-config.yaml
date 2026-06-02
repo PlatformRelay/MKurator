@@ -45,3 +45,11 @@ repos:
         pass_filenames: false
         always_run: true
         require_serial: true
+
+      - id: govulncheck
+        name: govulncheck
+        entry: task vuln:check
+        language: system
+        pass_filenames: false
+        always_run: true
+        require_serial: true

@@ -15,8 +15,12 @@ vars:
   BIN_DIR: bin
   MANAGER_BINARY: "{{.BIN_DIR}}/manager"
   DOCKER_IMAGE: kurator-controller-manager:dev
+  CLUSTER_NAME:
+    sh: echo "${CLUSTER_NAME:-kurator}"
   KUBECONFIG:
     sh: echo "${KUBECONFIG:-$(pwd)/hack/kind-cluster/.state/kubeconfig.yaml}"
+  KUSTOMIZE:
+    sh: go tool kustomize
 
 includes:
   cluster:
@@ -75,6 +79,12 @@ tasks:
     cmds:
       - gitleaks detect --source . --verbose
 
+  vuln:check:
+    desc: Run govulncheck against code and dependencies
+    deps: [install]
+    cmds:
+      - go tool govulncheck ./...
+
   build:
     desc: Build the manager binary (CGO-free, static)
     deps: [install]
@@ -94,15 +104,15 @@ tasks:
       - "{{.CONTAINER_TOOL | default `docker`}} build -t {{.DOCKER_IMAGE}} ."
 
   deploy:
-    desc: Build image, load into kind (if present), apply install manifests (Kustomize)
+    desc: Build image, load into kind (if present), apply CRDs + operator (Kustomize)
     deps: [docker:build]
     cmds:
       - |
-        if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME:-kurator}"; then
-          kind load docker-image {{.DOCKER_IMAGE}} --name "${CLUSTER_NAME:-kurator}"
+        if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -qx "{{.CLUSTER_NAME}}"; then
+          kind load docker-image {{.DOCKER_IMAGE}} --name "{{.CLUSTER_NAME}}"
         fi
       - |
-        cd config/manager && kustomize edit set image controller={{.DOCKER_IMAGE}}
+        cd config/manager && {{.KUSTOMIZE}} edit set image controller={{.DOCKER_IMAGE}}
       - kubectl apply --server-side -f config/crd/bases
       - kubectl apply --server-side -k config/default
     env:
@@ -113,8 +123,8 @@ tasks:
     deps: [docker:build, helm:sync-crds]
     cmds:
       - |
-        if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME:-kurator}"; then
-          kind load docker-image {{.DOCKER_IMAGE}} --name "${CLUSTER_NAME:-kurator}"
+        if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -qx "{{.CLUSTER_NAME}}"; then
+          kind load docker-image {{.DOCKER_IMAGE}} --name "{{.CLUSTER_NAME}}"
         fi
       - |
         helm upgrade --install kurator ./charts/kurator \
@@ -165,3 +175,55 @@ tasks:
     cmds:
       - mkdir -p dist
       - helm package ./charts/kurator -d dist/
+
+  local:up:
+    desc: "Local dev: kind cluster + IBM MQ + operator (Helm) + sample CRs"
+    cmds:
+      - task: cluster:up
+      - task: deploy:helm
+      - task: deploy:samples
+      - task: local:info
+
+  local:deploy:
+    desc: "Install operator + sample CRs on an existing local cluster (skip cluster:up)"
+    cmds:
+      - task: deploy:helm
+      - task: deploy:samples
+
+  local:info:
+    desc: Print local cluster URLs, MQ credentials, and Kurator resource status
+    cmds:
+      - task: cluster:info
+      - |
+        echo ""
+        echo "Kurator (namespace kurator-system):"
+        kubectl get deploy,pods -n kurator-system 2>/dev/null || true
+        kubectl get qmc,queue -n kurator-system 2>/dev/null || true
+        echo ""
+        echo "Quick check: task mq:runmqsc -- \"DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH\""
+        echo "Guide: docs/IBM_MQ_101.md"
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  mq:console:
+    desc: Print IBM MQ web console URL and credentials (kind cluster)
+    cmds:
+      - task: cluster:mq:console
+
+  mq:cli:
+    desc: Interactive runmqsc on kind cluster queue manager QM1
+    cmds:
+      - task: cluster:mq:cli
+
+  mq:runmqsc:
+    desc: Run one MQSC command on kind QM1 (pass command after --)
+    cmds:
+      - task: cluster:mq:runmqsc
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  local:down:
+    desc: "Tear down sample CRs, Helm release, and kind cluster"
+    cmds:
+      - task: undeploy:helm
+      - task: cluster:down
