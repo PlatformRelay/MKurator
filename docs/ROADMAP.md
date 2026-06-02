@@ -170,12 +170,17 @@ Exit criteria: **met** — invalid manifests rejected by `kubectl apply` on kind
 
 - [x] [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) — CR sketch mapped from
   reference MQSC; e2e fixture [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc).
-- [ ] Extend the API toward MQ access control: authority records / channel auth /
-  user-style resources (exact CRDs decided when reached).
-- [ ] Corresponding `MQAdmin` operations, adapter support, and tests at all layers.
+- [x] `ChannelAuthRule` and `AuthorityRecord` CRDs — API, CRDs, `MQAdmin` port,
+  `mqrest` adapter (`SET CHLAUTH` / `SET AUTHREC`), thin reconcilers, validating
+  webhooks, samples, Docker integration tests.
+- [ ] **E2e on kind** — reconcile and delete auth CRs against live `QM1` (see
+  [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md)).
+- [ ] Additional CHLAUTH rule types (`BLOCKUSER`, `USERMAP`, …) — schema present;
+  extend samples and e2e when needed.
 
-Exit criteria: declarative channel auth (and at least one user/authority resource)
-reconciled on kind with e2e coverage.
+Exit criteria: declarative channel auth and OAM authority records reconciled on
+kind with e2e coverage — **partial** (code + integration tests shipped; auth e2e
+and release tag pending).
 
 ## Repo visibility
 

@@ -17,9 +17,10 @@ A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
 more later.
 
-> Status: **Phase 4 + 4b complete** — queue, topic, SVRCONN channel, and
-> validating admission webhooks on existing IBM MQ via `mqweb`. **Phase 5**
-> (auth) is next. See the [roadmap](docs/ROADMAP.md).
+> Status: **Phase 5 (auth) shipped on `main`** — `ChannelAuthRule` and
+> `AuthorityRecord` reconcile via mqweb MQSC. E2e coverage for auth CRs is
+> tracked in [docs/plans/RELEASE_0.5.0_FOLLOWUPS.md](docs/plans/RELEASE_0.5.0_FOLLOWUPS.md).
+> See the [roadmap](docs/ROADMAP.md).
 
 ## What ships in v1alpha1 (today)
 
@@ -29,9 +30,12 @@ more later.
 | `Queue` | `QLOCAL`, `QALIAS`, `QREMOTE` | `spec.type`: `local` (default), `alias`, `remote` |
 | `Topic` | `TOPIC` | Drift-checked attributes per [ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md) |
 | `Channel` | `CHANNEL` … `CHLTYPE(SVRCONN)` | Other channel types planned later |
+| `ChannelAuthRule` | `CHLAUTH` | `ADDRESSMAP` in v1alpha1; other rule types in schema, MQ-validated |
+| `AuthorityRecord` | `SET AUTHREC` (OAM) | Queue profile + principal/group authorities |
 
-**Not shipped yet:** `SET CHLAUTH`, `SET AUTHREC`, and related access-control
-resources (Phase 5 — see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md)).
+**v1alpha1 scope:** access control covers `SET CHLAUTH` (one rule per CR) and
+`SET AUTHREC` for queue/channel-style profiles. See
+[PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md) for rule-type roadmap.
 
 **Repository:** [github.com/konih/kurator](https://github.com/konih/kurator) — Go module
 [`github.com/konih/kurator`](https://pkg.go.dev/github.com/konih/kurator), images
@@ -41,9 +45,9 @@ resources (Phase 5 — see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md)).
 
 | Tier | Scope |
 |------|-------|
-| Unit + envtest | Reconcilers and adapter (mocked MQ); validating admission (envtest); Queue, Topic, Channel, and QMC |
-| Docker integration | Queue (local/alias/remote), Topic, Channel against live mqweb |
-| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, and Channel CR reconcile + delete on live `QM1` |
+| Unit + envtest | Reconcilers and adapter (mocked MQ); validating admission; Queue, Topic, Channel, auth CRs, QMC |
+| Docker integration | Queue, Topic, Channel, CHLAUTH, AUTHREC against live mqweb |
+| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, Channel CR reconcile + delete on live `QM1`; auth e2e in progress |
 
 Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 
@@ -53,8 +57,8 @@ Latest tagged release: [GitHub Releases](https://github.com/konih/kurator/releas
 
 ## What it does
 
-- Reconciles custom resources (`Queue`, `Topic`, `Channel`) into MQSC objects on
-  a running Queue Manager.
+- Reconciles custom resources (`Queue`, `Topic`, `Channel`, `ChannelAuthRule`,
+  `AuthorityRecord`) into MQSC objects on a running Queue Manager.
 - Talks to the Queue Manager through the **IBM MQ Administrative REST API**
   (`mqweb`) over HTTPS — pure Go, no CGO.
 - Reports status via conditions and cleans up via finalizers.
@@ -71,7 +75,7 @@ adapter. Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · extended map:
 
 ```text
 kurator/
-├── 📦 api/v1alpha1/                 CRD types + deepcopy (QMC, Queue, Topic, Channel)
+├── 📦 api/v1alpha1/                 CRD types + deepcopy (QMC, Queue, Topic, Channel, auth)
 ├── 🚀 cmd/                          Manager entrypoint (controller-runtime)
 ├── 🧠 internal/
 │   ├── controller/                  Reconcilers (thin) + unit/envtest suites
@@ -107,8 +111,8 @@ Sample YAML with annotations:
 
 ```sh
 # After install — apply samples (see config/samples/README.md)
-kubectl apply -k config/samples/   # Connection + Queue + Topic + Channel (Secret first)
-kubectl get qmc,mq,tp,chl -n kurator-system
+kubectl apply -k config/samples/   # Connection + Queue + Topic + Channel + auth (Secret first)
+kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
 ```
 
 ## Local development (contributors)

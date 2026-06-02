@@ -18,6 +18,10 @@ kubectl apply -f messaging_v1alpha1_topic.yaml
 kubectl wait --for=condition=Synced topic/retail-orders -n kurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_channel.yaml
 kubectl wait --for=condition=Synced channel/orders-app -n kurator-system --timeout=120s
+kubectl apply -f messaging_v1alpha1_channelauthrule.yaml
+kubectl wait --for=condition=Synced channelauthrule/dev-app-addressmap -n kurator-system --timeout=120s
+kubectl apply -f messaging_v1alpha1_authorityrecord.yaml
+kubectl wait --for=condition=Synced authorityrecord/app-orders-get-put -n kurator-system --timeout=120s
 ```
 
 Or apply everything via Kustomize (create the credentials Secret first — it is
@@ -226,6 +230,34 @@ Helm copy:
 
 ---
 
+## `messaging_v1alpha1_channelauthrule.yaml`
+
+Applies an `ADDRESSMAP` CHLAUTH rule for the gitops sample channel name
+(`DEV.APP.SVRCONN.0TLS`). Requires a matching `Channel` (or pre-existing MQ
+channel) on the queue manager.
+
+| Field | This sample | Notes |
+|-------|-------------|-------|
+| `channelName` | `DEV.APP.SVRCONN.0TLS` | Must match the SVRCONN channel |
+| `ruleType` | `ADDRESSMAP` | Other types allowed by schema; see [PHASE5_AUTH_SKETCH.md](../../docs/PHASE5_AUTH_SKETCH.md) |
+| `address` | `*` | Required for `ADDRESSMAP` |
+| `userSource` / `checkClient` | `CHANNEL` / `REQUIRED` | Typical client-connect pattern |
+
+---
+
+## `messaging_v1alpha1_authorityrecord.yaml`
+
+Grants `GET` and `PUT` on queue profile `APP.ORDERS` to principal `app`.
+
+| Field | This sample | Notes |
+|-------|-------------|-------|
+| `profile` | `APP.ORDERS` | Queue or channel name for `PROFILE('…')` |
+| `objectType` | `QUEUE` | IBM MQ `OBJTYPE` |
+| `principal` | `app` | Use `group` instead of `principal`, not both |
+| `authorities` | `GET`, `PUT` | Mapped to `AUTHADD` |
+
+---
+
 ## `logging-config.yaml`
 
 Optional manager logging config for local `go run ./cmd/main.go` — not used by
@@ -237,7 +269,7 @@ See [LOGGING.md](../../docs/LOGGING.md).
 ## Verify reconciliation
 
 ```sh
-kubectl get qmc,mq,tp,chl -n kurator-system
+kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
 kubectl describe topic retail-orders -n kurator-system
 kubectl describe channel orders-app -n kurator-system
 kubectl logs -n kurator-system deployment/kurator-controller-manager -f

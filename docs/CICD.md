@@ -45,7 +45,7 @@ flowchart LR
 ## Jobs
 
 ### `verify`
-Regenerates CRDs, RBAC, deepcopy, and mocks and fails on any diff
+Regenerates CRDs, RBAC, deepcopy, and **mockery mocks** and fails on any diff
 (`task verify`). Guarantees committed generated artifacts never drift.
 
 ### `lint`
@@ -74,9 +74,9 @@ schedule so newly disclosed CVEs surface even without code changes.
 ### `integration`
 Dedicated workflow [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml)
 on PRs and `main`: `task ci:integration` (Docker Compose IBM MQ, mqweb wait,
-`task test:integration`, teardown). Exercises `mqadmin.Admin` queue, topic, and
-channel operations against live mqweb without kind. Local equivalent:
-`task test:integration:local` or `task ci:integration`.
+`task test:integration`, teardown). Exercises `mqadmin.Admin` queue, topic,
+channel, **CHLAUTH**, and **AUTHREC** operations against live mqweb without kind.
+Local equivalent: `task test:integration:local` or `task ci:integration`.
 
 ### `e2e`
 Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml)
