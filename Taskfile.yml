@@ -32,7 +32,7 @@ vars:
   KUBECONFIG:
     sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
   KUSTOMIZE:
-    sh: go tool kustomize
+    sh: go tool -n kustomize
 
 includes:
   cluster:
