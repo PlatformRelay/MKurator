@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/konih/kurator/internal/adapter/mqrest"
 	"github.com/konih/kurator/internal/mqadmin"
@@ -281,6 +282,64 @@ func TestClient_PostMQSCInvalidJSON(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("not-json"))
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.RunMQSC(context.Background(), "DISPLAY QMGR")
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_PingNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.Ping(context.Background())
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_PingForbidden(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer srv.Close()
+	c := newTestClient(t, srv.URL, srv.Client())
+	err := c.Ping(context.Background())
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("expected terminal error, got %v", err)
+	}
+}
+
+func TestClient_PingNetworkError(t *testing.T) {
+	t.Parallel()
+	u, _ := url.Parse("https://127.0.0.1:1")
+	c, err := mqrest.NewClient(mqrest.Config{
+		Endpoint:     u,
+		QueueManager: "QM1",
+		Username:     "admin",
+		Password:     "pass",
+		HTTPClient:   &http.Client{Timeout: 10 * time.Millisecond},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = c.Ping(context.Background())
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("expected transient error, got %v", err)
+	}
+}
+
+func TestClient_PostMQSCForbidden(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
 	}))
 	defer srv.Close()
 	c := newTestClient(t, srv.URL, srv.Client())

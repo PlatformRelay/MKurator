@@ -93,6 +93,42 @@ func TestLoadInvalidConfigFile(t *testing.T) {
 	}
 }
 
+func TestLoadFileNotFound(t *testing.T) {
+	t.Setenv(logging.EnvConfig, "/nonexistent/logging.yaml")
+	_, err := logging.Load(logging.Options{})
+	if err == nil {
+		t.Fatal("expected error for missing config file")
+	}
+}
+
+func TestLoadFileInvalidLevelInFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "logging.yaml")
+	if err := os.WriteFile(path, []byte("level: trace\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(logging.EnvConfig, path)
+	_, err := logging.Load(logging.Options{})
+	if err == nil {
+		t.Fatal("expected error for invalid level in file")
+	}
+}
+
+func TestSetup(t *testing.T) {
+	if err := logging.Setup(logging.Config{
+		Level:  logging.LevelInfo,
+		Format: logging.FormatJSON,
+	}); err != nil {
+		t.Fatalf("Setup JSON: %v", err)
+	}
+	if err := logging.Setup(logging.Config{
+		Level:  logging.LevelInfo,
+		Format: logging.FormatText,
+	}); err != nil {
+		t.Fatalf("Setup text: %v", err)
+	}
+}
+
 func TestSetupWithWriter(t *testing.T) {
 	var buf bytes.Buffer
 	if err := logging.SetupWithWriter(logging.Config{
@@ -111,6 +147,16 @@ func TestSetupWithWriter(t *testing.T) {
 	logger.Info("ignored at error level")
 	if buf.Len() != 0 {
 		t.Fatalf("expected no output at error level for info, got %q", buf.String())
+	}
+}
+
+func TestNewLoggerUnsupportedLevel(t *testing.T) {
+	_, err := logging.NewLogger(logging.Config{
+		Level:  logging.Level("trace"),
+		Format: logging.FormatJSON,
+	}, &bytes.Buffer{})
+	if err == nil {
+		t.Fatal("expected error for unsupported level")
 	}
 }
 

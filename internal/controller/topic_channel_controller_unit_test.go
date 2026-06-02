@@ -217,6 +217,53 @@ func TestTopicReconciler_DefinesWhenMissing(t *testing.T) {
 	}
 }
 
+func TestTopicReconciler_DeletionDeleteFails(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
+	s := unitSchemeOrFatal(t)
+
+	now := metav1.Now()
+	conn := readyConnForUnit(ns)
+	topic := &messagingv1alpha1.Topic{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "retail-orders",
+			Namespace:         ns,
+			Finalizers:        []string{messagingv1alpha1.TopicFinalizer},
+			DeletionTimestamp: &now,
+		},
+		Spec: messagingv1alpha1.TopicSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			TopicName:     "RETAIL.ORDERS",
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(topic, conn).
+		WithObjects(conn, topic).
+		Build()
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().DeleteTopic(mock.Anything, "RETAIL.ORDERS").Return(&mqadmin.TerminalError{Message: "delete denied"})
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &TopicReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	updated := &messagingv1alpha1.Topic{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Finalizers) == 0 {
+		t.Fatal("finalizer should remain when delete fails")
+	}
+}
+
 func TestTopicReconciler_Deletion(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

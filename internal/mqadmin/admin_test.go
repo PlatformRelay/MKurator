@@ -6,6 +6,22 @@ import (
 	"testing"
 )
 
+func TestTerminalErrorWithoutCause(t *testing.T) {
+	t.Parallel()
+	err := &TerminalError{Reason: "Auth", Message: "denied"}
+	if err.Error() != "denied" {
+		t.Fatalf("Error() = %q", err.Error())
+	}
+}
+
+func TestTransientErrorWithoutCause(t *testing.T) {
+	t.Parallel()
+	err := &TransientError{Message: "timeout"}
+	if err.Error() != "timeout" {
+		t.Fatalf("Error() = %q", err.Error())
+	}
+}
+
 func TestTerminalError(t *testing.T) {
 	t.Parallel()
 	cause := fmt.Errorf("root")

@@ -268,14 +268,18 @@ func requestsForConnection(
 	return reqs
 }
 
-func watchConnectionStatus(c client.Client) handler.EventHandler {
-	return handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+func connectionEnqueueMapper(c client.Client) handler.MapFunc {
+	return func(ctx context.Context, obj client.Object) []reconcile.Request {
 		conn, ok := obj.(*messagingv1alpha1.QueueManagerConnection)
 		if !ok {
 			return nil
 		}
 		return requestsForConnection(ctx, c, conn)
-	})
+	}
+}
+
+func watchConnectionStatus(c client.Client) handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(connectionEnqueueMapper(c))
 }
 
 func connectionReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
@@ -295,8 +299,8 @@ func ignoreNotFound(err error) bool {
 	return k8serrors.IsNotFound(err)
 }
 
-func setupMQObjectController(mgr ctrl.Manager, reconciler reconcile.Reconciler, forObj client.Object) error {
-	connPred := predicate.Funcs{
+func connectionWatchPredicates() predicate.Funcs {
+	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			conn, ok := e.Object.(*messagingv1alpha1.QueueManagerConnection)
 			return ok && connectionReady(conn)
@@ -310,13 +314,15 @@ func setupMQObjectController(mgr ctrl.Manager, reconciler reconcile.Reconciler, 
 			return connectionReadyChanged(oldConn, newConn) || oldConn.Generation != newConn.Generation
 		},
 	}
+}
 
+func setupMQObjectController(mgr ctrl.Manager, reconciler reconcile.Reconciler, forObj client.Object) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(forObj).
 		Watches(
 			&messagingv1alpha1.QueueManagerConnection{},
 			watchConnectionStatus(mgr.GetClient()),
-			builder.WithPredicates(connPred),
+			builder.WithPredicates(connectionWatchPredicates()),
 		).
 		Complete(reconciler)
 }
