@@ -8,7 +8,7 @@ if ! terraform -chdir="${ROOT_DIR}/terraform" output >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "=== IBM MQ Operator local cluster ==="
+echo "=== Kurator local dev cluster ==="
 terraform -chdir="${ROOT_DIR}/terraform" output
 cat <<'EOF'
 

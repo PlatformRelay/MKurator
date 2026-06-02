@@ -1,7 +1,7 @@
 # CI/CD
 
 This document describes the continuous integration and delivery design for the
-IBM Message Queue Operator. The guiding principle: **the same checks run locally
+**Kurator**. The guiding principle: **the same checks run locally
 (via Task and pre-commit) and in CI**, so "green locally" means "green in CI".
 
 CI runs on **GitHub Actions**. Workflows land with the Phase 1 scaffold

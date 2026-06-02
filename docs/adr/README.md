@@ -31,7 +31,4 @@ supersedes the old one rather than editing history.
 | [0003](0003-connection-model.md) | Decouple connection details with QueueManagerConnection | Accepted |
 | [0004](0004-task-as-task-runner.md) | Use Task as the task runner | Accepted |
 | [0005](0005-keep-tooling-lean.md) | Keep tooling lean; borrow discipline, not org overhead | Accepted |
-
-> The module path / API group decision (`github.com/konradheimel/ibm-mq-operator`,
-> `messaging.heimel.dev/v1alpha1`) is still a placeholder; record it as an ADR
-> once fixed at scaffold time.
+| [0006](0006-project-name-kurator.md) | Project name and module identity (Kurator) | Accepted |

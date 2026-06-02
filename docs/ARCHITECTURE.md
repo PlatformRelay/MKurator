@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design of the IBM Message Queue Operator: its
+This document describes the design of **Kurator**: its
 components, the custom resources it manages, the reconcile flow, and the local
 development topology. For conventions and tooling see
 [../AGENTS.md](../AGENTS.md); for the delivery plan see [ROADMAP.md](ROADMAP.md).
@@ -92,7 +92,7 @@ afterthoughts (NFRs in [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREME
 The operator ships a tightly scoped `ClusterRole` generated from
 `+kubebuilder:rbac` markers:
 
-- Full access to its own API group (`messaging.heimel.dev`): `queues`,
+- Full access to its own API group (`messaging.kurator.dev`): `queues`,
   `queuemanagerconnections`, and their `/status` and `/finalizers` subresources.
 - `get`/`list`/`watch` on the referenced **`Secrets`** (credentials, CA bundles)
   — and nothing broader on core resources.
@@ -150,7 +150,7 @@ Describes how to reach a Queue Manager. Cluster- or namespace-scoped (TBD in
 Phase 2; namespaced by default for multi-tenant isolation).
 
 ```yaml
-apiVersion: messaging.heimel.dev/v1alpha1
+apiVersion: messaging.kurator.dev/v1alpha1
 kind: QueueManagerConnection
 metadata:
   name: qm1
@@ -174,7 +174,7 @@ status:
 A queue maintained on a referenced Queue Manager.
 
 ```yaml
-apiVersion: messaging.heimel.dev/v1alpha1
+apiVersion: messaging.kurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: orders

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-CLUSTER_NAME="${CLUSTER_NAME:-ibm-mq-operator}"
+CLUSTER_NAME="${CLUSTER_NAME:-kurator}"
 KUBECONFIG_OUT="${KUBECONFIG_OUT:-${ROOT_DIR}/.state/kubeconfig.yaml}"
 KIND_CONFIG="${KIND_CONFIG:-${ROOT_DIR}/kind/cluster.yaml}"
 
