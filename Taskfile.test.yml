@@ -57,9 +57,9 @@ tasks:
       KIND_CLUSTER:
         sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
       KUBECONFIG:
-        sh: echo "${KUBECONFIG:-$(pwd)/hack/kind-cluster/.state/kubeconfig.yaml}"
+        sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
     cmds:
-      - go test -tags=e2e ./test/e2e/... -race -v
+      - bash hack/ci/run-e2e.sh
 
   integration:
     desc: Run IBM MQ integration tests (requires KURATOR_INTEGRATION_MQ=1 and live mqweb; use task mq:integration:up)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,12 +66,18 @@ func Run(cmd *exec.Cmd) (string, error) {
 	cmd.Env = environForSubprocess()
 	command := strings.Join(cmd.Args, " ")
 	_, _ = fmt.Fprintf(GinkgoWriter, "running: %q\n", command)
-	output, err := cmd.CombinedOutput()
+	_, _ = fmt.Fprintf(os.Stderr, ">>> running: %s\n", command)
+
+	var buf bytes.Buffer
+	cmd.Stdout = io.MultiWriter(os.Stderr, &buf)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &buf)
+	err := cmd.Run()
+	output := buf.String()
 	if err != nil {
-		return string(output), fmt.Errorf("%q failed with error %q: %w", command, string(output), err)
+		return output, fmt.Errorf("%q failed with error %q: %w", command, output, err)
 	}
 
-	return string(output), nil
+	return output, nil
 }
 
 // UninstallCertManager uninstalls the cert manager

@@ -56,9 +56,13 @@ tasks:
   up:
     desc: Full bring-up (kind, tls, terraform), then print access info
     cmds:
+      - bash ../ci/step.sh "[1/4] Kind cluster"
       - task: kind:up
+      - bash ../ci/step.sh "[2/4] TLS certificates (mkcert)"
       - task: tls
+      - bash ../ci/step.sh "[3/4] Platform (Terraform) — ingress, cert-manager, IBM MQ; first run often 5–15 min"
       - task: apply
+      - bash ../ci/step.sh "[4/4] Access URLs"
       - task: info
 
   cleanup:

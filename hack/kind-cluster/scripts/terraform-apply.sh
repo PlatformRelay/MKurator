@@ -29,6 +29,8 @@ fi
 
 mkdir -p "$STATE_DIR"
 
+echo "Terraform: installing ingress, cert-manager, monitoring, IBM MQ (first apply may take several minutes) …"
+
 terraform -chdir="${ROOT_DIR}/terraform" init -upgrade
 terraform -chdir="${ROOT_DIR}/terraform" apply -auto-approve \
   -var="kubeconfig=${KUBECONFIG_PATH}" \
