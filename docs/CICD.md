@@ -98,10 +98,10 @@ Install instructions are appended from [`.github/release-notes-install.md`](../.
 via [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh). Checkout
 uses `fetch-depth: 0` so tag ranges resolve correctly.
 
-Before tagging locally: `task changelog` (preview), bump `charts/kurator/Chart.yaml`,
-`task changelog:write`, commit `CHANGELOG.md`, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
-Rationale: [ADR-0008](adr/0008-changelog-git-cliff.md). Supply chain:
-[ADR-0016](adr/0016-release-supply-chain.md).
+Maintainer steps: [RELEASE.md](RELEASE.md). Before tagging: `task changelog` (preview),
+bump `charts/kurator/Chart.yaml`, `task changelog:write`, commit, then
+`git tag vX.Y.Z && git push origin vX.Y.Z`. Rationale: [ADR-0008](adr/0008-changelog-git-cliff.md).
+Supply chain: [ADR-0016](adr/0016-release-supply-chain.md).
 
 ### image scan
 **Trivy** scans the built image for OS/dependency vulnerabilities; documented

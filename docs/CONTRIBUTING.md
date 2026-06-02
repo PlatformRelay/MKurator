@@ -199,7 +199,7 @@ per bullet.
 | `task changelog:write` | Regenerate full `CHANGELOG.md` |
 | `task changelog:release` | Print notes for the latest tag |
 
-**Maintainer release flow** (see [CICD.md](CICD.md)):
+**Maintainer release flow** — full runbook: [RELEASE.md](RELEASE.md). Summary:
 
 1. Merge work on `main` with conventional commits.
 2. `task changelog` — sanity-check grouping.
@@ -228,5 +228,6 @@ checks on the PR.
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, Task commands, test tiers |
 | [AGENTS.md](../AGENTS.md) | Go conventions, codegen, CI parity |
 | [CICD.md](CICD.md) | Pipeline and release job |
+| [RELEASE.md](RELEASE.md) | Maintainer release runbook |
 | [adr/0008-changelog-git-cliff.md](adr/0008-changelog-git-cliff.md) | Why git-cliff |
 | [SECURITY.md](../SECURITY.md) | Reporting vulnerabilities |

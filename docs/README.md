@@ -19,6 +19,7 @@
 | 🛠️ | [LOCAL_SETUP.md](LOCAL_SETUP.md) | Install Go, Task, Docker, kind, Terraform, and other dev tools |
 | 🛠️ | [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, inner loop, local platform, deploy, test tiers |
 | 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guidelines, Conventional Commits, gitmoji |
+| 🛠️ | [RELEASE.md](RELEASE.md) | Maintainer guide: tag, changelog, publish a version |
 | 🛠️ | [../hack/kind-cluster/README.md](../hack/kind-cluster/README.md) | kind + Terraform + IBM MQ platform only |
 | 🛠️ | [IBM_MQ_101.md](IBM_MQ_101.md) | MQ console, `runmqsc`, verify Kurator on kind |
 | 🏗️ | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, runtime, CRDs, reconcile flow, security |
