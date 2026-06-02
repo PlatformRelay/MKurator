@@ -9,7 +9,7 @@ run: once
 
 env:
   CGO_ENABLED: "0"
-  GOTOOLCHAIN: go1.26.0
+  GOTOOLCHAIN: go1.26.3
 
 vars:
   BIN_DIR: bin
@@ -227,3 +227,14 @@ tasks:
     cmds:
       - task: undeploy:helm
       - task: cluster:down
+
+  ci:e2e:
+    desc: "E2E parity with GitHub Actions (cluster:up, MQ wait, test:e2e)"
+    env:
+      CERT_MANAGER_INSTALL_SKIP: "true"
+      KURATOR_E2E_MQ: "1"
+      KIND_CLUSTER: "{{.CLUSTER_NAME}}"
+    cmds:
+      - task: cluster:up
+      - bash hack/ci/wait-mqweb.sh
+      - task: test:e2e
