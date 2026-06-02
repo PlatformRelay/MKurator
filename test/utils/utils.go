@@ -20,7 +20,6 @@ const (
 	defaultKindCluster = "kurator"
 )
 
-
 func defaultKubeconfigPath(projectDir string) string {
 	return filepath.Join(projectDir, "hack", "kind-cluster", ".state", "kubeconfig.yaml")
 }
