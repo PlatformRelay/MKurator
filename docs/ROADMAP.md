@@ -134,15 +134,14 @@ manifests — **met** (e2e in CI via `e2e.yaml`; signing/SBOM on release tags).
 Extend declarative management beyond local queues to other common MQSC object types
 before access-control work.
 
-- [ ] `Topic` CRD — DEFINE/DISPLAY/DELETE topic (`DEFINE TOPIC`, drift detection,
+- [x] `Topic` CRD — DEFINE/DISPLAY/DELETE topic (`DEFINE TOPIC`, drift detection,
   finalizers); map attributes per [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
-- [ ] `Channel` CRD — server/sender/receiver channel types supported incrementally
-  (start with types covered by `mqweb` `/mqsc` in target MQ version).
-- [ ] Extend `MQAdmin` port and `mqrest` adapter for topic/channel operations;
+- [x] `Channel` CRD — `CHLTYPE(SVRCONN)` in v1alpha1 (other channel types later).
+- [x] Extend `MQAdmin` port and `mqrest` adapter for topic/channel operations;
   table-driven adapter tests with `httptest`.
-- [ ] Thin reconcilers, RBAC, samples under `config/samples/` and
+- [x] Thin reconcilers, RBAC, samples under `config/samples/` and
   `charts/kurator/samples/resources/`.
-- [ ] Unit + envtest coverage; e2e scenarios on kind against live `QM1`.
+- [x] Unit + envtest coverage; [ ] e2e scenarios on kind against live `QM1`.
 - [ ] Optional follow-on in this phase: alias and remote queue types (same patterns
   as `Queue`).
 

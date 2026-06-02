@@ -138,7 +138,7 @@ tasks:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
   deploy:samples:
-    desc: Apply sample QueueManagerConnection, Secret, and Queue (after deploy)
+    desc: Apply sample Secret, QueueManagerConnection, Queue, Topic, and Channel
     cmds:
       - kubectl apply -k charts/kurator/samples/resources/
     env:
@@ -198,9 +198,12 @@ tasks:
         echo ""
         echo "Kurator (namespace kurator-system):"
         kubectl get deploy,pods -n kurator-system 2>/dev/null || true
-        kubectl get qmc,queue -n kurator-system 2>/dev/null || true
+        kubectl get qmc,mq,tp,chl -n kurator-system 2>/dev/null || true
         echo ""
-        echo "Quick check: task mq:runmqsc -- \"DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH\""
+        echo "Quick check:"
+        echo "  task mq:runmqsc -- \"DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH\""
+        echo "  task mq:runmqsc -- \"DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR\""
+        echo "  task mq:runmqsc -- \"DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN)\""
         echo "Guide: docs/IBM_MQ_101.md"
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"

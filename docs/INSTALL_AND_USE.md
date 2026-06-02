@@ -13,12 +13,14 @@ For contributor setup (kind, tests, codegen), see [DEVELOPMENT.md](DEVELOPMENT.m
 |-----------------|------------|---------|
 | `QueueManagerConnection` | `qmc` | How to reach one queue manager (endpoint, TLS, credentials) |
 | `Queue` | `mq` | A local queue (`QLOCAL`) to create, update, and delete on that manager |
+| `Topic` | `tp` | An administrative topic object (`DEFINE TOPIC`) |
+| `Channel` | `chl` | A server-connection channel (`CHLTYPE(SVRCONN)`) |
 
 The operator translates desired state into MQSC via `mqweb`, reports **conditions**
 on each resource, and removes MQ objects when you delete a CR (finalizers).
 
-**v0.1.0 scope:** local queues only. Alias and remote queue types are accepted
-in the API but not reconciled yet.
+**v0.1.0 scope:** local queues only. **v0.2+ (Phase 4):** topics and SVRCONN
+channels. Alias and remote queue types are accepted in the API but not reconciled yet.
 
 ---
 
@@ -211,6 +213,56 @@ Confirm on the queue manager (example with `runmqsc`):
 DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH DESCR
 ```
 
+### 4. Topic (optional)
+
+```yaml
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Topic
+metadata:
+  name: retail-orders
+  namespace: kurator-system
+spec:
+  connectionRef:
+    name: prod-qm1
+  topicName: RETAIL.ORDERS
+  attributes:
+    topstr: retail/orders
+    descr: Retail order events topic
+    pub: enabled
+    sub: enabled
+```
+
+```sh
+kubectl apply -f topic.yaml
+kubectl wait --for=condition=Synced topic/retail-orders -n kurator-system --timeout=120s
+kubectl get tp -n kurator-system
+```
+
+### 5. Channel (optional)
+
+```yaml
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: orders-app
+  namespace: kurator-system
+spec:
+  connectionRef:
+    name: prod-qm1
+  channelName: ORDERS.APP
+  type: svrconn
+  attributes:
+    descr: Application server-connection channel
+    trptype: tcp
+    maxmsgl: "4194304"
+```
+
+```sh
+kubectl apply -f channel.yaml
+kubectl wait --for=condition=Synced channel/orders-app -n kurator-system --timeout=120s
+kubectl get chl -n kurator-system
+```
+
 ---
 
 ## How it works
@@ -231,10 +283,12 @@ flowchart LR
 2. **`Queue` reconciler** waits until `connectionRef` is **Ready**, then
    **displays** the queue. If it is missing or attributes differ, it **defines**
    the queue with `REPLACE`. Status **`Synced`** means MQ matches spec.
-3. On **delete**, finalizers run `DELETE QLOCAL` on MQ before the CR is removed.
+3. **`Topic` and `Channel` reconcilers** follow the same pattern for
+   `DEFINE TOPIC` and `DEFINE CHANNEL` … `CHLTYPE(SVRCONN)`.
+4. On **delete**, finalizers run `DELETE` on MQ before the CR is removed.
 
-Connection details live on `QueueManagerConnection` so many queues can share one
-endpoint and credential set. See [ADR-0003](adr/0003-connection-model.md).
+Connection details live on `QueueManagerConnection` so many queues, topics, and
+channels can share one endpoint and credential set. See [ADR-0003](adr/0003-connection-model.md).
 
 ---
 
@@ -289,6 +343,47 @@ More MQSC context: [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
 | `Synced=False`, `Reason=Deleting` | Removing queue from MQ |
 | `Synced=False`, `Reason=Error` | MQ or configuration error (see message) |
 
+### Topic
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
+| `spec.topicName` | yes | IBM MQ topic object name (e.g. `RETAIL.ORDERS`) |
+| `spec.attributes` | no | MQSC parameters for `DEFINE TOPIC` (string keys/values) |
+
+**Common attributes** (lowercase keys in spec):
+
+| Attribute | Example | Notes |
+|-----------|---------|-------|
+| `topstr` | `retail/orders` | Topic string for this object |
+| `descr` | `"Retail orders"` | Description |
+| `pub` / `sub` | `enabled` | Publish/subscribe policy |
+| `defpsist` | `yes` | Default persistence |
+| `pubscope` / `subscope` | `QMGR` | Scope for pub/sub |
+
+**Status:** same `Synced` condition semantics as `Queue`.
+
+### Channel
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
+| `spec.channelName` | yes | IBM MQ channel name (e.g. `ORDERS.APP`) |
+| `spec.type` | no | Default `svrconn`. Only `svrconn` is reconciled in Phase 4 |
+| `spec.attributes` | no | MQSC parameters for `DEFINE CHANNEL` |
+
+**Common attributes** (lowercase keys in spec):
+
+| Attribute | Example | Notes |
+|-----------|---------|-------|
+| `trptype` | `tcp` | Transport type |
+| `descr` | `"App channel"` | Description |
+| `maxmsgl` | `"4194304"` | Coerced to numeric in mqweb JSON |
+| `sharecnv` | `"10"` | Shared conversations (SVRCONN) |
+| `mcauser` | `appuser` | MCA user (use with OAM/CHLAUTH in production) |
+
+**Status:** same `Synced` condition semantics as `Queue`.
+
 ---
 
 ## Sample resources in this repository
@@ -300,6 +395,8 @@ kind platform.
 |------|---------|
 | [`config/samples/messaging_v1alpha1_queuemanagerconnection.yaml`](../config/samples/messaging_v1alpha1_queuemanagerconnection.yaml) | Connection to in-cluster MQ on kind |
 | [`config/samples/messaging_v1alpha1_queue.yaml`](../config/samples/messaging_v1alpha1_queue.yaml) | Sample `APP.ORDERS` local queue |
+| [`config/samples/messaging_v1alpha1_topic.yaml`](../config/samples/messaging_v1alpha1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
+| [`config/samples/messaging_v1alpha1_channel.yaml`](../config/samples/messaging_v1alpha1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
 | [`charts/kurator/samples/resources/`](../charts/kurator/samples/resources/) | Same samples for Helm workflows |
 | [`config/samples/README.md`](../config/samples/README.md) | Field-by-field annotations |
 
@@ -339,18 +436,20 @@ Reuse the existing `QueueManagerConnection`; add another `Queue` with a differen
 Update the Secret data. The operator rebuilds the mqweb client on the next
 reconcile when the connection or Secret changes.
 
-### Delete a queue
+### Delete a queue, topic, or channel
 
 ```sh
 kubectl delete queue orders -n kurator-system
+kubectl delete topic retail-orders -n kurator-system
+kubectl delete channel orders-app -n kurator-system
 ```
 
-The operator deletes `APP.ORDERS` on MQ, then removes the finalizer. If the queue
+The operator deletes the MQ object, then removes the finalizer. If the object
 was already gone on MQ, deletion still succeeds.
 
 ### Delete a connection
 
-Remove dependent `Queue` objects first. `QueueManagerConnection` uses a finalizer
+Remove dependent `Queue`, `Topic`, and `Channel` objects first. `QueueManagerConnection` uses a finalizer
 for orderly teardown; in v0.1.0 it mainly guards API lifecycle (no remote objects
 to delete beyond connectivity).
 
@@ -407,7 +506,7 @@ kubectl -n kurator-system logs deployment/kurator-controller-manager
 
 ```sh
 # Remove user resources first
-kubectl delete queue --all -n kurator-system
+kubectl delete queue,topic,channel --all -n kurator-system
 kubectl delete qmc --all -n kurator-system
 
 # Operator (Helm)
@@ -424,7 +523,7 @@ kubectl delete -f install-crds.yaml
 
 ## Next steps
 
-- [ROADMAP.md](ROADMAP.md) — Topic, Channel, and auth resources on the horizon  
+- [ROADMAP.md](ROADMAP.md) — auth resources and additional MQ types on the horizon  
 - [ARCHITECTURE.md](ARCHITECTURE.md) — reconcilers, security, error handling  
 - [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md) — how the operator calls mqweb  
 - [SECURITY.md](../SECURITY.md) — reporting vulnerabilities  

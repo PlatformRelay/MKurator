@@ -2,4 +2,6 @@
 resources:
 - messaging_v1alpha1_queuemanagerconnection.yaml
 - messaging_v1alpha1_queue.yaml
+- messaging_v1alpha1_topic.yaml
+- messaging_v1alpha1_channel.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

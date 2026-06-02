@@ -9,7 +9,7 @@
 *.dylib
 references/
 docs/REFERENCES.md
-AGENT.md
+AGENTS.md
 .envrc
 # Test binary, built with `go test -c`
 *.test

@@ -7,3 +7,5 @@ resources:
   - mq-credentials-secret.yaml
   - queuemanagerconnection.yaml
   - queue.yaml
+  - topic.yaml
+  - channel.yaml

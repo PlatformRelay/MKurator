@@ -14,11 +14,17 @@ kubectl apply -f messaging_v1alpha1_queuemanagerconnection.yaml
 kubectl wait --for=condition=Ready qmc/qm1 -n kurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_queue.yaml
 kubectl wait --for=condition=Synced queue/orders -n kurator-system --timeout=120s
+kubectl apply -f messaging_v1alpha1_topic.yaml
+kubectl wait --for=condition=Synced topic/retail-orders -n kurator-system --timeout=120s
+kubectl apply -f messaging_v1alpha1_channel.yaml
+kubectl wait --for=condition=Synced channel/orders-app -n kurator-system --timeout=120s
 ```
 
-Or apply everything via Kustomize:
+Or apply everything via Kustomize (create the credentials Secret first — it is
+not bundled in `config/samples/`):
 
 ```sh
+kubectl apply -f charts/kurator/samples/resources/mq-credentials-secret.yaml
 kubectl apply -k config/samples/
 ```
 
@@ -110,17 +116,87 @@ spec:
 | `attributes.maxdepth` | `"5000"` | String in YAML; sent as numeric to mqweb |
 | `attributes.descr` | Human-readable text | Mapped to MQSC `DESCR` |
 
-Additional attributes you can add (see [IBM_MQ_OBJECTS.md](../../docs/IBM_MQ_OBJECTS.md)):
+Helm copy:
+[`charts/kurator/samples/resources/queue.yaml`](../../charts/kurator/samples/resources/queue.yaml).
+
+---
+
+## `messaging_v1alpha1_topic.yaml`
+
+Declares an administrative topic object on the referenced queue manager.
 
 ```yaml
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Topic
+metadata:
+  name: retail-orders
+  namespace: kurator-system
+spec:
+  connectionRef:
+    name: qm1
+  topicName: RETAIL.ORDERS
   attributes:
-    maxdepth: "10000"
-    defpsist: "yes"
-    maxmsglen: "4194304"
+    topstr: retail/orders
+    descr: Retail order events topic
+    pub: enabled
+    sub: enabled
+```
+
+| Field | This sample | Notes |
+|-------|-------------|-------|
+| `connectionRef.name` | `qm1` | Must match a **Ready** `QueueManagerConnection` |
+| `topicName` | `RETAIL.ORDERS` | IBM MQ topic object name |
+| `attributes.topstr` | `retail/orders` | Topic string bound to this object |
+| `attributes.pub` / `sub` | `enabled` | Publish/subscribe policy on the topic node |
+
+Verify on MQ:
+
+```sh
+task mq:runmqsc -- "DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR DESCR PUB SUB"
 ```
 
 Helm copy:
-[`charts/kurator/samples/resources/queue.yaml`](../../charts/kurator/samples/resources/queue.yaml).
+[`charts/kurator/samples/resources/topic.yaml`](../../charts/kurator/samples/resources/topic.yaml).
+
+---
+
+## `messaging_v1alpha1_channel.yaml`
+
+Declares a server-connection channel for inbound client applications.
+
+```yaml
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: orders-app
+  namespace: kurator-system
+spec:
+  connectionRef:
+    name: qm1
+  channelName: ORDERS.APP
+  type: svrconn
+  attributes:
+    descr: Application server-connection channel
+    trptype: tcp
+    maxmsgl: "4194304"
+```
+
+| Field | This sample | Notes |
+|-------|-------------|-------|
+| `connectionRef.name` | `qm1` | Must match a **Ready** `QueueManagerConnection` |
+| `channelName` | `ORDERS.APP` | IBM MQ channel name |
+| `type` | `svrconn` | Only channel type reconciled in Phase 4 |
+| `attributes.trptype` | `tcp` | Transport type |
+| `attributes.maxmsgl` | `"4194304"` | Max message length (numeric in mqweb JSON) |
+
+Verify on MQ:
+
+```sh
+task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN) TRPTYPE DESCR MAXMSGL"
+```
+
+Helm copy:
+[`charts/kurator/samples/resources/channel.yaml`](../../charts/kurator/samples/resources/channel.yaml).
 
 ---
 
@@ -135,8 +211,9 @@ See [LOGGING.md](../../docs/LOGGING.md).
 ## Verify reconciliation
 
 ```sh
-kubectl get qmc,queue -n kurator-system
-kubectl describe queue orders -n kurator-system
+kubectl get qmc,mq,tp,chl -n kurator-system
+kubectl describe topic retail-orders -n kurator-system
+kubectl describe channel orders-app -n kurator-system
 kubectl logs -n kurator-system deployment/kurator-controller-manager -f
 ```
 
@@ -144,5 +221,7 @@ On the local kind platform:
 
 ```sh
 task local:info
-task mq:cli    # runmqsc — DISPLAY QLOCAL('APP.ORDERS')
+task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH"
+task mq:runmqsc -- "DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR"
+task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN)"
 ```

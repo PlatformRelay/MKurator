@@ -1,0 +1,14 @@
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: Topic
+metadata:
+  name: retail-orders
+  namespace: kurator-system
+spec:
+  connectionRef:
+    name: qm1
+  topicName: RETAIL.ORDERS
+  attributes:
+    topstr: retail/orders
+    descr: Retail order events topic
+    pub: enabled
+    sub: enabled

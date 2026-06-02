@@ -13,13 +13,13 @@ rules:
     resources: [secrets]
     verbs: [get, list, watch]
   - apiGroups: [messaging.kurator.dev]
-    resources: [queuemanagerconnections, queues]
+    resources: [channels, queuemanagerconnections, queues, topics]
     verbs: [create, delete, get, list, patch, update, watch]
   - apiGroups: [messaging.kurator.dev]
-    resources: [queuemanagerconnections/finalizers, queues/finalizers]
+    resources: [channels/finalizers, queuemanagerconnections/finalizers, queues/finalizers, topics/finalizers]
     verbs: [update]
   - apiGroups: [messaging.kurator.dev]
-    resources: [queuemanagerconnections/status, queues/status]
+    resources: [channels/status, queuemanagerconnections/status, queues/status, topics/status]
     verbs: [get, patch, update]
 {{- if .Values.metrics.enabled }}
 ---
