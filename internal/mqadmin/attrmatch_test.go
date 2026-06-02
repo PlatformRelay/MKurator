@@ -34,3 +34,23 @@ func TestAttributesNeedUpdate(t *testing.T) {
 		t.Fatal("expected update on drift")
 	}
 }
+
+func TestNormalizeAttrKey(t *testing.T) {
+	t.Parallel()
+	if got := NormalizeAttrKey("TopicStr"); got != "topstr" {
+		t.Fatalf("got %q", got)
+	}
+	if got := NormalizeAttrKey("MaxDepth"); got != "maxdepth" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestAttributeValueMatches_NumericNormalization(t *testing.T) {
+	t.Parallel()
+	if !AttributeValueMatches("maxdepth", "05000", "5000") {
+		t.Fatal("expected numeric equivalence")
+	}
+	if AttributeValueMatches("maxdepth", "bad", "5000") {
+		t.Fatal("expected mismatch for non-numeric desired")
+	}
+}

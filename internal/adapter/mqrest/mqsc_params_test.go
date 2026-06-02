@@ -1,6 +1,7 @@
 package mqrest
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/konradheimel/kurator/internal/mqadmin"
@@ -112,5 +113,81 @@ func TestDefineTopicParameters(t *testing.T) {
 	}
 	if _, ok := params[attrTopstr]; ok {
 		t.Fatal("topstr should be mapped to topicStr for mqweb")
+	}
+}
+
+func TestMapTopicRESTParameters_PubSubUppercase(t *testing.T) {
+	t.Parallel()
+	params := map[string]any{"pub": "enabled", "sub": "disabled"}
+	mapTopicRESTParameters(params)
+	if params["pub"] != "ENABLED" || params["sub"] != "DISABLED" {
+		t.Fatalf("params = %v", params)
+	}
+}
+
+func TestNormalizeTopicAttributes(t *testing.T) {
+	t.Parallel()
+	attrs := map[string]string{strings.ToLower(attrTopicStr): "retail/orders"}
+	normalizeTopicAttributes(attrs)
+	if attrs[attrTopstr] != "retail/orders" {
+		t.Fatalf("attrs = %v", attrs)
+	}
+}
+
+func TestNormalizeQueueAttributes(t *testing.T) {
+	t.Parallel()
+	t.Run("alias maps target to targq", func(t *testing.T) {
+		t.Parallel()
+		attrs := map[string]string{"target": "APP.BASE"}
+		normalizeQueueAttributes(attrs, mqadmin.QueueTypeAlias)
+		if attrs["targq"] != "APP.BASE" {
+			t.Fatalf("attrs = %v", attrs)
+		}
+	})
+	t.Run("remote maps mqweb names", func(t *testing.T) {
+		t.Parallel()
+		attrs := map[string]string{
+			"remotequeue":       "REMOTE.Q",
+			"remotemanager":     "QM2",
+			"transmissionqueue": "XMIT.Q",
+		}
+		normalizeQueueAttributes(attrs, mqadmin.QueueTypeRemote)
+		if attrs["rname"] != "REMOTE.Q" || attrs["rqmname"] != "QM2" || attrs["xmitq"] != "XMIT.Q" {
+			t.Fatalf("attrs = %v", attrs)
+		}
+	})
+	t.Run("local is no-op", func(t *testing.T) {
+		t.Parallel()
+		attrs := map[string]string{"maxdepth": "5000"}
+		normalizeQueueAttributes(attrs, mqadmin.QueueTypeLocal)
+		if attrs["maxdepth"] != "5000" {
+			t.Fatalf("attrs = %v", attrs)
+		}
+	})
+}
+
+func TestQueueDisplayParametersByType(t *testing.T) {
+	t.Parallel()
+	if got := queueDisplayParameters(mqadmin.QueueTypeAlias); len(got) == 0 || got[0] != "targq" {
+		t.Fatalf("alias display = %v", got)
+	}
+	if got := queueDisplayParameters(mqadmin.QueueTypeRemote); len(got) == 0 || got[0] != "rname" {
+		t.Fatalf("remote display = %v", got)
+	}
+}
+
+func TestDefineObjectParameters_InvalidNumericStaysString(t *testing.T) {
+	t.Parallel()
+	params := defineObjectParameters(map[string]string{attrMaxDepth: "not-a-number"}, queueNumericParameters)
+	if params[attrMaxDepth] != "not-a-number" {
+		t.Fatalf("params = %v", params)
+	}
+}
+
+func TestQueueDisplayRequestUsesQualifier(t *testing.T) {
+	t.Parallel()
+	req := queueDisplayRequest(mqadmin.QueueSpec{Name: "APP.ALIAS", Type: mqadmin.QueueTypeAlias})
+	if req.Qualifier != "qalias" || req.Name != "APP.ALIAS" {
+		t.Fatalf("request = %+v", req)
 	}
 }

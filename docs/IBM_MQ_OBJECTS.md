@@ -1,5 +1,11 @@
 # IBM MQ objects — research reference
 
+> **Not the operator contract.** Shipped behaviour is defined by the v1alpha1
+> CRDs, [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md), and
+> [INSTALL_AND_USE.md](INSTALL_AND_USE.md). Conceptual resource names below
+> (`MqQueue`, `Applied`, …) are design notes — they do not match Kurator CRD or
+> condition names.
+
 This document inventories the IBM MQ objects most relevant to a **resource-only** Kubernetes operator: queues, access control, client connectivity, and publish/subscribe. It assumes a **vanilla queue manager** created with `crtmqm` (or equivalent container bootstrap) where system and default template objects already exist, and describes how operators and administrators configure application-facing resources using **MQSC** via `runmqsc`.
 
 **Out of scope for this operator (by design):** queue manager lifecycle (`crtmqm`, `strmqm`), pod/deployment topology, listeners at the infrastructure layer (though listener *objects* are noted), and cluster topology between queue managers.
@@ -611,6 +617,9 @@ DISPLAY AUTHREC PROFILE('APP.IN') OBJTYPE(QUEUE) PRINCIPAL('app-user') AUTHLIST
 ## 10. Implications for the Kubernetes operator
 
 ### 10.1 Natural CRD boundaries
+
+Conceptual mapping for future design (see disclaimer at top — shipped types are
+`Queue`, `Topic`, `Channel`, `QueueManagerConnection`):
 
 | Kubernetes resource (conceptual) | MQ objects | MQSC surface |
 |----------------------------------|------------|--------------|

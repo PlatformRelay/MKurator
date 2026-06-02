@@ -6,6 +6,7 @@
 [![codecov](https://codecov.io/gh/konih/kurator/graph/badge.svg)](https://codecov.io/gh/konih/kurator)
 [![Go](https://img.shields.io/github/go-mod/go-version/konih/kurator)](https://pkg.go.dev/github.com/konradheimel/kurator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/konradheimel/kurator.svg)](https://pkg.go.dev/github.com/konradheimel/kurator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/konradheimel/kurator)](https://goreportcard.com/report/github.com/konradheimel/kurator)
 [![Release](https://img.shields.io/github/v/release/konih/kurator)](https://github.com/konih/kurator/releases)
 
 A Kubernetes operator for declaratively managing **resources on an existing
@@ -36,7 +37,7 @@ path is [`github.com/konradheimel/kurator`](https://pkg.go.dev/github.com/konrad
 
 | Tier | Scope |
 |------|-------|
-| Unit + envtest | Reconcilers and adapter (mocked MQ); Queue and QMC envtest |
+| Unit + envtest | Reconcilers and adapter (mocked MQ); Queue, Topic, Channel, and QMC envtest |
 | Docker integration | Queue (local/alias/remote), Topic, Channel against live mqweb |
 | kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, and Channel CR reconcile + delete on live `QM1` |
 
@@ -71,9 +72,8 @@ kubectl get qmc,mq,tp,chl -n kurator-system
 
 ## Local development (contributors)
 
-The repo ships a **kind + Terraform + IBM MQ** platform under
-[`hack/kind-cluster`](hack/kind-cluster/README.md). One command brings up the
-cluster, Queue Manager, and operator with sample CRs:
+**Canonical reference:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (endpoints,
+credentials, test tiers, full task list). Quick start:
 
 ```sh
 # Prerequisites: Go, Task, Docker, kind, kubectl, Terraform, Helm, mkcert
@@ -130,9 +130,7 @@ task mq:runmqsc -- "DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR"
 task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN)"
 ```
 
-Defaults match the local platform: Queue Manager **`QM1`**, mqweb
-**`https://ibm-mq.ibm-mq.svc:9443`**, admin user **`admin`** / **`passw0rd`**
-(local dev only). Full detail: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for platform URLs and credentials.
 
 ## Documentation
 
@@ -148,6 +146,17 @@ Defaults match the local platform: Queue Manager **`QM1`**, mqweb
 - [docs/ROADMAP.md](docs/ROADMAP.md) — phased delivery plan.
 - [charts/kurator/README.md](charts/kurator/README.md) — Helm chart to install the operator.
 - [SECURITY.md](SECURITY.md) — security posture and reporting.
+
+### IBM MQ reference (research)
+
+These documents support design and implementation; **shipped CRDs and
+[ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md)** are the operator
+contract:
+
+- [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) — verify Kurator on kind (`runmqsc`, console).
+- [docs/IBM_MQ_REST_API.md](docs/IBM_MQ_REST_API.md) — how mqweb REST is consumed.
+- [docs/IBM_MQ_OBJECTS.md](docs/IBM_MQ_OBJECTS.md) — MQSC research inventory (not the product API).
+- [docs/REFERENCES.md.example](docs/REFERENCES.md.example) — IBM samples map (copy locally to `docs/REFERENCES.md`).
 
 ## License
 

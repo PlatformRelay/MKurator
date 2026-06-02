@@ -96,6 +96,98 @@ func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 	}
 }
 
+func TestQueueReconciler_AddsFinalizer(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+			Type:          messagingv1alpha1.QueueTypeLocal,
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(q, conn).
+		WithObjects(conn, q).
+		Build()
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &QueueReconciler{
+		Client:    cl,
+		Scheme:    s,
+		MQFactory: mockFactory,
+	}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	updated := &messagingv1alpha1.Queue{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Finalizers) != 1 {
+		t.Fatalf("finalizers = %v", updated.Finalizers)
+	}
+}
+
+func TestQueueReconciler_DeletionDeleteFails(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+
+	now := metav1.Now()
+	conn := readyConnForUnit(ns)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "orders",
+			Namespace:         ns,
+			Finalizers:        []string{messagingv1alpha1.QueueFinalizer},
+			DeletionTimestamp: &now,
+		},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+			Type:          messagingv1alpha1.QueueTypeLocal,
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(q, conn).
+		WithObjects(conn, q).
+		Build()
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().DeleteQueue(mock.Anything, mock.Anything).Return(&mqadmin.TerminalError{Message: "delete denied"})
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &QueueReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	updated := &messagingv1alpha1.Queue{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if len(updated.Finalizers) == 0 {
+		t.Fatal("finalizer should remain when delete fails")
+	}
+}
+
 func TestQueueReconciler_Deletion(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

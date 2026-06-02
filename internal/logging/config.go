@@ -107,6 +107,7 @@ func defaultConfig() Config {
 }
 
 func loadFile(path string) (Config, error) {
+	//nolint:gosec // G703,G304 — path is operator bootstrap config (--log-config), not CR/user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}, err

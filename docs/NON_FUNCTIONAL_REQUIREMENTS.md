@@ -12,7 +12,7 @@ Each requirement has an ID (`NFR-x`), a priority (**MUST** / **SHOULD** /
 
 | ID | Req | Priority | Verification |
 |----|-----|----------|--------------|
-| SEC-1 | No credentials, keys, or tokens in CR specs, code, images, or logs. Secrets are referenced via Kubernetes `Secret`s only. | MUST | Code review, lint (`gosec` optional), grep in CI |
+| SEC-1 | No credentials, keys, or tokens in CR specs, code, images, or logs. Secrets are referenced via Kubernetes `Secret`s only. | MUST | Code review, **gosec** in `task lint`, grep in CI |
 | SEC-2 | All mqweb traffic is HTTPS with certificate verification on by default; custom CA via `caSecretRef`. `insecureSkipVerify` is opt-in and dev-only. | MUST | Adapter unit tests; default-config test |
 | SEC-3 | Operator RBAC is least-privilege: own API group + referenced Secrets + Events + leader-election Lease. No wildcards, no cluster-admin. | MUST | RBAC manifest review; `task verify` |
 | SEC-4 | Container runs as **nonroot**, read-only root filesystem, dropped capabilities, no privilege escalation; distroless base. | MUST | Pod SecurityContext; image inspection |
@@ -37,7 +37,7 @@ Each requirement has an ID (`NFR-x`), a priority (**MUST** / **SHOULD** /
 | ID | Req | Priority | Verification |
 |----|-----|----------|--------------|
 | OBS-1 | Every managed resource exposes machine-readable status `conditions` (e.g. `Ready`, `Synced`) plus `observedGeneration`. | MUST | envtest assertions |
-| OBS-2 | Reconcile outcomes are surfaced as Kubernetes `Events` with actionable reasons/messages. | SHOULD | envtest / manual |
+| OBS-2 | Reconcile outcomes are surfaced as Kubernetes `Events` with actionable reasons/messages. | SHOULD | envtest / unit (`events_test.go`) |
 | OBS-3 | Prometheus metrics are exposed (controller-runtime defaults + custom MQ counters/latency histograms) on a protected endpoint. | MUST | `/metrics` scrape test |
 | OBS-4 | Structured (JSON-capable) logging with per-object context and configurable level. | MUST | Manual / unit |
 | OBS-5 | A `ServiceMonitor` (and optionally a starter Grafana dashboard) ships for the local monitoring stack. | MAY | Local stack |

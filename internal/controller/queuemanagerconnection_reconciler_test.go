@@ -13,6 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
+	"github.com/konradheimel/kurator/internal/mqadmin"
 	mqadmintest "github.com/konradheimel/kurator/test/mocks/mqadmin"
 )
 
@@ -85,6 +86,58 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 		Expect(updated.Status.ObservedGeneration).To(Equal(updated.Generation))
+	})
+
+	It("sets Error when ping fails with a terminal error", func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
+			Data: map[string][]byte{
+				"username": []byte("admin"),
+				"password": []byte("secret"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().Ping(mock.Anything).Return(&mqadmin.TerminalError{Message: "unauthorized"})
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &QueueManagerConnectionReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		updated := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionFalse))
+		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(messagingv1alpha1.ReasonError))
 	})
 
 	It("removes the finalizer when the connection is deleted", func() {

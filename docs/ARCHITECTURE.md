@@ -110,22 +110,21 @@ The operator ships a tightly scoped `ClusterRole` generated from
   `/finalizers` subresources.
 - `get`/`list`/`watch` on the referenced **`Secrets`** (credentials, CA bundles)
   — and nothing broader on core resources.
-- `create`/`patch` on `Events` (RBAC generated; reconcile outcomes are surfaced
-  via **status conditions** today).
+- `create`/`patch` on `Events`; reconcilers emit **Warning** Events on terminal
+  errors (`recordTerminalEvent`) in addition to status conditions.
 - `Lease` access in the operator namespace for leader election.
 
 No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
 
 ### Connection & client lifecycle
 
-- A `QueueManagerConnection` resolves to an `MQAdmin` client: endpoint + TLS
+- A `QueueManagerConnection` resolves to an `mqadmin.Admin` client: endpoint + TLS
   trust (from `caSecretRef`) + credentials (from `credentialsSecretRef`).
 - The adapter keeps a **pooled HTTPS client** per connection (reused across
-  reconciles) rather than dialing per request. The cache key is
-  `namespace/name/generation` today — clients are rebuilt when the connection
-  spec generation changes. Rotating a referenced `Secret` without a spec change
-  does not invalidate the cache until the connection is reconciled again with a
-  new generation.
+  reconciles) rather than dialing per request. The cache key includes the
+  connection **generation** and referenced Secret **`resourceVersion`** values
+  (credentials and optional CA bundle). `ReleaseConnection` drops the cached
+  client when a connection CR is deleted.
 - TLS is verified by default; `insecureSkipVerify` is opt-in and intended only
   for local dev. The mqweb CSRF header (`ibm-mq-rest-csrf-token`) is sent on all
   mutating calls (see [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md)).
@@ -137,13 +136,21 @@ without string-parsing:
 
 | Class | Examples | Reconciler response |
 |-------|----------|---------------------|
-| **Terminal** | invalid MQSC, 400/403, auth misconfig | Set a failing condition with a clear reason; do **not** hot-loop. Wait for spec/connection change. |
+| **Terminal** | invalid MQSC, 400/403, auth misconfig | Set a failing condition with a clear reason; emit a Warning Event; do **not** hot-loop. |
 | **Transient** | 5xx, network timeout, QM not running (503) | Return the error (or `RequeueAfter` with backoff) so controller-runtime retries with rate limiting. |
 | **NotFound** | object absent on QM | Treated as "needs create" on ensure, or "already gone" on delete. |
 
 Principles: wrap with `%w` and context; use `errors.Is`/`errors.As`; let
 controller-runtime own backoff for transient failures; never panic in a
 reconcile.
+
+Workload reconcilers (`Queue`, `Topic`, `Channel`) **watch**
+`QueueManagerConnection` Ready/status changes so they requeue promptly when a
+connection becomes healthy instead of polling on a fixed interval only.
+
+The `mqrest.Client` also exposes `RunMQSC` for ad-hoc MQSC (e2e fixtures,
+future Phase 5 objects). It is **not** part of the `mqadmin.Admin` port —
+reconcilers depend only on typed Admin methods.
 
 ## Security model
 
