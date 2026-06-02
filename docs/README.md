@@ -14,6 +14,8 @@
 | | Document | Covers |
 |---|----------|--------|
 | 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, troubleshooting, uninstall |
+| 🎯 | [UPGRADE.md](UPGRADE.md) | Upgrade operator, CRDs, webhooks, cert-manager |
+| 🎯 | [OBSERVABILITY.md](OBSERVABILITY.md) | Prometheus metrics, ServiceMonitor, RBAC |
 | 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel, auth YAML |
 | 🔧 | [../charts/kurator/README.md](../charts/kurator/README.md) | Helm chart to install the operator |
 | 🛠️ | [LOCAL_SETUP.md](LOCAL_SETUP.md) | Install Go, Task, Docker, kind, Terraform, and other dev tools |

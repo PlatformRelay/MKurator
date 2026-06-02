@@ -215,7 +215,7 @@ Run `task manifests` and `task verify`.
 | **Existing controller envtest** | No regression | Current reconciler tests unchanged | — |
 | **E2e** | One scenario: invalid CR rejected by API | `kubectl apply` invalid manifest → non-zero exit; valid samples still work | Real cluster + cert-manager (already installed on kind) |
 | **CI** | `task test:run` | Add webhook suite to Ginkgo/Makefile if split; envtest startup +2–5s | No new workflow required initially |
-| **Coverage** | `internal/validation` | Target **≥90%** on new package; keeps `internal/` ≥85% gate |
+| **Coverage** | `internal/validation` | Target **≥90%** on new package; keeps `internal/` ≥90% gate (`Taskfile.test.yml`) |
 
 ### envtest webhook install sketch
 
@@ -316,7 +316,7 @@ Change verification for API-2 from “envtest” to “OpenAPI + validating webh
 - [x] Rules in §3 implemented (QMC delete-with-dependents and envtest warning assert completed in follow-ups).
 - [x] `internal/validation` covered by table-driven unit tests.
 - [x] Envtest proves at least: (1) Queue with missing `connectionRef` target denied, (2) alias Queue without `targq` denied, (3) valid sample allowed, (4) unknown queue attribute warning returned.
-- [x] `task verify`, `task lint`, `task test:run` green; `internal/` coverage ≥85%.
+- [x] `task verify`, `task lint`, `task test:run` green; `internal/` coverage ≥90%.
 - [x] One e2e or documented manual check: invalid manifest fails `kubectl apply`.
 - [x] No mutating webhooks; no mqweb in admission path.
 - [x] `docs/ROADMAP.md` / `AGENTS.md` updated (PR4) after plan approval.

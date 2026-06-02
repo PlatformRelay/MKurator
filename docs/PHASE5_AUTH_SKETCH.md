@@ -19,7 +19,7 @@ CRD reconciles `DEFINE CHANNEL` … `CHLTYPE(SVRCONN)` with drift detection. See
 - Samples: [`config/samples/`](../config/samples/) · integration tests in
   [`test/integration/mq/`](../test/integration/mq/)
 
-**Remaining:** kind e2e scenarios for auth CRs — tracked in
+**Remaining:** optional webhook negative e2e and drift-aware auth reconcile — see
 [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md).
 
 Kurator reconciles Phase 5 objects via the existing **mqweb `/mqsc`** path
@@ -109,6 +109,7 @@ still use replace-on-apply; drift-aware auth reconcile is a follow-up.
 ## E2e and fixtures
 
 Channel/auth MQSC used to validate mqweb lives under
-[`test/e2e/fixtures/`](../test/e2e/fixtures/). Queue/Topic/Channel reconcile e2e
-is in [`test/e2e/mq_e2e_test.go`](../test/e2e/mq_e2e_test.go). Auth CR e2e
-scenarios are planned in [RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md).
+[`test/e2e/fixtures/`](../test/e2e/fixtures/). Queue/Topic/Channel/auth reconcile
+e2e is in [`test/e2e/mq_e2e_test.go`](../test/e2e/mq_e2e_test.go). Optional
+follow-ups (webhook negative apply, drift-aware auth reconcile) are tracked in
+[RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md).

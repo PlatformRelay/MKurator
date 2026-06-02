@@ -31,6 +31,9 @@ Doc index: [README.md](README.md)
   until the right tier is updated.
 - **Generated artifacts stay fresh** — run `task generate && task manifests` when
   APIs or kubebuilder markers change, then `task verify` before pushing.
+- **Sample CR YAML** — edit [`config/samples/`](../config/samples/) first, then
+  `task samples:sync` so [`charts/kurator/samples/resources/`](../charts/kurator/samples/resources/)
+  stays in sync (`task verify` checks both).
 - **No secrets in git** — credentials belong in cluster Secrets, not commits or
   logs. pre-commit runs gitleaks; do not routinely use `git commit --no-verify`
   (see [AGENTS.md](../AGENTS.md#pre-commit-and-skipping-hooks-no-verify)).

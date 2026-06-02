@@ -101,10 +101,11 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
 
 - [x] e2e scaffold (`test/e2e`, build tag `e2e`) — controller pod, metrics, suite
   wiring on kind.
-- [x] MQ e2e scenarios (`test/e2e/mq_e2e_test.go`, `mq_helpers.go`) gated by
-  `KURATOR_E2E_MQ=1` — QueueManagerConnection + Queue CR apply, MQSC fixture
+- [x] MQ e2e scaffold (`test/e2e/mq_e2e_test.go`, `mq_helpers.go`) gated by
+  `KURATOR_E2E_MQ=1` — QueueManagerConnection + **Queue** CR apply, MQSC fixture
   apply via mqweb; assert real MQSC objects for create/update/delete and re-apply
-  idempotency (NFR REL-1) once DEFINE QLOCAL is fixed (Phase 2 blocker).
+  idempotency (NFR REL-1). Topic, Channel, and auth CR scenarios were added in
+  Phase 4/5 (same test file).
 - [x] `test/e2e/fixtures/` — MQSC bootstrap for channels/auth (from
   mq-gitops-samples); see [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 - [x] Wire e2e into CI (`.github/workflows/e2e.yaml`: kind + IBM MQ + `task test:e2e`;
@@ -168,19 +169,28 @@ Exit criteria: **met** — invalid manifests rejected by `kubectl apply` on kind
 
 ## Phase 5 — User & authority management
 
-- [x] [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) — CR sketch mapped from
-  reference MQSC; e2e fixture [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc).
+Planning doc: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) (CR sketch mapped from
+reference MQSC; e2e fixture
+[`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc)).
+
+**Shipped on `main`:**
+
 - [x] `ChannelAuthRule` and `AuthorityRecord` CRDs — API, CRDs, `MQAdmin` port,
   `mqrest` adapter (`SET CHLAUTH` / `SET AUTHREC`), thin reconcilers, validating
   webhooks, samples, Docker integration tests.
-- [ ] **E2e on kind** — reconcile and delete auth CRs against live `QM1` (see
+- [x] **E2e on kind** — `ChannelAuthRule` and `AuthorityRecord` reconcile and
+  delete in [`test/e2e/mq_e2e_test.go`](../test/e2e/mq_e2e_test.go).
+
+**Remaining:**
+
+- [ ] Release tag **`v0.5.0`** published (see
   [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md)).
 - [ ] Additional CHLAUTH rule types (`BLOCKUSER`, `USERMAP`, …) — schema present;
   extend samples and e2e when needed.
 
 Exit criteria: declarative channel auth and OAM authority records reconciled on
-kind with e2e coverage — **partial** (code + integration tests shipped; auth e2e
-and release tag pending).
+kind with e2e coverage — **partial** (reconcilers, integration tests, and auth e2e
+shipped; release tag and extended rule types pending).
 
 ## Repo visibility
 
@@ -193,7 +203,7 @@ and release tag pending).
 - [x] **Go Report Card** — badge in [README.md](../README.md); refresh at
   [goreportcard.com/report/github.com/konih/kurator](https://goreportcard.com/report/github.com/konih/kurator)
   after significant API changes (uses module path from `go.mod`).
-- [x] Release badge — [`README.md`](../README.md) links GitHub Releases (`v0.1.0`).
+- [x] Release badge — [`README.md`](../README.md) links GitHub Releases (latest tag).
 - [x] [LOCAL_SETUP.md](LOCAL_SETUP.md) — tiered dev tool install (`Brewfile`,
   `task tools:check` / `task tools:install`, updated `.devcontainer/`).
 

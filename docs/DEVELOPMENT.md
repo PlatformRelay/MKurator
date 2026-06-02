@@ -5,6 +5,10 @@ contributor guidelines see [CONTRIBUTING.md](CONTRIBUTING.md); for Go style and
 agent workflow see [../AGENTS.md](../AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
+The Git repository is [konih/kurator](https://github.com/konih/kurator); your
+local clone directory may differ (for example `IBM-Message-Queue-Operator`).
+See [ADR-0006](adr/0006-project-name-kurator.md).
+
 Doc index: [README.md](README.md)
 
 ## On this page
@@ -365,8 +369,9 @@ Commands and env vars below.
 
 ### IBM MQ integration tests (Docker)
 
-Fast contract tests for queue object operations via mqweb — no Kubernetes or
-operator required. Uses `//go:build integration` in [`test/integration/mq/`](../test/integration/mq/).
+Fast contract tests for queue, topic, channel, CHLAUTH, and AUTHREC operations
+via mqweb — no Kubernetes or operator required. Uses `//go:build integration` in
+[`test/integration/mq/`](../test/integration/mq/).
 
 ```sh
 task test:integration:local   # docker compose up + wait + tests (first run: image pull)
@@ -398,14 +403,14 @@ task test:integration
 
 See [`hack/mq-docker/README.md`](../hack/mq-docker/README.md).
 
-**IBM MQ e2e scenarios** (Queue, Topic, Channel reconcile; channel/auth fixtures;
-auth CR e2e planned) run only when `KURATOR_E2E_MQ=1` is set and the kind
-platform with IBM MQ is up. Without that, the scaffold e2e suite (controller pod,
-metrics) still runs. MQ-specific tests use defaults aligned with
+**IBM MQ e2e scenarios** (Queue, Topic, Channel, ChannelAuthRule, AuthorityRecord
+reconcile and delete; channel/auth fixtures) run only when `KURATOR_E2E_MQ=1` is
+set and the kind platform with IBM MQ is up. Without that, the scaffold e2e suite
+(controller pod, metrics) still runs. MQ-specific tests use defaults aligned with
 `hack/kind-cluster` (`QM1`, `admin` / `passw0rd`, endpoint
 `https://ibm-mq.ibm-mq.svc:9443`). Override with `KURATOR_E2E_MQ_*` env vars
 documented in [`test/e2e/fixtures/README.md`](../test/e2e/fixtures/README.md).
-Remaining auth e2e: [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md).
+Optional follow-ups: [plans/RELEASE_0.5.0_FOLLOWUPS.md](plans/RELEASE_0.5.0_FOLLOWUPS.md).
 
 Guidelines:
 
