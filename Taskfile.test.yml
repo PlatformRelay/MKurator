@@ -54,6 +54,8 @@ tasks:
     desc: Run end-to-end tests (requires kind cluster; set KURATOR_E2E_MQ=1 for IBM MQ scenarios)
     env:
       CGO_ENABLED: "1"
+      KURATOR_E2E_MQ:
+        sh: echo "${KURATOR_E2E_MQ:-0}"
       KIND_CLUSTER:
         sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
       KUBECONFIG:
