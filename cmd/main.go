@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"strconv"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -50,7 +51,13 @@ func main() {
 	var logConfigPath string
 	var logLevel string
 	var logFormat string
+	var maxConcurrentReconciles int
 	var tlsOpts []func(*tls.Config)
+	if v := os.Getenv("KURATOR_MAX_CONCURRENT_RECONCILES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			maxConcurrentReconciles = n
+		}
+	}
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -74,7 +81,11 @@ func main() {
 		"Log level: debug, info, warn, or error (overrides env and file).")
 	flag.StringVar(&logFormat, "log-format", "",
 		"Log format: json or text (overrides env and file).")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", maxConcurrentReconciles,
+		"Max concurrent reconcile workers per controller (also KURATOR_MAX_CONCURRENT_RECONCILES).")
 	flag.Parse()
+
+	controller.SetMaxConcurrentReconciles(maxConcurrentReconciles)
 
 	logCfg, err := logging.Load(logging.Options{
 		ConfigPath: logConfigPath,

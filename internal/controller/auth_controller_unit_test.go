@@ -255,7 +255,9 @@ func TestSetSyncedError_TransientChannelAuthRule(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(rule).WithObjects(rule).Build()
-	result, err := setSyncedError(ctx, cl.Status(), nil, rule, 1, &mqadmin.TransientError{Message: "timeout"})
+	result, err := setSyncedError(
+		ctx, cl.Status(), nil, rule, 1, &mqadmin.TransientError{Message: "timeout"}, syncStatusOpts{},
+	)
 	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}

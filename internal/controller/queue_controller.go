@@ -58,7 +58,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 	conn, err := resolveConnection(ctx, r.Client, q.Namespace, connRef)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{})
 	}
 
 	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), r.Recorder, q, conn, q.Generation)
@@ -68,7 +68,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{})
 	}
 
 	if !q.DeletionTimestamp.IsZero() {
@@ -77,8 +77,8 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	if !controllerutil.ContainsFinalizer(q, messagingv1alpha1.QueueFinalizer) {
 		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
-		if err := r.Update(ctx, q); err != nil {
-			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
+		if updateErr := r.Update(ctx, q); updateErr != nil {
+			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
 		return ctrl.Result{}, nil
 	}
@@ -86,32 +86,36 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	spec := toMQQueueSpec(q)
 	desiredMQSC, formatErr := mqrest.FormatDefineQueueMQSC(spec)
 	if formatErr != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, formatErr)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, formatErr, syncStatusOpts{})
 	}
 	q.Status.DesiredMQSC = desiredMQSC
 
-	if err := r.ensureQueue(ctx, admin, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
+	mqExists, err := r.ensureQueue(ctx, admin, spec)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{mqObjectExists: &mqExists})
 	}
 
-	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, q, q.Generation, "Queue matches spec"); err != nil {
+	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, q, q.Generation, "Queue matches spec",
+		syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Queue synced", "queue", q.Spec.QueueName)
 	return ctrl.Result{}, nil
 }
 
-func (r *QueueReconciler) ensureQueue(ctx context.Context, admin mqadmin.Admin, spec mqadmin.QueueSpec) error {
+func (r *QueueReconciler) ensureQueue(ctx context.Context, admin mqadmin.Admin, spec mqadmin.QueueSpec) (bool, error) {
 	observed, err := admin.GetQueue(ctx, spec)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
-		return err
+		return false, err
 	}
+	exists := observed != nil
 	if observed == nil || needsUpdate(spec, observed) {
 		if err := admin.DefineQueue(ctx, spec); err != nil {
-			return err
+			return exists, err
 		}
+		return true, nil
 	}
-	return nil
+	return exists, nil
 }
 
 func needsUpdate(desired mqadmin.QueueSpec, observed *mqadmin.QueueState) bool {
@@ -128,7 +132,7 @@ func (r *QueueReconciler) handleDeletion(
 	}
 
 	if err := admin.DeleteQueue(ctx, toMQQueueSpec(q)); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{})
 	}
 
 	recordNormalEvent(r.Recorder, q, EventReasonDeleted, "Queue removed from IBM MQ")

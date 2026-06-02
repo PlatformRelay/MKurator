@@ -57,7 +57,7 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	}
 	conn, err := resolveConnection(ctx, r.Client, rule.Namespace, connRef)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
 	}
 
 	waitResult, waitDone, waitErr := waitForConnectionReady(
@@ -69,7 +69,7 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
 	}
 
 	if !rule.DeletionTimestamp.IsZero() {
@@ -86,11 +86,11 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	spec := toMQChannelAuthSpec(rule)
 	if err := admin.SetChannelAuth(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, rule, rule.Generation,
-		"ChannelAuthRule matches spec"); err != nil {
+		"ChannelAuthRule matches spec", syncStatusOpts{}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("ChannelAuthRule synced", "channel", rule.Spec.ChannelName, "type", rule.Spec.RuleType)
@@ -109,7 +109,7 @@ func (r *ChannelAuthRuleReconciler) handleDeletion(
 
 	spec := toMQChannelAuthSpec(rule)
 	if err := admin.DeleteChannelAuth(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
 	}
 
 	recordNormalEvent(r.Recorder, rule, EventReasonDeleted, "CHLAUTH rule removed from IBM MQ")

@@ -57,7 +57,7 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	}
 	conn, err := resolveConnection(ctx, r.Client, auth.Namespace, connRef)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
 	}
 
 	waitResult, waitDone, waitErr := waitForConnectionReady(
@@ -69,7 +69,7 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
 	}
 
 	if !auth.DeletionTimestamp.IsZero() {
@@ -86,11 +86,11 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	spec := toMQAuthoritySpec(auth)
 	if err := admin.SetAuthority(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, auth, auth.Generation,
-		"AuthorityRecord matches spec"); err != nil {
+		"AuthorityRecord matches spec", syncStatusOpts{}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("AuthorityRecord synced", "profile", auth.Spec.Profile, "type", auth.Spec.ObjectType)
@@ -109,7 +109,7 @@ func (r *AuthorityRecordReconciler) handleDeletion(
 
 	spec := toMQAuthoritySpec(auth)
 	if err := admin.DeleteAuthority(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
 	}
 
 	recordNormalEvent(r.Recorder, auth, EventReasonDeleted, "Authority record removed from IBM MQ")

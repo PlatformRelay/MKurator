@@ -159,6 +159,14 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 	conn := &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
+		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:    messagingv1alpha1.ConditionReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  messagingv1alpha1.ReasonError,
+				Message: "credentials secret not found",
+			}},
+		},
 	}
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
@@ -175,6 +183,9 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	}
 	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionFalse {
 		t.Fatalf("conditions = %v", updated.Status.Conditions)
+	}
+	if !strings.Contains(updated.Status.Message, "credentials secret not found") {
+		t.Fatalf("status.message = %q", updated.Status.Message)
 	}
 	select {
 	case ev := <-recorder.Events:
@@ -196,7 +207,9 @@ func TestPatchSyncedAvailable_Queue(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
 	recorder := record.NewFakeRecorder(1)
-	if err := patchSyncedAvailable(ctx, cl.Status(), recorder, q, 2, "synced"); err != nil {
+	exists := true
+	if err := patchSyncedAvailable(ctx, cl.Status(), recorder, q, 2, "synced",
+		syncStatusOpts{mqObjectExists: &exists}); err != nil {
 		t.Fatal(err)
 	}
 	updated := &messagingv1alpha1.Queue{}
@@ -205,6 +218,12 @@ func TestPatchSyncedAvailable_Queue(t *testing.T) {
 	}
 	if updated.Status.ObservedGeneration != 2 {
 		t.Fatalf("ObservedGeneration = %d", updated.Status.ObservedGeneration)
+	}
+	if updated.Status.Message != "synced" || updated.Status.LastSyncTime == nil {
+		t.Fatalf("status fields = message %q lastSync %v", updated.Status.Message, updated.Status.LastSyncTime)
+	}
+	if updated.Status.MQObjectExists == nil || !*updated.Status.MQObjectExists {
+		t.Fatalf("mqObjectExists = %v", updated.Status.MQObjectExists)
 	}
 	select {
 	case ev := <-recorder.Events:
@@ -261,6 +280,7 @@ func TestSetSyncedError_TerminalQueue(t *testing.T) {
 		q,
 		1,
 		&mqadmin.TerminalError{Reason: "MQSCError", Message: "bad"},
+		syncStatusOpts{},
 	)
 	if err != nil || result != (ctrl.Result{}) {
 		t.Fatalf("result=%+v err=%v", result, err)
@@ -356,7 +376,9 @@ func TestSetSyncedError_TransientChannel(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(ch).WithObjects(ch).Build()
-	result, err := setSyncedError(ctx, cl.Status(), nil, ch, 1, &mqadmin.TransientError{Message: "timeout"})
+	result, err := setSyncedError(
+		ctx, cl.Status(), nil, ch, 1, &mqadmin.TransientError{Message: "timeout"}, syncStatusOpts{},
+	)
 	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
@@ -371,7 +393,7 @@ func TestPatchSyncedAvailable_ChannelAuthRule(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 2},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(rule).WithObjects(rule).Build()
-	if err := patchSyncedAvailable(ctx, cl.Status(), nil, rule, 2, "synced"); err != nil {
+	if err := patchSyncedAvailable(ctx, cl.Status(), nil, rule, 2, "synced", syncStatusOpts{}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -385,7 +407,7 @@ func TestSetSyncedError_AuthorityRecord(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
-	_, err := setSyncedError(ctx, cl.Status(), nil, auth, 1, &mqadmin.TerminalError{Message: "denied"})
+	_, err := setSyncedError(ctx, cl.Status(), nil, auth, 1, &mqadmin.TerminalError{Message: "denied"}, syncStatusOpts{})
 	if err != nil {
 		t.Fatalf("setSyncedError: %v", err)
 	}
@@ -466,7 +488,9 @@ func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
-	result, err := setSyncedError(ctx, cl.Status(), nil, auth, 1, &mqadmin.TransientError{Message: "timeout"})
+	result, err := setSyncedError(
+		ctx, cl.Status(), nil, auth, 1, &mqadmin.TransientError{Message: "timeout"}, syncStatusOpts{},
+	)
 	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}

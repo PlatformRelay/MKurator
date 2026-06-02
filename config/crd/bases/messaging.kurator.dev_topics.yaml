@@ -144,6 +144,18 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              lastSyncTime:
+                description: LastSyncTime is set when the object last reconciled successfully.
+                format: date-time
+                type: string
+              message:
+                description: Message is a short, user-facing summary of reconcile
+                  state (especially when Synced=False).
+                type: string
+              mqObjectExists:
+                description: MQObjectExists is true when the IBM MQ object was last
+                  observed on the queue manager.
+                type: boolean
               observedGeneration:
                 description: ObservedGeneration reflects the generation last successfully
                   synced.

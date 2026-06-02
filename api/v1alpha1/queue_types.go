@@ -60,6 +60,8 @@ type QueueStatus struct {
 	// do not use this field to drive cluster apply or drift detection.
 	// +optional
 	DesiredMQSC string `json:"desiredMQSC,omitempty"`
+
+	MQObjectStatusFields `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
