@@ -107,7 +107,8 @@ kurator/
 
 **Start here:** [docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md) — install the
 operator (Release manifests, Helm), connect to your queue manager, manage queues,
-troubleshooting, and uninstall.
+[kubectl diagnostics](docs/INSTALL_AND_USE.md#diagnostics-and-troubleshooting),
+and uninstall.
 
 Sample YAML with annotations:
 [config/samples/README.md](config/samples/README.md).

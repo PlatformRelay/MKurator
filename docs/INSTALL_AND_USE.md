@@ -23,7 +23,7 @@ Doc index: [README.md](README.md) · [../README.md](../README.md)
 | 📅 | [Day-2 operations](#day-2-operations) |
 | 📊 | [Metrics and monitoring](OBSERVABILITY.md) |
 | ⬆️ | [Upgrading from a previous release](#upgrading-from-a-previous-release) |
-| 🆘 | [Troubleshooting](#troubleshooting) |
+| 🆘 | [Diagnostics and troubleshooting](#diagnostics-and-troubleshooting) |
 | 🗑️ | [Uninstall](#uninstall) |
 | ➡️ | [Next steps](#next-steps) |
 
@@ -567,16 +567,94 @@ Step-by-step procedures (Helm vs Kustomize, server-side CRD apply, rollback):
 
 ---
 
-## Troubleshooting
+## Diagnostics and troubleshooting
 
-Recent operator activity is recorded as Kubernetes **Events** on each custom
-resource. `kubectl describe` shows the latest Events inline; list them for a
-specific object with:
+When a custom resource is stuck or reports an error, start with **`kubectl
+describe`** (status conditions and Events), then **operator logs**, then
+**metrics** if the controller is running but reconciles fail silently. Log format,
+levels, and redaction rules are in [LOGGING.md](LOGGING.md); Prometheus scrape
+setup is in [OBSERVABILITY.md](OBSERVABILITY.md).
+
+### Quick status check
+
+```sh
+kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
+```
+
+| Resource | Short name | Primary condition | Healthy when |
+|----------|------------|-------------------|--------------|
+| `QueueManagerConnection` | `qmc` | `Ready` | `Ready=True`, `Reason=Available` |
+| `Queue` | `mq` | `Synced` | `Synced=True`, `Reason=Available` |
+| `Topic` | `tp` | `Synced` | `Synced=True`, `Reason=Available` |
+| `Channel` | `chl` | `Synced` | `Synced=True`, `Reason=Available` |
+| `ChannelAuthRule` | `car` | `Synced` | `Synced=True`, `Reason=Available` |
+| `AuthorityRecord` | `auth` | `Synced` | `Synced=True`, `Reason=Available` |
+
+`Synced=False` with `Reason=Progressing` on a workload CR usually means the
+referenced `QueueManagerConnection` is not **Ready** yet. `Reason=Error` includes
+the mqweb/MQSC error in the condition **message**.
+
+### `kubectl describe` — what to look for
+
+`kubectl describe` prints **Status.Conditions** and the latest **Events** at the
+bottom. Focus on `Type`, `Status`, `Reason`, and `Message` for the primary
+condition (`Ready` or `Synced`).
+
+```sh
+# Connection (samples use prod-qm1 or qm1 on kind)
+kubectl describe qmc prod-qm1 -n kurator-system
+
+# Workload CRs (replace names with yours)
+kubectl describe queue orders -n kurator-system
+kubectl describe topic retail-orders -n kurator-system
+kubectl describe channel orders-app -n kurator-system
+kubectl describe channelauthrule dev-app-addressmap -n kurator-system
+kubectl describe authorityrecord app-orders-get-put -n kurator-system
+```
+
+### Kubernetes Events
+
+The operator emits **Events** on status transitions (for example connection
+available, queue synced, MQ error). `kubectl describe` shows recent Events
+inline; list them for one object:
 
 ```sh
 kubectl get events -n kurator-system \
   --field-selector involvedObject.name=orders \
   --sort-by=.lastTimestamp
+```
+
+Recent Events in the namespace (all Kurator CRs):
+
+```sh
+kubectl get events -n kurator-system --sort-by=.lastTimestamp | tail -20
+```
+
+### Operator logs
+
+Controller output is the next place to look after `describe` and Events:
+
+```sh
+kubectl logs -n kurator-system deployment/kurator-controller-manager --tail=200
+kubectl logs -n kurator-system deployment/kurator-controller-manager -f   # follow
+```
+
+Reconciler log lines include `controller`, `namespace`, and `name`. For deeper
+troubleshooting, raise the log level — see [LOGGING.md](LOGGING.md) (`KURATOR_LOG_LEVEL`,
+`KURATOR_LOG_FORMAT`, Helm `logging.*`). Credentials and tokens are never logged
+at default levels.
+
+### Metrics
+
+The manager exposes Prometheus metrics on **HTTPS port 8443** at `/metrics`. A
+`{release}-metrics` Service (for example `kurator-metrics` in `kurator-system`)
+fronts that port. Secure mode (default) requires a Kubernetes service-account token
+with the chart’s **metrics-reader** RBAC — see [OBSERVABILITY.md](OBSERVABILITY.md)
+for `ServiceMonitor` setup, auth bindings, and starter queries such as
+`kurator_reconcile_errors_total`.
+
+```sh
+kubectl -n kurator-system get svc -l app.kubernetes.io/name=kurator
 ```
 
 ### `QueueManagerConnection` not Ready
@@ -629,6 +707,22 @@ kubectl describe channel orders-app -n kurator-system
 Common causes: invalid `topstr` / topic name, channel attribute not supported on
 your MQ version, or MQ authorization denying `DEFINE TOPIC` / `DEFINE CHANNEL`.
 Only `CHLTYPE(SVRCONN)` is supported in v1alpha1.
+
+### `ChannelAuthRule` or `AuthorityRecord` stuck or Error
+
+Auth CRs follow the same **Synced** semantics. Ensure the connection is **Ready**
+and the referenced channel or queue profile already exists on MQ when the rule
+depends on it:
+
+```sh
+kubectl get qmc,car,auth -n kurator-system
+kubectl describe channelauthrule dev-app-addressmap -n kurator-system
+kubectl describe authorityrecord app-orders-get-put -n kurator-system
+```
+
+Common causes: `ADDRESSMAP` requires `spec.address`; `AuthorityRecord` needs
+exactly one of `principal` or `group`; MQ denies `SET CHLAUTH` / `SET AUTHREC`
+for the operator credentials.
 
 ### Operator not running
 
