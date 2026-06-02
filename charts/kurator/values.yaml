@@ -33,6 +33,18 @@ logging:
 metrics:
   enabled: true
   bindAddress: ":8443"
+  secure: true
+  serviceMonitor:
+    # Requires Prometheus Operator CRDs (e.g. kube-prometheus-stack).
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    # Labels for Prometheus Operator discovery (kube-prometheus-stack default):
+    # release: kube-prometheus-stack
+    labels: {}
+  prometheusRule:
+    enabled: false
+    labels: {}
 
 resources:
   limits:

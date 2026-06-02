@@ -18,3 +18,11 @@ logging:
 
 metrics:
   enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+  prometheusRule:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack

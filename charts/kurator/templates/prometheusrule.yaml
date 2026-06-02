@@ -1,0 +1,44 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "kurator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kurator.labels" . | nindent 4 }}
+    {{- with .Values.metrics.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: kurator.rules
+      rules:
+        - alert: KuratorMetricsTargetDown
+          expr: |
+            absent(up{namespace="{{ .Release.Namespace }}", service="{{ include "kurator.fullname" . }}-metrics"}) == 1
+            or max(up{namespace="{{ .Release.Namespace }}", service="{{ include "kurator.fullname" . }}-metrics"}) == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kurator controller metrics target is down
+            description: Prometheus is not scraping the Kurator metrics Service in {{ .Release.Namespace }}.
+        - alert: KuratorReconcileErrors
+          expr: |
+            sum(increase(kurator_reconcile_errors_total[15m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kurator reconcile errors detected
+            description: One or more Kurator reconcilers returned errors in the last 15 minutes.
+        - alert: KuratorMQOperationErrors
+          expr: |
+            sum(increase(kurator_mq_operations_total{result="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kurator mqweb operation errors
+            description: mqweb adapter operations are failing (check QueueManagerConnection credentials and mqweb reachability).
+{{- end }}

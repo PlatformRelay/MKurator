@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/konradheimel/kurator/internal/metrics"
 	messagingv1alpha1 "github.com/konradheimel/kurator/api/v1alpha1"
 	"github.com/konradheimel/kurator/internal/mqadmin"
 )
@@ -35,6 +36,12 @@ type QueueReconciler struct {
 
 // Reconcile ensures the MQ queue matches spec.
 func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	result, err := r.reconcile(ctx, req)
+	metrics.RecordReconcile(metrics.ControllerQueue, err)
+	return result, err
+}
+
+func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	q := &messagingv1alpha1.Queue{}
 	if err := r.Get(ctx, req.NamespacedName, q); err != nil {
