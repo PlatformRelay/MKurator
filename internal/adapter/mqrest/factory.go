@@ -19,19 +19,15 @@ import (
 type ClientFactory struct {
 	K8s client.Client
 
-	mu     sync.Mutex
-	cache  map[string]mqadmin.Admin
-	keyFor func(*messagingv1alpha1.QueueManagerConnection) string
+	mu    sync.Mutex
+	cache map[string]mqadmin.Admin
 }
 
-// NewClientFactory returns a mqadmin.Factory that caches clients by connection key.
+// NewClientFactory returns a mqadmin.Factory that caches clients by connection + secret versions.
 func NewClientFactory(k8s client.Client) mqadmin.Factory {
 	return &ClientFactory{
 		K8s:   k8s,
 		cache: make(map[string]mqadmin.Admin),
-		keyFor: func(conn *messagingv1alpha1.QueueManagerConnection) string {
-			return conn.Namespace + "/" + conn.Name + "/" + fmt.Sprint(conn.Generation)
-		},
 	}
 }
 
@@ -40,7 +36,11 @@ func (f *ClientFactory) ForConnection(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
 ) (mqadmin.Admin, error) {
-	key := f.keyFor(conn)
+	key, err := f.cacheKey(ctx, conn)
+	if err != nil {
+		return nil, err
+	}
+
 	f.mu.Lock()
 	if c, ok := f.cache[key]; ok {
 		f.mu.Unlock()
@@ -62,6 +62,50 @@ func (f *ClientFactory) ForConnection(
 	f.cache[key] = c
 	f.mu.Unlock()
 	return c, nil
+}
+
+// ReleaseConnection implements mqadmin.Factory.
+func (f *ClientFactory) ReleaseConnection(
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
+) error {
+	key, err := f.cacheKey(ctx, conn)
+	if err != nil {
+		return err
+	}
+	f.mu.Lock()
+	delete(f.cache, key)
+	f.mu.Unlock()
+	return nil
+}
+
+func (f *ClientFactory) cacheKey(
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
+) (string, error) {
+	credSecret := &corev1.Secret{}
+	if err := f.K8s.Get(ctx, client.ObjectKey{
+		Namespace: conn.Namespace,
+		Name:      conn.Spec.CredentialsSecretRef.Name,
+	}, credSecret); err != nil {
+		return "", fmt.Errorf("get credentials secret for cache key: %w", err)
+	}
+
+	key := fmt.Sprintf("%s/%s/gen:%d/cred:%s",
+		conn.Namespace, conn.Name, conn.Generation, credSecret.ResourceVersion)
+
+	if conn.Spec.TLS != nil && conn.Spec.TLS.CASecretRef != nil {
+		caSecret := &corev1.Secret{}
+		if err := f.K8s.Get(ctx, client.ObjectKey{
+			Namespace: conn.Namespace,
+			Name:      conn.Spec.TLS.CASecretRef.Name,
+		}, caSecret); err != nil {
+			return "", fmt.Errorf("get CA secret for cache key: %w", err)
+		}
+		key += "/ca:" + caSecret.ResourceVersion
+	}
+
+	return key, nil
 }
 
 func (f *ClientFactory) buildConfig(

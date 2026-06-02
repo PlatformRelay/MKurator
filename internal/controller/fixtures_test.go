@@ -21,6 +21,8 @@ const (
 
 func cleanupNamespace(ctx context.Context, ns string) {
 	deleteAllOf(ctx, &messagingv1alpha1.QueueList{}, ns)
+	deleteAllOf(ctx, &messagingv1alpha1.TopicList{}, ns)
+	deleteAllOf(ctx, &messagingv1alpha1.ChannelList{}, ns)
 	deleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnectionList{}, ns)
 	deleteAllOf(ctx, &corev1.SecretList{}, ns)
 }
@@ -29,6 +31,20 @@ func deleteAllOf(ctx context.Context, list client.ObjectList, ns string) {
 	Expect(k8sClient.List(ctx, list, client.InNamespace(ns))).To(Succeed())
 	switch items := list.(type) {
 	case *messagingv1alpha1.QueueList:
+		for i := range items.Items {
+			obj := &items.Items[i]
+			obj.Finalizers = nil
+			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
+		}
+	case *messagingv1alpha1.TopicList:
+		for i := range items.Items {
+			obj := &items.Items[i]
+			obj.Finalizers = nil
+			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
+		}
+	case *messagingv1alpha1.ChannelList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil

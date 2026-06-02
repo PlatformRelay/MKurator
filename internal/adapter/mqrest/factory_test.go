@@ -108,6 +108,54 @@ func TestClientFactory_BuildConfigWithCA(t *testing.T) {
 	}
 }
 
+func TestClientFactory_CacheKeyChangesWithSecretResourceVersion(t *testing.T) {
+	ctx := context.Background()
+	ns := "kurator-system"
+	s := runtime.NewScheme()
+	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := corev1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns, Generation: 1},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
+			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+		},
+	}
+	secretData := map[string][]byte{
+		"username":        []byte("admin"),
+		"mqAdminPassword": []byte("passw0rd"),
+	}
+	secretV1 := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns, ResourceVersion: "1"},
+		Data:       secretData,
+	}
+	secretV2 := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns, ResourceVersion: "2"},
+		Data:       secretData,
+	}
+
+	cl1 := fake.NewClientBuilder().WithScheme(s).WithObjects(secretV1, conn).Build()
+	cl2 := fake.NewClientBuilder().WithScheme(s).WithObjects(secretV2, conn).Build()
+
+	key1, err := NewClientFactory(cl1).(*ClientFactory).cacheKey(ctx, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key2, err := NewClientFactory(cl2).(*ClientFactory).cacheKey(ctx, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key1 == key2 {
+		t.Fatalf("cache keys should differ when secret ResourceVersion changes: %q", key1)
+	}
+}
+
 func testCAPEM(t *testing.T) []byte {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)

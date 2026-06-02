@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -25,6 +23,7 @@ type ChannelReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	MQFactory mqadmin.Factory
+	Recorder  record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=messaging.kurator.dev,resources=channels,verbs=get;list;watch;create;update;patch;delete
@@ -41,6 +40,7 @@ func (r *ChannelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return result, err
 }
 
+//nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	channel := &messagingv1alpha1.Channel{}
@@ -51,24 +51,23 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("get Channel: %w", err)
 	}
 
-	conn, err := r.getConnection(ctx, channel)
+	connRef, err := connectionRefName(channel)
 	if err != nil {
-		return r.setSyncedError(ctx, channel, err)
+		return ctrl.Result{}, err
+	}
+	conn, err := resolveConnection(ctx, r.Client, channel.Namespace, connRef)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
 
-	if !connectionReady(conn) {
-		setCondition(&channel.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing,
-			fmt.Sprintf("waiting for connection %q to become Ready", conn.Name), channel.Generation)
-		if statusErr := r.Status().Update(ctx, channel); statusErr != nil {
-			return ctrl.Result{}, statusErr
-		}
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), channel, conn, channel.Generation)
+	if waitDone {
+		return waitResult, waitErr
 	}
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return r.setSyncedError(ctx, channel, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
 
 	if !channel.DeletionTimestamp.IsZero() {
@@ -84,7 +83,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if channel.Spec.Type != "" && channel.Spec.Type != messagingv1alpha1.ChannelTypeSvrconn {
-		return r.setSyncedError(ctx, channel, &mqadmin.TerminalError{
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, &mqadmin.TerminalError{
 			Reason:  "UnsupportedChannelType",
 			Message: fmt.Sprintf("channel type %q is not supported in v1alpha1", channel.Spec.Type),
 		})
@@ -92,31 +91,14 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	spec := toMQChannelSpec(channel)
 	if err := r.ensureChannel(ctx, admin, spec); err != nil {
-		return r.setSyncedError(ctx, channel, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
 
-	setCondition(&channel.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, "Channel matches spec", channel.Generation)
-	channel.Status.ObservedGeneration = channel.Generation
-	if err := r.Status().Update(ctx, channel); err != nil {
+	if err := patchSyncedAvailable(ctx, r.Status(), channel, channel.Generation, "Channel matches spec"); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Channel synced", "channel", channel.Spec.ChannelName, "type", spec.Type)
 	return ctrl.Result{}, nil
-}
-
-func (r *ChannelReconciler) getConnection(
-	ctx context.Context,
-	channel *messagingv1alpha1.Channel,
-) (*messagingv1alpha1.QueueManagerConnection, error) {
-	conn := &messagingv1alpha1.QueueManagerConnection{}
-	if err := r.Get(ctx, client.ObjectKey{
-		Namespace: channel.Namespace,
-		Name:      channel.Spec.ConnectionRef.Name,
-	}, conn); err != nil {
-		return nil, fmt.Errorf("get connection %q: %w", channel.Spec.ConnectionRef.Name, err)
-	}
-	return conn, nil
 }
 
 func (r *ChannelReconciler) ensureChannel(ctx context.Context, admin mqadmin.Admin, spec mqadmin.ChannelSpec) error {
@@ -141,15 +123,14 @@ func (r *ChannelReconciler) handleDeletion(
 	channel *messagingv1alpha1.Channel,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
-	setCondition(&channel.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, "Deleting channel from IBM MQ", channel.Generation)
-	if err := r.Status().Update(ctx, channel); err != nil {
+	if err := patchSyncedDeleting(ctx, r.Status(), channel, channel.Generation,
+		"Deleting channel from IBM MQ"); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	spec := toMQChannelSpec(channel)
 	if err := admin.DeleteChannel(ctx, spec); err != nil {
-		return r.setSyncedError(ctx, channel, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err)
 	}
 
 	controllerutil.RemoveFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
@@ -159,31 +140,10 @@ func (r *ChannelReconciler) handleDeletion(
 	return ctrl.Result{}, nil
 }
 
-func (r *ChannelReconciler) setSyncedError(
-	ctx context.Context,
-	channel *messagingv1alpha1.Channel,
-	err error,
-) (ctrl.Result, error) {
-	reason := messagingv1alpha1.ReasonError
-	requeue := ctrl.Result{}
-	if errors.Is(err, mqadmin.ErrTransient) {
-		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
-	}
-	setCondition(&channel.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionFalse, reason, err.Error(), channel.Generation)
-	if statusErr := r.Status().Update(ctx, channel); statusErr != nil {
-		return requeue, statusErr
-	}
-	if errors.Is(err, mqadmin.ErrTransient) {
-		return requeue, err
-	}
-	return ctrl.Result{}, nil
-}
-
 func toMQChannelSpec(channel *messagingv1alpha1.Channel) mqadmin.ChannelSpec {
 	attrs := map[string]string{}
 	for k, v := range channel.Spec.Attributes {
-		attrs[strings.ToLower(k)] = v
+		attrs[mqadmin.NormalizeAttrKey(k)] = v
 	}
 	chType := mqadmin.ChannelTypeSvrconn
 	if channel.Spec.Type != "" {
@@ -198,7 +158,5 @@ func toMQChannelSpec(channel *messagingv1alpha1.Channel) mqadmin.ChannelSpec {
 
 // SetupWithManager wires the reconciler.
 func (r *ChannelReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&messagingv1alpha1.Channel{}).
-		Complete(r)
+	return setupMQObjectController(mgr, r, &messagingv1alpha1.Channel{})
 }

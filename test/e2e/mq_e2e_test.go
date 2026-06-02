@@ -18,9 +18,13 @@ import (
 )
 
 const (
-	mqConnectionName = "e2e-qm1"
-	mqQueueCRName    = "e2e-orders"
-	mqQueueObject    = "E2E.APP.ORDERS"
+	mqConnectionName  = "e2e-qm1"
+	mqQueueCRName     = "e2e-orders"
+	mqQueueObject     = "E2E.APP.ORDERS"
+	mqTopicCRName     = "e2e-retail-orders"
+	mqTopicObject     = "E2E.RETAIL.ORDERS"
+	mqChannelCRName   = "e2e-orders-app"
+	mqChannelObject   = "E2E.ORDERS.APP"
 )
 
 func e2eLocalQueueSpec() mqadmin.QueueSpec {
@@ -79,23 +83,13 @@ var _ = Describe("IBM MQ integration", Serial, Label("mq"), func() {
 
 		AfterEach(func() {
 			_ = exec.Command("kubectl", "delete", "queue", mqQueueCRName, "-n", namespace, "--ignore-not-found").Run()
+			_ = exec.Command("kubectl", "delete", "topic", mqTopicCRName, "-n", namespace, "--ignore-not-found").Run()
+			_ = exec.Command("kubectl", "delete", "channel", mqChannelCRName, "-n", namespace, "--ignore-not-found").Run()
 			_ = exec.Command("kubectl", "delete", "queuemanagerconnection", mqConnectionName, "-n", namespace, "--ignore-not-found").Run()
 		})
 
 		It("reconciles a Queue CR against the kind IBM MQ queue manager", func() {
-			connectionYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
-kind: QueueManagerConnection
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  queueManager: %s
-  endpoint: https://ibm-mq.ibm-mq.svc:9443
-  tls:
-    insecureSkipVerify: true
-  credentialsSecretRef:
-    name: mq-credentials
-`, mqConnectionName, namespace, envOr("KURATOR_E2E_MQ_QMGR", "QM1"))
+			Expect(kubectlApply(connectionManifest())).To(Succeed())
 
 			queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: Queue
@@ -112,7 +106,6 @@ spec:
     descr: e2e orders queue
 `, mqQueueCRName, namespace, mqConnectionName, mqQueueObject)
 
-			Expect(kubectlApply(connectionYAML)).To(Succeed())
 			Expect(kubectlApply(queueYAML)).To(Succeed())
 
 			Eventually(func(g Gomega) {
@@ -142,8 +135,115 @@ spec:
 				g.Expect(err).To(HaveOccurred())
 			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
 		})
+
+		It("reconciles a Topic CR against the kind IBM MQ queue manager", func() {
+			Expect(kubectlApply(connectionManifest())).To(Succeed())
+			topicYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: Topic
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  topicName: %s
+  attributes:
+    topstr: e2e/retail/orders
+    descr: e2e retail topic
+`, mqTopicCRName, namespace, mqConnectionName, mqTopicObject)
+			Expect(kubectlApply(topicYAML)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "topic", mqTopicCRName, "-n", namespace,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+				out, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("True"))
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			client, err := newMQClient()
+			Expect(err).NotTo(HaveOccurred())
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+
+			state, err := client.GetTopic(ctx, mqTopicObject)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(state.Attributes["topstr"]).To(Equal("e2e/retail/orders"))
+
+			cmd := exec.Command("kubectl", "delete", "topic", mqTopicCRName, "-n", namespace, "--wait=true")
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func(g Gomega) {
+				ok, err := topicExists(ctx, client, mqTopicObject)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(ok).To(BeFalse())
+			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+		})
+
+		It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
+			Expect(kubectlApply(connectionManifest())).To(Succeed())
+			channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  type: svrconn
+  attributes:
+    descr: e2e app channel
+    trptype: tcp
+`, mqChannelCRName, namespace, mqConnectionName, mqChannelObject)
+			Expect(kubectlApply(channelYAML)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "channel", mqChannelCRName, "-n", namespace,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+				out, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("True"))
+			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			client, err := newMQClient()
+			Expect(err).NotTo(HaveOccurred())
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+
+			ok, err := svrconnChannelExists(ctx, client, mqChannelObject)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			cmd := exec.Command("kubectl", "delete", "channel", mqChannelCRName, "-n", namespace, "--wait=true")
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(func(g Gomega) {
+				ok, err := svrconnChannelExists(ctx, client, mqChannelObject)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(ok).To(BeFalse())
+			}).WithTimeout(2 * time.Minute).WithPolling(3 * time.Second).Should(Succeed())
+		})
 	})
 })
+
+func connectionManifest() string {
+	return fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+kind: QueueManagerConnection
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  queueManager: %s
+  endpoint: https://ibm-mq.ibm-mq.svc:9443
+  tls:
+    insecureSkipVerify: true
+  credentialsSecretRef:
+    name: mq-credentials
+`, mqConnectionName, namespace, envOr("KURATOR_E2E_MQ_QMGR", "QM1"))
+}
 
 func kubectlApply(manifest string) error {
 	cmd := exec.Command("kubectl", "apply", "-f", "-")

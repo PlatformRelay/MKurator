@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/konradheimel/kurator/internal/adapter/mqrest"
+	"github.com/konradheimel/kurator/internal/mqadmin"
 )
 
 const (
@@ -113,6 +114,30 @@ func applyMQSCFixture(ctx context.Context, client *mqrest.Client, filename strin
 		}
 	}
 	return nil
+}
+
+func topicExists(ctx context.Context, client *mqrest.Client, name string) (bool, error) {
+	_, err := client.GetTopic(ctx, name)
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(strings.ToUpper(err.Error()), "AMQ8147") ||
+		strings.Contains(strings.ToLower(err.Error()), "not found") {
+		return false, nil
+	}
+	return false, err
+}
+
+func svrconnChannelExists(ctx context.Context, client *mqrest.Client, name string) (bool, error) {
+	_, err := client.GetChannel(ctx, mqadmin.ChannelSpec{Name: name, Type: mqadmin.ChannelTypeSvrconn})
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(strings.ToUpper(err.Error()), "AMQ8147") ||
+		strings.Contains(strings.ToLower(err.Error()), "not found") {
+		return false, nil
+	}
+	return false, err
 }
 
 // channelExists returns true when DISPLAY CHANNEL succeeds for the named SVRCONN channel.

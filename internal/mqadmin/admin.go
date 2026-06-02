@@ -11,6 +11,8 @@ import (
 // Factory builds Admin clients for a QueueManagerConnection.
 type Factory interface {
 	ForConnection(ctx context.Context, conn *messagingv1alpha1.QueueManagerConnection) (Admin, error)
+	// ReleaseConnection drops any cached client for the connection (e.g. on delete).
+	ReleaseConnection(ctx context.Context, conn *messagingv1alpha1.QueueManagerConnection) error
 }
 
 // Admin is the seam between reconcilers and IBM MQ.

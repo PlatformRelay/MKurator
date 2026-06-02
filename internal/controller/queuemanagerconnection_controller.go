@@ -9,6 +9,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -24,6 +25,7 @@ type QueueManagerConnectionReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	MQFactory mqadmin.Factory
+	Recorder  record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=get;list;watch
@@ -52,6 +54,15 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 	}
 
 	if !conn.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer) {
+			if err := r.MQFactory.ReleaseConnection(ctx, conn); err != nil {
+				return ctrl.Result{}, fmt.Errorf("release mq client: %w", err)
+			}
+			controllerutil.RemoveFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer)
+			if err := r.Update(ctx, conn); err != nil {
+				return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
+			}
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -66,6 +77,9 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 	gen := conn.Generation
 	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
 		metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, "Testing mqweb connectivity", gen)
+	if err := r.Status().Update(ctx, conn); err != nil {
+		return ctrl.Result{}, fmt.Errorf("update status progressing: %w", err)
+	}
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
@@ -91,6 +105,8 @@ func (r *QueueManagerConnectionReconciler) fail(
 	gen int64,
 	err error,
 ) (ctrl.Result, error) {
+	recordTerminalEvent(r.Recorder, conn, err)
+
 	reason := messagingv1alpha1.ReasonError
 	msg := err.Error()
 	var requeue ctrl.Result

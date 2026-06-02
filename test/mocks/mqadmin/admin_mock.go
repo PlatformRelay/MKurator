@@ -7,9 +7,10 @@ package mqadmintest
 import (
 	"context"
 
+	mock "github.com/stretchr/testify/mock"
+
 	"github.com/konradheimel/kurator/api/v1alpha1"
 	"github.com/konradheimel/kurator/internal/mqadmin"
-	mock "github.com/stretchr/testify/mock"
 )
 
 // NewMockFactory creates a new instance of MockFactory. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -103,6 +104,63 @@ func (_c *MockFactory_ForConnection_Call) Return(admin mqadmin.Admin, err error)
 }
 
 func (_c *MockFactory_ForConnection_Call) RunAndReturn(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection) (mqadmin.Admin, error)) *MockFactory_ForConnection_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ReleaseConnection provides a mock function for the type MockFactory
+func (_mock *MockFactory) ReleaseConnection(ctx context.Context, conn *v1alpha1.QueueManagerConnection) error {
+	ret := _mock.Called(ctx, conn)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReleaseConnection")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.QueueManagerConnection) error); ok {
+		r0 = returnFunc(ctx, conn)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockFactory_ReleaseConnection_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReleaseConnection'
+type MockFactory_ReleaseConnection_Call struct {
+	*mock.Call
+}
+
+// ReleaseConnection is a helper method to define mock.On call
+//   - ctx context.Context
+//   - conn *v1alpha1.QueueManagerConnection
+func (_e *MockFactory_Expecter) ReleaseConnection(ctx interface{}, conn interface{}) *MockFactory_ReleaseConnection_Call {
+	return &MockFactory_ReleaseConnection_Call{Call: _e.mock.On("ReleaseConnection", ctx, conn)}
+}
+
+func (_c *MockFactory_ReleaseConnection_Call) Run(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection)) *MockFactory_ReleaseConnection_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *v1alpha1.QueueManagerConnection
+		if args[1] != nil {
+			arg1 = args[1].(*v1alpha1.QueueManagerConnection)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockFactory_ReleaseConnection_Call) Return(err error) *MockFactory_ReleaseConnection_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockFactory_ReleaseConnection_Call) RunAndReturn(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection) error) *MockFactory_ReleaseConnection_Call {
 	_c.Call.Return(run)
 	return _c
 }

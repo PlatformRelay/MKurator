@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -24,6 +23,7 @@ type TopicReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	MQFactory mqadmin.Factory
+	Recorder  record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=messaging.kurator.dev,resources=topics,verbs=get;list;watch;create;update;patch;delete
@@ -40,7 +40,7 @@ func (r *TopicReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return result, err
 }
 
-//nolint:dupl // same connection/finalizer/sync pattern as QueueReconciler
+//nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	topic := &messagingv1alpha1.Topic{}
@@ -51,24 +51,23 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, fmt.Errorf("get Topic: %w", err)
 	}
 
-	conn, err := r.getConnection(ctx, topic)
+	connRef, err := connectionRefName(topic)
 	if err != nil {
-		return r.setSyncedError(ctx, topic, err)
+		return ctrl.Result{}, err
+	}
+	conn, err := resolveConnection(ctx, r.Client, topic.Namespace, connRef)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
 	}
 
-	if !connectionReady(conn) {
-		setCondition(&topic.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing,
-			fmt.Sprintf("waiting for connection %q to become Ready", conn.Name), topic.Generation)
-		if statusErr := r.Status().Update(ctx, topic); statusErr != nil {
-			return ctrl.Result{}, statusErr
-		}
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), topic, conn, topic.Generation)
+	if waitDone {
+		return waitResult, waitErr
 	}
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return r.setSyncedError(ctx, topic, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
 	}
 
 	if !topic.DeletionTimestamp.IsZero() {
@@ -85,31 +84,14 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	spec := toMQTopicSpec(topic)
 	if err := r.ensureTopic(ctx, admin, spec); err != nil {
-		return r.setSyncedError(ctx, topic, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
 	}
 
-	setCondition(&topic.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, "Topic matches spec", topic.Generation)
-	topic.Status.ObservedGeneration = topic.Generation
-	if err := r.Status().Update(ctx, topic); err != nil {
+	if err := patchSyncedAvailable(ctx, r.Status(), topic, topic.Generation, "Topic matches spec"); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Topic synced", "topic", topic.Spec.TopicName)
 	return ctrl.Result{}, nil
-}
-
-func (r *TopicReconciler) getConnection(
-	ctx context.Context,
-	topic *messagingv1alpha1.Topic,
-) (*messagingv1alpha1.QueueManagerConnection, error) {
-	conn := &messagingv1alpha1.QueueManagerConnection{}
-	if err := r.Get(ctx, client.ObjectKey{
-		Namespace: topic.Namespace,
-		Name:      topic.Spec.ConnectionRef.Name,
-	}, conn); err != nil {
-		return nil, fmt.Errorf("get connection %q: %w", topic.Spec.ConnectionRef.Name, err)
-	}
-	return conn, nil
 }
 
 func (r *TopicReconciler) ensureTopic(ctx context.Context, admin mqadmin.Admin, spec mqadmin.TopicSpec) error {
@@ -134,40 +116,17 @@ func (r *TopicReconciler) handleDeletion(
 	topic *messagingv1alpha1.Topic,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
-	setCondition(&topic.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, "Deleting topic from IBM MQ", topic.Generation)
-	if err := r.Status().Update(ctx, topic); err != nil {
+	if err := patchSyncedDeleting(ctx, r.Status(), topic, topic.Generation, "Deleting topic from IBM MQ"); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if err := admin.DeleteTopic(ctx, topic.Spec.TopicName); err != nil {
-		return r.setSyncedError(ctx, topic, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err)
 	}
 
 	controllerutil.RemoveFinalizer(topic, messagingv1alpha1.TopicFinalizer)
 	if err := r.Update(ctx, topic); err != nil {
 		return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
-	}
-	return ctrl.Result{}, nil
-}
-
-func (r *TopicReconciler) setSyncedError(
-	ctx context.Context,
-	topic *messagingv1alpha1.Topic,
-	err error,
-) (ctrl.Result, error) {
-	reason := messagingv1alpha1.ReasonError
-	requeue := ctrl.Result{}
-	if errors.Is(err, mqadmin.ErrTransient) {
-		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
-	}
-	setCondition(&topic.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionFalse, reason, err.Error(), topic.Generation)
-	if statusErr := r.Status().Update(ctx, topic); statusErr != nil {
-		return requeue, statusErr
-	}
-	if errors.Is(err, mqadmin.ErrTransient) {
-		return requeue, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -185,7 +144,5 @@ func toMQTopicSpec(topic *messagingv1alpha1.Topic) mqadmin.TopicSpec {
 
 // SetupWithManager wires the reconciler.
 func (r *TopicReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&messagingv1alpha1.Topic{}).
-		Complete(r)
+	return setupMQObjectController(mgr, r, &messagingv1alpha1.Topic{})
 }

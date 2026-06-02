@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -25,6 +23,7 @@ type QueueReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	MQFactory mqadmin.Factory
+	Recorder  record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queues,verbs=get;list;watch;create;update;patch;delete
@@ -41,7 +40,7 @@ func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return result, err
 }
 
-//nolint:dupl // same connection/finalizer/sync pattern as TopicReconciler
+//nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	q := &messagingv1alpha1.Queue{}
@@ -52,24 +51,23 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, fmt.Errorf("get Queue: %w", err)
 	}
 
-	conn, err := r.getConnection(ctx, q)
+	connRef, err := connectionRefName(q)
 	if err != nil {
-		return r.setSyncedError(ctx, q, err)
+		return ctrl.Result{}, err
+	}
+	conn, err := resolveConnection(ctx, r.Client, q.Namespace, connRef)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
 
-	if !connectionReady(conn) {
-		setCondition(&q.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing,
-			fmt.Sprintf("waiting for connection %q to become Ready", conn.Name), q.Generation)
-		if statusErr := r.Status().Update(ctx, q); statusErr != nil {
-			return ctrl.Result{}, statusErr
-		}
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, r.Status(), q, conn, q.Generation)
+	if waitDone {
+		return waitResult, waitErr
 	}
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
-		return r.setSyncedError(ctx, q, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
 
 	if !q.DeletionTimestamp.IsZero() {
@@ -86,31 +84,14 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	spec := toMQQueueSpec(q)
 	if err := r.ensureQueue(ctx, admin, spec); err != nil {
-		return r.setSyncedError(ctx, q, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
 
-	setCondition(&q.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, "Queue matches spec", q.Generation)
-	q.Status.ObservedGeneration = q.Generation
-	if err := r.Status().Update(ctx, q); err != nil {
+	if err := patchSyncedAvailable(ctx, r.Status(), q, q.Generation, "Queue matches spec"); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Queue synced", "queue", q.Spec.QueueName)
 	return ctrl.Result{}, nil
-}
-
-func (r *QueueReconciler) getConnection(
-	ctx context.Context,
-	q *messagingv1alpha1.Queue,
-) (*messagingv1alpha1.QueueManagerConnection, error) {
-	conn := &messagingv1alpha1.QueueManagerConnection{}
-	if err := r.Get(ctx, client.ObjectKey{
-		Namespace: q.Namespace,
-		Name:      q.Spec.ConnectionRef.Name,
-	}, conn); err != nil {
-		return nil, fmt.Errorf("get connection %q: %w", q.Spec.ConnectionRef.Name, err)
-	}
-	return conn, nil
 }
 
 func (r *QueueReconciler) ensureQueue(ctx context.Context, admin mqadmin.Admin, spec mqadmin.QueueSpec) error {
@@ -135,14 +116,12 @@ func (r *QueueReconciler) handleDeletion(
 	q *messagingv1alpha1.Queue,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
-	setCondition(&q.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, "Deleting queue from IBM MQ", q.Generation)
-	if err := r.Status().Update(ctx, q); err != nil {
+	if err := patchSyncedDeleting(ctx, r.Status(), q, q.Generation, "Deleting queue from IBM MQ"); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if err := admin.DeleteQueue(ctx, toMQQueueSpec(q)); err != nil {
-		return r.setSyncedError(ctx, q, err)
+		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err)
 	}
 
 	controllerutil.RemoveFinalizer(q, messagingv1alpha1.QueueFinalizer)
@@ -152,40 +131,10 @@ func (r *QueueReconciler) handleDeletion(
 	return ctrl.Result{}, nil
 }
 
-func (r *QueueReconciler) setSyncedError(
-	ctx context.Context,
-	q *messagingv1alpha1.Queue,
-	err error,
-) (ctrl.Result, error) {
-	reason := messagingv1alpha1.ReasonError
-	requeue := ctrl.Result{}
-	if errors.Is(err, mqadmin.ErrTransient) {
-		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
-	}
-	setCondition(&q.Status.Conditions, messagingv1alpha1.ConditionSynced,
-		metav1.ConditionFalse, reason, err.Error(), q.Generation)
-	if statusErr := r.Status().Update(ctx, q); statusErr != nil {
-		return requeue, statusErr
-	}
-	if errors.Is(err, mqadmin.ErrTransient) {
-		return requeue, err
-	}
-	return ctrl.Result{}, nil
-}
-
-func connectionReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
-	for _, c := range conn.Status.Conditions {
-		if c.Type == messagingv1alpha1.ConditionReady && c.Status == metav1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
 func toMQQueueSpec(q *messagingv1alpha1.Queue) mqadmin.QueueSpec {
 	attrs := map[string]string{}
 	for k, v := range q.Spec.Attributes {
-		attrs[strings.ToLower(k)] = v
+		attrs[mqadmin.NormalizeAttrKey(k)] = v
 	}
 	return mqadmin.QueueSpec{
 		Name:       q.Spec.QueueName,
@@ -196,7 +145,5 @@ func toMQQueueSpec(q *messagingv1alpha1.Queue) mqadmin.QueueSpec {
 
 // SetupWithManager wires the reconciler.
 func (r *QueueReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&messagingv1alpha1.Queue{}).
-		Complete(r)
+	return setupMQObjectController(mgr, r, &messagingv1alpha1.Queue{})
 }

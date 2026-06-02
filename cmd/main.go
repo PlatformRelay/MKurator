@@ -199,10 +199,12 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	mqFactory := mqrest.NewClientFactory(mgr.GetClient())
+	eventRecorder := mgr.GetEventRecorderFor("kurator-controller-manager")
 	if err := (&controller.QueueManagerConnectionReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		MQFactory: mqFactory,
+		Recorder:  eventRecorder,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "QueueManagerConnection")
 		os.Exit(1)
@@ -211,6 +213,7 @@ func main() {
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		MQFactory: mqFactory,
+		Recorder:  eventRecorder,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Queue")
 		os.Exit(1)
@@ -219,6 +222,7 @@ func main() {
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		MQFactory: mqFactory,
+		Recorder:  eventRecorder,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Topic")
 		os.Exit(1)
@@ -227,6 +231,7 @@ func main() {
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		MQFactory: mqFactory,
+		Recorder:  eventRecorder,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Channel")
 		os.Exit(1)
