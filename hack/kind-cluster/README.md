@@ -1,7 +1,7 @@
 # Local kind dev cluster
 
-A one-command local environment for developing and testing the IBM Message
-Queue Operator. It provisions a [kind](https://kind.sigs.k8s.io/) cluster and,
+A one-command local environment for developing and testing **Kurator**. It
+provisions a [kind](https://kind.sigs.k8s.io/) cluster and,
 via Terraform + Helm, installs:
 
 - **ingress-nginx** (NodePort 30080/30443, mapped to the host) as the ingress

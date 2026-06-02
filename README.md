@@ -1,4 +1,4 @@
-# IBM Message Queue Operator
+# Kurator
 
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues today, users/authorities and more later.

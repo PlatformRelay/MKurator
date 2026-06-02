@@ -1,6 +1,6 @@
 # Security Policy
 
-The IBM Message Queue Operator manages administrative objects on IBM MQ Queue
+Kurator manages administrative objects on IBM MQ Queue
 Managers and handles connection credentials. Security is a first-class concern;
 the enforced requirements live in
 [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) and the

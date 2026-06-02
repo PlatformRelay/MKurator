@@ -1,6 +1,6 @@
 # Roadmap
 
-Phased delivery plan for the IBM Message Queue Operator. Each phase is shippable
+Phased delivery plan for **Kurator**. Each phase is shippable
 on its own and keeps the tree green (build + lint + tests + `verify` pass). See
 [ARCHITECTURE.md](ARCHITECTURE.md) for design, [../AGENTS.md](../AGENTS.md) for
 conventions, [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) for
@@ -26,7 +26,7 @@ quality bars, and [CICD.md](CICD.md) for the pipeline.
 
 ## Phase 1 — Scaffold & toolchain
 
-- Confirm module path and API group (record as an ADR), then scaffold with
+- Scaffold with
   **Kubebuilder v4** (manager entrypoint, `PROJECT`, empty `api/v1alpha1`,
   `internal/controller`).
 - `Taskfile.yml` + `Taskfile.test.yml` (install, format, lint, manifests,

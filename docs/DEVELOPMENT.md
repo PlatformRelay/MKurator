@@ -1,6 +1,6 @@
 # Development
 
-How to set up, build, test, and run the IBM Message Queue Operator locally. For
+How to set up, build, test, and run **Kurator** locally. For
 conventions see [../AGENTS.md](../AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -55,8 +55,9 @@ with **ingress-nginx**, **cert-manager**, an optional **kube-prometheus-stack**,
 and a real **IBM MQ** Queue Manager exposing `mqweb` — wired with **Terraform**
 and trusted TLS from **mkcert**.
 
-Cluster name: `ibm-mq-operator`. State (kubeconfig, TLS) is written to
-`hack/kind-cluster/.state/`.
+Cluster name: `kurator` (override with `CLUSTER_NAME` if you have an existing
+`ibm-mq-operator` cluster from before the rename). State (kubeconfig, TLS) is
+written to `hack/kind-cluster/.state/`.
 
 ### Bring it up
 

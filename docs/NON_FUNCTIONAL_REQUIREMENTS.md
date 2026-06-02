@@ -1,7 +1,7 @@
 # Non-Functional Requirements
 
 This document defines the **non-functional requirements (NFRs)** for the IBM
-Message Queue Operator: the cross-cutting quality attributes every release must
+**Kurator**: the cross-cutting quality attributes every release must
 satisfy. Functional behaviour lives in [ARCHITECTURE.md](ARCHITECTURE.md); the
 delivery order lives in [ROADMAP.md](ROADMAP.md).
 

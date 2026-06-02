@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-CLUSTER_NAME="${CLUSTER_NAME:-ibm-mq-operator}"
+CLUSTER_NAME="${CLUSTER_NAME:-kurator}"
 KUBECONFIG_OUT="${KUBECONFIG_OUT:-${ROOT_DIR}/.state/kubeconfig.yaml}"
 
 if ! command -v kind >/dev/null 2>&1; then

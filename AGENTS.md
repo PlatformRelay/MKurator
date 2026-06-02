@@ -1,7 +1,7 @@
 # AGENTS.md
 
 This document is the entry point for humans and AI agents working on the
-**IBM Message Queue Operator**. It captures what the project is, how it is
+**Kurator**. It captures what the project is, how it is
 structured, and the conventions every change must follow. Read it before
 making changes, and keep it in sync when conventions evolve.
 
@@ -24,7 +24,7 @@ Start here, then drill into the topic you need:
 
 ## Overview
 
-The IBM Message Queue Operator is a Kubernetes operator that manages
+Kurator is a Kubernetes operator that manages
 **resources on an existing IBM MQ Queue Manager** declaratively, the
 self-service way: queues, and (later) users/authorities and related objects.
 
@@ -111,10 +111,8 @@ trees land during scaffolding (see [ROADMAP.md](docs/ROADMAP.md), Phase 1).
 └── AGENTS.md / README.md
 ```
 
-> Module path and API group are placeholders until confirmed before scaffolding:
-> module `github.com/konradheimel/ibm-mq-operator`, API group
-> `messaging.heimel.dev`, version `v1alpha1`. Replace consistently if changed.
-> Record the decision in [docs/adr/](docs/adr/) once fixed.
+> Module `github.com/konradheimel/kurator`, API group `messaging.kurator.dev`,
+> version `v1alpha1` — see [ADR-0006](docs/adr/0006-project-name-kurator.md).
 
 ## Toolchain & dependencies
 
