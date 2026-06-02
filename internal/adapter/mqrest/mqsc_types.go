@@ -65,6 +65,8 @@ func (r *mqscResponse) isObjectMissing() bool {
 		for _, msg := range append(cr.Message, cr.Text...) {
 			if strings.Contains(strings.ToUpper(msg), "AMQ8147") ||
 				strings.Contains(strings.ToUpper(msg), "AMQ8101") ||
+				strings.Contains(strings.ToUpper(msg), "AMQ8884") ||
+				strings.Contains(strings.ToUpper(msg), "AMQ8958") ||
 				strings.Contains(strings.ToLower(msg), "not found") {
 				return true
 			}

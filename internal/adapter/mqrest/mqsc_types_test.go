@@ -137,3 +137,39 @@ func TestMqscResponseIsObjectMissing_AMQ8101(t *testing.T) {
 		t.Fatal("expected object missing")
 	}
 }
+
+func TestParseMQSCDisplayAttributes_ChannelAuth(t *testing.T) {
+	t.Parallel()
+	text := "AMQ8878I: Display channel authentication record details.   " +
+		"CHLAUTH(KIT.C.06431) TYPE(ADDRESSMAP) ADDRESS(*) USERSRC(CHANNEL) CHCKCLNT(REQUIRED)"
+	attrs := parseMQSCDisplayAttributes([]string{text})
+	if attrs["address"] != "*" || attrs["usersrc"] != "CHANNEL" || attrs["chckclnt"] != "REQUIRED" {
+		t.Fatalf("attrs = %v", attrs)
+	}
+}
+
+func TestParseMQSCDisplayAttributes_Authority(t *testing.T) {
+	t.Parallel()
+	text := "AMQ8864I: Display authority record details.   " +
+		"PROFILE(KIT.Q.12345) ENTITY(app) ENTTYPE(PRINCIPAL) OBJTYPE(QUEUE) AUTHLIST(GET,PUT)"
+	attrs := parseMQSCDisplayAttributes([]string{text})
+	if attrs["authlist"] != "GET,PUT" {
+		t.Fatalf("attrs = %v", attrs)
+	}
+}
+
+func TestMqscResponseDisplayTextAttributes(t *testing.T) {
+	t.Parallel()
+	resp := &mqscResponse{
+		CommandResponse: []commandResponseItem{{
+			CompletionCode: 0,
+			Text: []string{
+				"AMQ8864I: Display authority record details. PROFILE(APP.Q) OBJTYPE(QUEUE) AUTHLIST(GET)",
+			},
+		}},
+	}
+	attrs := resp.displayTextAttributes()
+	if attrs["authlist"] != "GET" {
+		t.Fatalf("attrs = %v", attrs)
+	}
+}

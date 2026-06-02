@@ -40,7 +40,7 @@ func (c *Client) DeleteChannelAuth(ctx context.Context, spec mqadmin.ChannelAuth
 	return err
 }
 
-// SetAuthority applies SET AUTHREC ... AUTHADD(...) ACTION(REPLACE).
+// SetAuthority applies SET AUTHREC ... AUTHADD(...).
 func (c *Client) SetAuthority(ctx context.Context, spec mqadmin.AuthoritySpec) error {
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpSetAuthority, err) }()
@@ -119,6 +119,9 @@ func (c *Client) runDisplayMQSC(ctx context.Context, command, object string) (ma
 		}
 		return nil, err
 	}
+	if len(attrs) == 0 {
+		attrs = parsed.displayTextAttributes()
+	}
 	return attrs, nil
 }
 
@@ -164,7 +167,13 @@ func buildDisplayChannelAuthMQSC(spec mqadmin.ChannelAuthSpec) (string, error) {
 	if spec.RuleType == "" {
 		return "", &mqadmin.TerminalError{Reason: invalidSpecReason, Message: "rule type is required"}
 	}
-	return fmt.Sprintf("DISPLAY CHLAUTH('%s') TYPE(%s)", mqscQuote(spec.ChannelName), spec.RuleType), nil
+	parts := []string{
+		fmt.Sprintf("DISPLAY CHLAUTH('%s') TYPE(%s)", mqscQuote(spec.ChannelName), spec.RuleType),
+	}
+	if spec.Address != "" {
+		parts = append(parts, fmt.Sprintf("ADDRESS('%s')", mqscQuote(spec.Address)))
+	}
+	return strings.Join(parts, " "), nil
 }
 
 func buildDisplayAuthorityMQSC(spec mqadmin.AuthoritySpec) (string, error) {
@@ -206,6 +215,7 @@ func isMQSCNotFound(err error) bool {
 	msg := strings.ToUpper(err.Error())
 	return strings.Contains(msg, "AMQ8147") ||
 		strings.Contains(msg, "AMQ8958") ||
+		strings.Contains(msg, "AMQ8884") ||
 		strings.Contains(strings.ToLower(err.Error()), "not found")
 }
 
@@ -267,7 +277,6 @@ func buildSetAuthorityMQSC(spec mqadmin.AuthoritySpec, remove bool) (string, err
 		authList := strings.Join(spec.Authorities, ",")
 		parts = append(parts, fmt.Sprintf("AUTHADD(%s)", authList))
 	}
-	parts = append(parts, "ACTION(REPLACE)")
 	return strings.Join(parts, " "), nil
 }
 

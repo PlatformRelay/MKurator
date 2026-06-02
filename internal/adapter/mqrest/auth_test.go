@@ -37,8 +37,7 @@ func TestBuildSetAuthorityMQSC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildSetAuthorityMQSC: %v", err)
 	}
-	want := "SET AUTHREC PROFILE('APP.ORDERS') OBJTYPE(QUEUE) PRINCIPAL('app') " +
-		"AUTHADD(GET,PUT) ACTION(REPLACE)"
+	want := "SET AUTHREC PROFILE('APP.ORDERS') OBJTYPE(QUEUE) PRINCIPAL('app') AUTHADD(GET,PUT)"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
 	}
@@ -53,7 +52,7 @@ func TestBuildSetAuthorityMQSCRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildSetAuthorityMQSC: %v", err)
 	}
-	want := "SET AUTHREC PROFILE('APP.ORDERS') OBJTYPE(QUEUE) GROUP('apps') AUTHRMV(ALL) ACTION(REPLACE)"
+	want := "SET AUTHREC PROFILE('APP.ORDERS') OBJTYPE(QUEUE) GROUP('apps') AUTHRMV(ALL)"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
 	}
@@ -125,6 +124,21 @@ func TestBuildDisplayChannelAuthMQSC(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := "DISPLAY CHLAUTH('DEV.APP') TYPE(ADDRESSMAP)"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
+func TestBuildDisplayChannelAuthMQSCWithAddress(t *testing.T) {
+	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "DEV.APP",
+		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "DISPLAY CHLAUTH('DEV.APP') TYPE(ADDRESSMAP) ADDRESS('*')"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
 	}
