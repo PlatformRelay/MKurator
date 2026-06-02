@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -29,7 +30,7 @@ const metricsServiceName = "kurator-controller-manager-metrics-service"
 // metricsRoleBindingName is the name of the RBAC that will be created to allow get the metrics data
 const metricsRoleBindingName = "kurator-metrics-binding"
 
-var _ = Describe("Manager", Ordered, func() {
+var _ = Describe("Manager", Serial, Ordered, func() {
 	var controllerPodName string
 
 	// Before running the tests, set up the environment by creating the namespace,
@@ -37,8 +38,12 @@ var _ = Describe("Manager", Ordered, func() {
 	// and deploying the controller.
 	BeforeAll(func() {
 		By("creating manager namespace")
-		cmd := exec.Command("kubectl", "create", "ns", namespace)
-		_, err := utils.Run(cmd)
+		cmd := exec.Command("kubectl", "create", "ns", namespace, "--dry-run=client", "-o", "yaml")
+		manifest, err := utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to render namespace manifest")
+		apply := exec.Command("kubectl", "apply", "-f", "-")
+		apply.Stdin = strings.NewReader(manifest)
+		_, err = utils.Run(apply)
 		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
 
 		By("labeling the namespace to enforce the restricted security policy")

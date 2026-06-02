@@ -22,7 +22,7 @@ const (
 	mqQueueObject    = "E2E.APP.ORDERS"
 )
 
-var _ = Describe("IBM MQ integration", Label("mq"), func() {
+var _ = Describe("IBM MQ integration", Serial, Label("mq"), func() {
 	BeforeEach(func() {
 		if !mqE2EEnabled() {
 			Skip("IBM MQ e2e disabled; set KURATOR_E2E_MQ=1 and run task cluster:up")

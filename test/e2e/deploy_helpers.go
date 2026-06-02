@@ -18,11 +18,11 @@ import (
 // The Manager suite tears down the namespace in AfterAll; MQ specs run afterward.
 func ensureOperatorForMQE2E() {
 	By("creating manager namespace for MQ e2e")
-	cmd := exec.Command("kubectl", "create", "ns", namespace)
-	_, err := utils.Run(cmd)
-	if err != nil {
-		Expect(err.Error()).To(ContainSubstring("AlreadyExists"))
-	}
+	Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: %s
+`, namespace))).To(Succeed())
 
 	By("labeling the namespace to enforce the restricted security policy")
 	cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
