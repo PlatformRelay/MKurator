@@ -92,7 +92,15 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	mqExists, err := r.ensureQueue(ctx, admin, spec)
 	if err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{mqObjectExists: &mqExists})
+		return setSyncedError(
+			ctx,
+			r.Status(),
+			r.Recorder,
+			q,
+			q.Generation,
+			err,
+			syncStatusOpts{mqObjectExists: &mqExists},
+		)
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, q, q.Generation, "Queue matches spec",

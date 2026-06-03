@@ -407,7 +407,15 @@ func TestSetSyncedError_AuthorityRecord(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
-	_, err := setSyncedError(ctx, cl.Status(), nil, auth, 1, &mqadmin.TerminalError{Message: "denied"}, syncStatusOpts{})
+	_, err := setSyncedError(
+		ctx,
+		cl.Status(),
+		nil,
+		auth,
+		1,
+		&mqadmin.TerminalError{Message: "denied"},
+		syncStatusOpts{},
+	)
 	if err != nil {
 		t.Fatalf("setSyncedError: %v", err)
 	}
