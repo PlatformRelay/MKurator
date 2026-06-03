@@ -5,7 +5,8 @@ This document describes the continuous integration and delivery design for
 (via Task and pre-commit) and in CI**, so "green locally" means "green in CI".
 
 CI runs on **GitHub Actions** per the workflows under `.github/workflows/`
-(`ci.yaml`, `integration.yaml`, `e2e.yaml`, `release.yaml`, `renovate.yaml`).
+(`preflight.yaml`, `ci.yaml`, `integration.yaml`, `e2e.yaml`, `release.yaml`,
+`renovate.yaml`).
 This doc is the contract they implement. See [ROADMAP.md](ROADMAP.md) for
 delivery context.
 
@@ -23,7 +24,8 @@ delivery context.
 
 ```mermaid
 flowchart LR
-  pr["Pull request / push to main"] --> gitleaks
+  pr["Pull request / push to main"] --> preflight
+  pr --> gitleaks
   pr --> verify
   pr --> lint
   pr --> test
@@ -45,6 +47,7 @@ what each job runs, not execution order.
 
 | Event | Runs |
 |-------|------|
+| PR / push to `main` | `preflight.yaml`: `go mod tidy` + `task verify` (fail-fast, 5 min cap) |
 | PR / push to `main` | `ci.yaml`: gitleaks, verify, lint, test, build, docker-build, helm-lint (seven parallel jobs) |
 | PR / push to `main` (non-docs paths) | `integration.yaml`: Docker IBM MQ integration tests |
 | PR / push to `main` (non-docs paths) | `e2e.yaml`: kind + IBM MQ e2e |
@@ -68,7 +71,29 @@ group with `ci.yaml` or each other.
 
 `ci.yaml` has no concurrency block (jobs always run in parallel per trigger).
 
+`preflight.yaml` has no concurrency block; it runs in parallel with `ci.yaml` and
+the heavy workflows.
+
 ## Jobs
+
+### `preflight` (`preflight.yaml`)
+
+Dedicated fail-fast workflow on every PR and `main` push (no path filters). Catches
+`go.sum` drift and committed codegen drift in minutes before integration/e2e spend
+cluster time.
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| go mod tidy | `go mod tidy` then `git diff --exit-code go.sum` | Fails when Renovate or local edits leave `go.sum` out of sync |
+| verify | `task verify` | Same as `ci.yaml` `verify` — CRDs, RBAC, deepcopy, mocks |
+
+Job timeout: **5 minutes**. Uses the same Go module cache key as `ci.yaml` verify.
+
+Local equivalent: `go mod tidy && git diff --exit-code go.sum` then `task verify`.
+
+Branch protection may optionally require check name `preflight` (see
+[TEST_AND_CICD_EXPANSION.md](plans/TEST_AND_CICD_EXPANSION.md)); `ci.yaml` still
+runs its own `verify` job for parity until that is tightened.
 
 ### `gitleaks`
 Secret scan on PRs and `main` pushes (`gitleaks/gitleaks-action` with full git
@@ -170,7 +195,7 @@ Go-heavy jobs in `ci.yaml` and the `integration` workflow restore and save
 
 | Cache | Path | Jobs |
 |-------|------|------|
-| Go modules + build cache | `~/go/pkg/mod`, `~/.cache/go-build` | verify, lint, test, build, docker-build, integration |
+| Go modules + build cache | `~/go/pkg/mod`, `~/.cache/go-build` | preflight, verify, lint, test, build, docker-build, integration |
 | envtest binaries | `~/.local/share/kubebuilder-envtest` | test only |
 
 The envtest cache key includes the pinned K8s version (`1.35.x`, from
@@ -237,6 +262,15 @@ The default branch should require **all** of the following status checks before
 merge (names match `jobs.<id>.name` in the workflow files). No direct pushes to
 `main`.
 
+### Required checks (`preflight.yaml` — every PR and `main` push)
+
+| Check name | Workflow | What it runs |
+|------------|----------|--------------|
+| `preflight` | Preflight | `go mod tidy` + `task verify` (5 min timeout) |
+
+Optional until branch protection is updated; recommended for fail-fast before
+integration/e2e.
+
 ### Required checks (`ci.yaml` — every PR and `main` push)
 
 | Check name | Workflow | What it runs |
@@ -274,6 +308,7 @@ above:
 
 | CI job | Local command |
 |--------|---------------|
+| preflight | `go mod tidy && git diff --exit-code go.sum` then `task verify` |
 | gitleaks | `task secrets:scan` |
 | verify | `task verify` |
 | lint | `task format:check` then `task lint` |
