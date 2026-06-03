@@ -1,7 +1,7 @@
 {
-  "push_allowed": true,
+  "push_allowed": false,
   "pipeline_check_in_progress": false,
   "lock_holder": null,
-  "last_updated": "2026-06-03T08:00:00Z",
-  "notes": "Stale exclusive-test.lock PID 3087751 cleared; cluster:down requested. push_allowed true for final e2e namespace handoff push."
+  "last_updated": "2026-06-03T08:05:00Z",
+  "notes": "Pushed 7df751b (6f54727..7df751b): e2e namespace helpers + coordination lock clear. cluster:down complete; exclusive-test.lock removed (stale PID). push_allowed false for 5m cooldown."
 }
