@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,7 +16,7 @@ import (
 	"github.com/konih/kurator/test/utils"
 )
 
-const metricsCurlImage = "curlimages/curl:latest"
+const metricsCurlImage = "kurator-e2e-curl:dev"
 
 var (
 	// managerImage is the manager image to be built and loaded for testing.
@@ -49,10 +50,14 @@ var _ = BeforeSuite(func() {
 	err = utils.LoadImageToKindClusterWithName(managerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
 
-	By("loading the curl image for metrics tests")
-	pull := exec.Command("docker", "pull", metricsCurlImage)
-	_, err = utils.Run(pull)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to pull curl image for metrics e2e")
+	By("building the curl image for metrics tests")
+	projectDir, err := utils.GetProjectDir()
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	curlBuildCtx := filepath.Join(projectDir, "test", "e2e", "fixtures", "metrics-curl")
+	buildCurl := exec.Command("docker", "build", "--provenance=false", "--sbom=false",
+		"-t", metricsCurlImage, curlBuildCtx)
+	_, err = utils.Run(buildCurl)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build curl image for metrics e2e")
 	err = utils.LoadImageToKindClusterWithName(metricsCurlImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load curl image into Kind")
 
