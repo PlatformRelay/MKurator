@@ -127,6 +127,24 @@ func TestFormatSetChannelAuthMQSC(t *testing.T) {
 	}
 }
 
+func TestFormatSetChannelAuthMQSCBlockUser(t *testing.T) {
+	t.Parallel()
+	got, err := FormatSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "DEV.APP.SVRCONN.0TLS",
+		RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+		UserList:    "nobody",
+		Description: "Deny privileged user IDs",
+	})
+	if err != nil {
+		t.Fatalf("FormatSetChannelAuthMQSC: %v", err)
+	}
+	want := "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(BLOCKUSER) USERLIST('nobody') " +
+		"DESCR('Deny privileged user IDs') ACTION(REPLACE)"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
 func TestFormatSetAuthorityMQSC(t *testing.T) {
 	t.Parallel()
 	got, err := FormatSetAuthorityMQSC(mqadmin.AuthoritySpec{

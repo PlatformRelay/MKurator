@@ -246,3 +246,16 @@ func TestChannelAuthStateFromAttributes(t *testing.T) {
 		t.Fatalf("state = %+v", state)
 	}
 }
+
+func TestChannelAuthStateFromAttributesBlockUser(t *testing.T) {
+	spec := mqadmin.ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+	}
+	state := channelAuthStateFromAttributes(spec, map[string]string{
+		"userlist": "nobody", "descr": "block",
+	})
+	if state.UserList != "nobody" || state.Description != "block" {
+		t.Fatalf("state = %+v", state)
+	}
+}

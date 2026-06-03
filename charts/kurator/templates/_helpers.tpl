@@ -51,3 +51,28 @@ control-plane: controller-manager
 {{- define "kurator.image" -}}
 {{- printf "%s:%s" .Values.image.repository .Values.image.tag }}
 {{- end }}
+
+{{- define "kurator.webhookServiceName" -}}
+{{- printf "%s-webhook-service" (include "kurator.fullname" .) }}
+{{- end }}
+
+{{- define "kurator.servingCertName" -}}
+{{- printf "%s-serving-cert" (include "kurator.fullname" .) }}
+{{- end }}
+
+{{- define "kurator.selfSignedIssuerName" -}}
+{{- printf "%s-selfsigned-issuer" (include "kurator.fullname" .) }}
+{{- end }}
+
+{{- define "kurator.validatingWebhookConfigurationName" -}}
+{{- printf "%s-validating-webhook-configuration" (include "kurator.fullname" .) }}
+{{- end }}
+
+{{- define "kurator.webhookCertInjectCAFrom" -}}
+{{- printf "%s/%s" .Release.Namespace (include "kurator.servingCertName" .) }}
+{{- end }}
+
+{{- define "kurator.webhookServiceDNSNames" -}}
+{{- $svc := include "kurator.webhookServiceName" . -}}
+{{- printf "%s.%s.svc\n%s.%s.svc.cluster.local" $svc .Release.Namespace $svc .Release.Namespace }}
+{{- end }}

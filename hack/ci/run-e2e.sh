@@ -26,6 +26,7 @@ ci_step "E2E tests (build image, load kind, deploy operator — output streams b
 
 echo "KUBECONFIG=${KUBECONFIG:-<unset>}"
 echo "KIND_CLUSTER=${KIND_CLUSTER:-<unset>}"
+echo "KURATOR_E2E_DEPLOY=${KURATOR_E2E_DEPLOY:-kustomize}"
 echo "KURATOR_E2E_MQ=${KURATOR_E2E_MQ:-<unset>}"
 echo "CERT_MANAGER_INSTALL_SKIP=${CERT_MANAGER_INSTALL_SKIP:-<unset>}"
 echo ""

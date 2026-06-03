@@ -284,6 +284,27 @@ func TestAuthorityRecordWebhookValidateCreate(t *testing.T) {
 	}
 }
 
+func TestChannelAuthRuleWebhookValidateCreateBlockUser(t *testing.T) {
+	scheme := webhookTestScheme(t)
+	cl := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(sampleWebhookConn("ns"), sampleWebhookChannel("ns", "orders-app", "ORDERS.APP")).
+		Build()
+	v := &channelAuthRuleCustomValidator{Client: cl}
+
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car-blockuser", Namespace: "ns"},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockUser,
+			UserList:      "nobody",
+		},
+	}
+	if _, err := v.ValidateCreate(context.Background(), rule); err != nil {
+		t.Fatalf("ValidateCreate: %v", err)
+	}
+}
+
 func TestChannelAuthRuleWebhookValidateCreateMissingChannel(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()

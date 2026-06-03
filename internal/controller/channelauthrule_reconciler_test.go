@@ -96,6 +96,60 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(updated.Status.LastSyncTime).NotTo(BeNil())
 	})
 
+	It("applies BLOCKUSER CHLAUTH when the connection is Ready", func() {
+		const blockKey = "dev-app-blockuser"
+
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		rule := sampleBlockUserChannelAuthRule(ns, blockKey, "qm1", channelName)
+		Expect(k8sClient.Create(ctx, rule)).To(Succeed())
+
+		desired := mqadmin.ChannelAuthSpec{
+			ChannelName: channelName,
+			RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+			UserList:    "nobody",
+			Description: "Deny privileged user IDs",
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetChannelAuth(mock.Anything, desired).Return(nil, mqadmin.ErrNotFound).Once()
+		mockAdmin.EXPECT().SetChannelAuth(mock.Anything, desired).Return(nil).Once()
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &ChannelAuthRuleReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: blockKey},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: blockKey},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		updated := &messagingv1alpha1.ChannelAuthRule{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: blockKey}, updated)).To(Succeed())
+		Expect(updated.Status.DesiredMQSC).To(ContainSubstring("TYPE(BLOCKUSER)"))
+		Expect(updated.Status.DesiredMQSC).To(ContainSubstring("USERLIST('nobody')"))
+	})
+
 	It("skips SET when CHLAUTH already matches", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
@@ -280,6 +334,19 @@ func sampleChannelAuthRule(ns, name, connName, channelName string) *messagingv1a
 			Address:       "*",
 			UserSource:    "CHANNEL",
 			CheckClient:   "REQUIRED",
+		},
+	}
+}
+
+func sampleBlockUserChannelAuthRule(ns, name, connName, channelName string) *messagingv1alpha1.ChannelAuthRule {
+	return &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+			ChannelName:   channelName,
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockUser,
+			UserList:      "nobody",
+			Description:   "Deny privileged user IDs",
 		},
 	}
 }

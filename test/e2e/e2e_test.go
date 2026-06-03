@@ -62,9 +62,8 @@ var _ = Describe("Manager", Serial, Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "pod", "curl-metrics", "-n", namespace)
 		_, _ = utils.Run(cmd)
 
-		By("undeploying the controller-manager and CRDs")
-		cmd = exec.Command("task", "undeploy:operator")
-		_, _ = utils.Run(cmd)
+		By("undeploying the controller-manager")
+		undeployOperatorForE2E()
 
 		By("removing manager namespace")
 		cmd = exec.Command("kubectl", "delete", "ns", namespace)

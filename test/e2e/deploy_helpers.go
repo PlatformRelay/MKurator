@@ -34,14 +34,66 @@ metadata:
 	deployOperatorForE2E()
 }
 
-// deployOperatorForE2E applies CRDs and the full Kustomize stack via task deploy
-// (docker:build + kind load + install:crds + deploy:operator).
+// e2eDeployMode returns how the e2e suite installs the operator: "kustomize" (default) or "helm".
+func e2eDeployMode() string {
+	switch os.Getenv("KURATOR_E2E_DEPLOY") {
+	case "helm":
+		return "helm"
+	default:
+		return "kustomize"
+	}
+}
+
+// deployOperatorForE2E installs the operator using Kustomize (default) or Helm when
+// KURATOR_E2E_DEPLOY=helm.
 func deployOperatorForE2E() {
+	switch e2eDeployMode() {
+	case "helm":
+		deployOperatorForE2EHelm()
+	default:
+		deployOperatorForE2EKustomize()
+	}
+}
+
+// undeployOperatorForE2E removes the operator install matching the deploy mode used in the suite.
+func undeployOperatorForE2E() {
+	switch e2eDeployMode() {
+	case "helm":
+		By("uninstalling the controller-manager Helm release")
+		cmd := exec.Command("task", "undeploy:helm")
+		_, _ = utils.Run(cmd)
+	default:
+		By("undeploying the controller-manager and CRDs")
+		cmd := exec.Command("task", "undeploy:operator")
+		_, _ = utils.Run(cmd)
+	}
+}
+
+// deployOperatorForE2EKustomize applies CRDs and the full Kustomize stack via task deploy
+// (docker:build + kind load + install:crds + deploy:operator).
+func deployOperatorForE2EKustomize() {
 	By("deploying the controller-manager (task deploy)")
 	cmd := exec.Command("task", "deploy")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
 	_, err := utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+
+	Eventually(func(g Gomega) {
+		check := exec.Command("kubectl", "get", "crd", "queuemanagerconnections.messaging.kurator.dev")
+		_, runErr := utils.Run(check)
+		g.Expect(runErr).NotTo(HaveOccurred(), "QueueManagerConnection CRD should be registered")
+	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
+	waitForControllerAndWebhookReady()
+}
+
+// deployOperatorForE2EHelm installs CRDs and the operator via task deploy:helm.
+func deployOperatorForE2EHelm() {
+	By("deploying the controller-manager (task deploy:helm)")
+	cmd := exec.Command("task", "deploy:helm")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
+	_, err := utils.Run(cmd)
+	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager via Helm")
 
 	Eventually(func(g Gomega) {
 		check := exec.Command("kubectl", "get", "crd", "queuemanagerconnections.messaging.kurator.dev")

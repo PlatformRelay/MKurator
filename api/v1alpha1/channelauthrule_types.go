@@ -39,6 +39,10 @@ type ChannelAuthRuleSpec struct {
 	// +optional
 	Address string `json:"address,omitempty"`
 
+	// UserList maps to USERLIST(...) for BLOCKUSER rules.
+	// +optional
+	UserList string `json:"userList,omitempty"`
+
 	// UserSource maps to USERSRC(...) for ADDRESSMAP rules.
 	// +optional
 	UserSource string `json:"userSource,omitempty"`

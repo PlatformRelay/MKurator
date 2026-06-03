@@ -32,6 +32,27 @@ func TestChannelAuthNeedsUpdate(t *testing.T) {
 	}
 }
 
+func TestChannelAuthNeedsUpdateUserList(t *testing.T) {
+	t.Parallel()
+	desired := ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeBlockUser,
+		UserList:    "nobody",
+	}
+	observed := &ChannelAuthState{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeBlockUser,
+		UserList:    "nobody",
+	}
+	if ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected no update when user list matches")
+	}
+	observed.UserList = "admin"
+	if !ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected update when user list drifts")
+	}
+}
+
 func TestAuthorityNeedsUpdate(t *testing.T) {
 	t.Parallel()
 	if !AuthorityNeedsUpdate(AuthoritySpec{Authorities: []string{"GET"}}, nil) {

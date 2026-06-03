@@ -32,6 +32,16 @@ func ValidateChannelAuthRuleSpec(
 			errs = append(errs, field.Required(field.NewPath("spec").Child("address"),
 				"address is required for ADDRESSMAP rules"))
 		}
+	case messagingv1alpha1.ChannelAuthRuleTypeBlockUser:
+		if spec.UserList == "" {
+			errs = append(errs, field.Required(field.NewPath("spec").Child("userList"),
+				"userList is required for BLOCKUSER rules"))
+		}
+	case messagingv1alpha1.ChannelAuthRuleTypeBlockAddr:
+		if spec.Address == "" {
+			errs = append(errs, field.Required(field.NewPath("spec").Child("address"),
+				"address is required for BLOCKADDR rules"))
+		}
 	case "":
 		errs = append(errs, field.Required(field.NewPath("spec").Child("ruleType"), "ruleType is required"))
 	}

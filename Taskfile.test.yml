@@ -54,6 +54,8 @@ tasks:
     desc: Run end-to-end tests (requires kind cluster; set KURATOR_E2E_MQ=1 for IBM MQ scenarios)
     env:
       CGO_ENABLED: "1"
+      KURATOR_E2E_DEPLOY:
+        sh: echo "${KURATOR_E2E_DEPLOY:-kustomize}"
       KURATOR_E2E_MQ:
         sh: echo "${KURATOR_E2E_MQ:-0}"
       KIND_CLUSTER:
@@ -62,6 +64,20 @@ tasks:
         sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
     cmds:
       - bash hack/ci/run-e2e.sh
+
+  e2e:helm:
+    desc: Run e2e with Helm operator deploy (KURATOR_E2E_DEPLOY=helm; not run in CI yet)
+    env:
+      CGO_ENABLED: "1"
+      KURATOR_E2E_DEPLOY: "helm"
+      KURATOR_E2E_MQ:
+        sh: echo "${KURATOR_E2E_MQ:-0}"
+      KIND_CLUSTER:
+        sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
+      KUBECONFIG:
+        sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
+    cmds:
+      - bash hack/ci/run-e2e-helm.sh
 
   integration:
     desc: Run IBM MQ integration tests (requires KURATOR_INTEGRATION_MQ=1 and live mqweb; use task mq:integration:up)

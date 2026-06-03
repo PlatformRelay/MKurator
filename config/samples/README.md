@@ -279,6 +279,22 @@ matching `spec.channelName` and `spec.connectionRef` (validated at admission).
 
 ---
 
+## `messaging_v1alpha1_channelauthrule_blockuser.yaml`
+
+Optional companion to the `ADDRESSMAP` sample: blocks privileged user IDs on the
+same gitops channel via `TYPE(BLOCKUSER)`.
+
+| Field | This sample | Notes |
+|-------|-------------|-------|
+| `channelName` | `DEV.APP.SVRCONN.0TLS` | Same SVRCONN as `channel.yaml` / addressmap rule |
+| `ruleType` | `BLOCKUSER` | Requires `userList` |
+| `userList` | `nobody` | Mapped to MQSC `USERLIST('nobody')` |
+
+Helm copy:
+[`charts/kurator/samples/resources/channelauthrule-blockuser.yaml`](../../charts/kurator/samples/resources/channelauthrule-blockuser.yaml).
+
+---
+
 ## `messaging_v1alpha1_authorityrecord.yaml`
 
 Grants `GET` and `PUT` on queue profile `APP.ORDERS` to principal `app`.

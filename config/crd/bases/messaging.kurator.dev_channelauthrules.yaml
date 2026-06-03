@@ -94,6 +94,9 @@ spec:
                 - QMGRMAP
                 - BLOCKADDR
                 type: string
+              userList:
+                description: UserList maps to USERLIST(...) for BLOCKUSER rules.
+                type: string
               userSource:
                 description: UserSource maps to USERSRC(...) for ADDRESSMAP rules.
                 type: string

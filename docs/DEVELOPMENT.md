@@ -67,6 +67,7 @@ Platform-only commands live under `task cluster:*` (see
 | `task test:integration:local` | Docker MQ up + wait + integration tests |
 | `task ci:integration` | Same as GitHub Actions integration job |
 | `task test:e2e` | E2E on kind (set `KURATOR_E2E_MQ=1` for IBM MQ scenarios) |
+| `task test:e2e:helm` | Same suite with Helm operator deploy (`KURATOR_E2E_DEPLOY=helm`; not in CI yet) |
 | `task ci:e2e` | Same as GitHub Actions e2e job (`cluster:up` + MQ wait + tests) |
 | `task changelog` | Preview unreleased changelog (`git-cliff`; see [CICD.md](CICD.md)) |
 | `task changelog:write` | Regenerate `CHANGELOG.md` before tagging a release |
@@ -159,8 +160,27 @@ Prefer `task` for day-to-day work. Use `make` only when following Kubebuilder
 scaffold targets (`make test-e2e`, `make run`, …) or tooling that expects Make.
 
 **E2e deploy:** the suite builds the image in `BeforeSuite` (`task docker:build`)
-and deploys in `BeforeAll` via `task deploy` (`test/e2e/deploy_helpers.go` —
-build, kind load, CRDs, and operator manifests). Teardown uses `task undeploy:operator`.
+and deploys in `BeforeAll` via `task deploy` (Kustomize, default) or `task deploy:helm`
+when `KURATOR_E2E_DEPLOY=helm` (`test/e2e/deploy_helpers.go` — build, kind load,
+CRDs, and operator manifests). Teardown uses `task undeploy:operator` or
+`task undeploy:helm` to match.
+
+**E2e Helm admission path (deferred-e2e-helm):** validating webhook negative apply
+specs in `test/e2e/e2e_test.go` exercise the same resource names whether the operator
+is installed with Kustomize or Helm (`kurator-validating-webhook-configuration`,
+`kurator-serving-cert`, `kurator-webhook-service`). Helm chart templates now render
+those resources (`charts/kurator/templates/webhook-*.yaml`,
+`validating-webhook-configuration.yaml`); `task helm:lint` runs
+`hack/helm-verify-admission.sh` to keep them aligned with `config/webhook/manifests.yaml`.
+
+| Deploy mode | Env | Install | Teardown | Task |
+|-------------|-----|---------|----------|------|
+| Kustomize (default) | unset or `KURATOR_E2E_DEPLOY=kustomize` | `task deploy` | `task undeploy:operator` | `task test:e2e` |
+| Helm | `KURATOR_E2E_DEPLOY=helm` | `task deploy:helm` | `task undeploy:helm` | `task test:e2e:helm` |
+
+The Helm e2e entry point is wired but **not run in CI yet** — run locally after
+`task cluster:up` (cert-manager is preinstalled on the kind platform). First green
+`task test:e2e:helm` is the remaining exit check before adding a CI matrix job.
 
 Build the manager binary (CGO-free, static):
 

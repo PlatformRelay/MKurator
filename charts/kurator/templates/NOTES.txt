@@ -40,8 +40,8 @@ Validating webhooks and TLS (cert-manager)
 
   Verify:
     kubectl -n cert-manager get pods
-    kubectl -n {{ .Release.Namespace }} get certificate,secret {{ .Values.webhooks.certManager.secretName }}
-    kubectl -n {{ .Release.Namespace }} describe certificate {{ .Values.webhooks.certManager.secretName }}
+    kubectl -n {{ .Release.Namespace }} get certificate,secret {{ include "kurator.servingCertName" . }},{{ .Values.webhooks.certManager.secretName }}
+    kubectl -n {{ .Release.Namespace }} describe certificate {{ include "kurator.servingCertName" . }}
 
   If webhooks fail with TLS errors after cert rotation, restart the controller once:
     kubectl -n {{ .Release.Namespace }} rollout restart deployment/{{ include "kurator.fullname" . }}-controller-manager
@@ -74,7 +74,7 @@ Metrics (HTTPS) and Prometheus scraping
   Use only behind strict network isolation.
 {{- end }}
 
-  Metrics Service: {{ include "kurator.fullname" . }}-metrics (port 8443, HTTPS).
+  Metrics Service: {{ include "kurator.fullname" . }}-controller-manager-metrics-service (port 8443, HTTPS).
 
 {{- if .Values.metrics.serviceMonitor.enabled }}
 

@@ -504,6 +504,63 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	}
 }
 
+func TestChannelAuthRuleReconciler_SetsDesiredMQSCBlockUser(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "dev-app-blockuser"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "dev-app-blockuser",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+		},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockUser,
+			UserList:      "nobody",
+			Description:   "Deny privileged user IDs",
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(rule, conn).
+		WithObjects(conn, rule).
+		Build()
+
+	spec := toMQChannelAuthSpec(rule)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetChannelAuth(mock.Anything, spec).Return(&mqadmin.ChannelAuthState{
+		ChannelName: spec.ChannelName,
+		RuleType:    spec.RuleType,
+		UserList:    "nobody",
+		Description: "Deny privileged user IDs",
+	}, nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+
+	updated := &messagingv1alpha1.ChannelAuthRule{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	want := "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(BLOCKUSER) USERLIST('nobody') " +
+		"DESCR('Deny privileged user IDs') ACTION(REPLACE)"
+	if updated.Status.DesiredMQSC != want {
+		t.Fatalf("DesiredMQSC = %q, want %q", updated.Status.DesiredMQSC, want)
+	}
+}
+
 func TestChannelAuthRuleReconciler_DriftAppliesSet(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

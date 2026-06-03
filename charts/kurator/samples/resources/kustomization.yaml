@@ -12,4 +12,5 @@ resources:
   - topic.yaml
   - channel.yaml
   - channelauthrule.yaml
+  - channelauthrule-blockuser.yaml
   - authorityrecord.yaml
