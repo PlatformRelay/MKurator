@@ -68,8 +68,9 @@ func allowInsecureTLS(annotations map[string]string) bool {
 	return err == nil && allowed
 }
 
-// ValidateQueueManagerConnectionDelete denies delete when Queue, Topic, or Channel CRs
-// in the same namespace reference this connection via spec.connectionRef.name.
+// ValidateQueueManagerConnectionDelete denies delete when Queue, Topic, Channel,
+// ChannelAuthRule, or AuthorityRecord CRs in the same namespace reference this connection
+// via spec.connectionRef.name.
 func ValidateQueueManagerConnectionDelete(
 	ctx context.Context,
 	reader client.Reader,

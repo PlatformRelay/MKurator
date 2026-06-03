@@ -209,6 +209,92 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(err.Error()).To(ContainSubstring("dep-queue"))
 	})
 
+	It("denies ChannelAuthRule when managed Channel is missing", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		rule := &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "bad-car", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+				Address:       "*",
+			},
+		}
+		err := webhookK8sClient.Create(ctx, rule)
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("ORDERS.APP"))
+	})
+
+	It("allows ChannelAuthRule when Channel and connection exist", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		ch := &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+
+		rule := &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "good-car", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+				Address:       "*",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
+	})
+
+	It("denies QueueManagerConnection delete when ChannelAuthRule dependent exists", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		ch := &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+
+		rule := &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "dep-car", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+				Address:       "*",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
+
+		err := webhookK8sClient.Delete(ctx, conn)
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("dep-car"))
+	})
+
 	It("allows QueueManagerConnection delete after dependents removed", func() {
 		ctx := context.Background()
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
@@ -280,6 +366,8 @@ func sampleWebhookConnection(ns, name string) *messagingv1alpha1.QueueManagerCon
 func cleanupWebhookNamespace(ctx context.Context, ns string) {
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Queue{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Topic{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.ChannelAuthRule{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.AuthorityRecord{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Channel{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnection{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(ns))

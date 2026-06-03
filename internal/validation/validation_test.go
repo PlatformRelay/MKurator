@@ -278,6 +278,16 @@ func sampleConnection(ns, name string) *messagingv1alpha1.QueueManagerConnection
 	}
 }
 
+func sampleManagedChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
+	return &messagingv1alpha1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: messagingv1alpha1.ChannelSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+			ChannelName:   channelName,
+		},
+	}
+}
+
 func fieldRoot(name string) *field.Path {
 	return field.NewPath("spec").Child(name)
 }
