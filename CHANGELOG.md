@@ -9,9 +9,28 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
-### Breaking Changes
+## [0.6.0](https://github.com/konih/mkurator/compare/v0.5.3..v0.6.0) - 2026-06-03
 
-- **project:** Rename Kurator → MKurator: module `github.com/konih/mkurator`, API group `messaging.mkurator.dev`, chart `charts/mkurator`, namespace `mkurator-system`. Uninstall old `messaging.kurator.dev` CRDs and reinstall before upgrading.
+### Bug Fixes
+
+- **mqrest:** Treat AUTHREC NONE as not found [a5e8489](https://github.com/konih/mkurator/commit/a5e8489084ff98b3a3104ba38f544bbb5053ebc1)
+
+- **ci:** Expose CODECOV_TOKEN on test job env [33df7cf](https://github.com/konih/mkurator/commit/33df7cfb128ba9892bdb24cc810711fc818b2a62)
+
+- **ci:** Skip Codecov without invalid secrets if [5b09104](https://github.com/konih/mkurator/commit/5b09104c0cea4018dbce048b64e819f809a9444c)
+
+- **ci:** Unblock verify, codecov, and e2e CI [dd8b0df](https://github.com/konih/mkurator/commit/dd8b0df65129cb0146ecdfd2c8573461c2223f48)
+
+- **test:** Bound kubectl in MQ e2e cleanup [005b7b8](https://github.com/konih/mkurator/commit/005b7b825f6053e3db4cf75ec1a8d57070cde361)
+
+
+### Refactoring
+
+- [**breaking**] Rename project Kurator to MKurator [aa9b776](https://github.com/konih/mkurator/commit/aa9b776263e98462eb93869ce974ebec467f2bd5)
+
+## [0.5.3](https://github.com/konih/mkurator/compare/v0.5.2..v0.5.3) - 2026-06-03
+
+### Breaking Changes
 
 - **ci:** Phase C e2e pyramid and CI filters [dac64ed](https://github.com/konih/mkurator/commit/dac64ed7286f168c0eb4907dbccec2f947f5c258)
 
@@ -24,7 +43,7 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ### Bug Fixes
 
-- **test:** Define mkurator-system namespace in helpers [6f54727](https://github.com/konih/mkurator/commit/6f547276767ae2223be6bf78cbd8307ea9d0cf1e)
+- **test:** Define kurator-system namespace in helpers [6f54727](https://github.com/konih/mkurator/commit/6f547276767ae2223be6bf78cbd8307ea9d0cf1e)
 
 - **test:** Prevent e2e AfterSuite undeploy hang [1b2af56](https://github.com/konih/mkurator/commit/1b2af56a1214b71db2bed14c155dc271234c1d4f)
 
@@ -38,7 +57,7 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 - **rbac:** Allow events.k8s.io for controller [f9d22b7](https://github.com/konih/mkurator/commit/f9d22b76d9b2f1481d908496b18fccfaaceef0fc)
 
-- **test:** Let Helm e2e own mkurator-system namespace [e71fb05](https://github.com/konih/mkurator/commit/e71fb056b039e1747e218f8cadc99ead514c98b3)
+- **test:** Let Helm e2e own kurator-system namespace [e71fb05](https://github.com/konih/mkurator/commit/e71fb056b039e1747e218f8cadc99ead514c98b3)
 
 - **deps:** Update kubernetes packages [68aec05](https://github.com/konih/mkurator/commit/68aec0537ff10cb3df1e4b01d98f9e2bafab5571)
 
@@ -230,7 +249,7 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 - **cluster:** Haproxy ingress, Argo CD, upstream IBM MQ [214e048](https://github.com/konih/mkurator/commit/214e048e5d274add7124f347ba11ee79fa13a3dd)
 
-- Scaffold MKurator operator (Phase 1) [3083f03](https://github.com/konih/mkurator/commit/3083f0339bd999343f6d061f483601a5ee6e690d)
+- Scaffold Kurator operator (Phase 1) [3083f03](https://github.com/konih/mkurator/commit/3083f0339bd999343f6d061f483601a5ee6e690d)
 
 - **logging:** Add configurable slog logger [f251a03](https://github.com/konih/mkurator/commit/f251a03a3e025e93dd44ebe5a973d5c3df2890f7)
 
