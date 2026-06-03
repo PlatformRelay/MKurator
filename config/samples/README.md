@@ -267,8 +267,8 @@ Helm copy:
 ## `messaging_v1alpha1_channelauthrule.yaml`
 
 Applies an `ADDRESSMAP` CHLAUTH rule for the gitops sample channel name
-(`DEV.APP.SVRCONN.0TLS`). Requires a matching `Channel` (or pre-existing MQ
-channel) on the queue manager.
+(`DEV.APP.SVRCONN.0TLS`). Requires a `Channel` CR in the same namespace with
+matching `spec.channelName` and `spec.connectionRef` (validated at admission).
 
 | Field | This sample | Notes |
 |-------|-------------|-------|

@@ -23,6 +23,8 @@ func ValidateChannelAuthRuleSpec(
 	errs = append(errs, ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))...)
 	errs = append(errs, ValidateMQObjectName(field.NewPath("spec").Child("channelName"), spec.ChannelName)...)
+	errs = append(errs, ValidateManagedChannelRef(ctx, reader, namespace, spec.ConnectionRef.Name, spec.ChannelName,
+		field.NewPath("spec").Child("channelName"))...)
 
 	switch spec.RuleType {
 	case messagingv1alpha1.ChannelAuthRuleTypeAddressMap:

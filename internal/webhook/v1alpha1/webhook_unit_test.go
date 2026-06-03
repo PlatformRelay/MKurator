@@ -32,6 +32,16 @@ func sampleWebhookConn(ns string) *messagingv1alpha1.QueueManagerConnection {
 	}
 }
 
+func sampleWebhookChannel(ns, name, channelName string) *messagingv1alpha1.Channel {
+	return &messagingv1alpha1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: messagingv1alpha1.ChannelSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   channelName,
+		},
+	}
+}
+
 func TestTopicWebhookValidateCreate(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
@@ -235,7 +245,9 @@ func TestQueueManagerConnectionWebhookValidateDelete(t *testing.T) {
 
 func TestChannelAuthRuleWebhookValidateCreate(t *testing.T) {
 	scheme := webhookTestScheme(t)
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
+	cl := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(sampleWebhookConn("ns"), sampleWebhookChannel("ns", "orders-app", "ORDERS.APP")).
+		Build()
 	v := &channelAuthRuleCustomValidator{Client: cl}
 
 	rule := &messagingv1alpha1.ChannelAuthRule{
@@ -272,9 +284,30 @@ func TestAuthorityRecordWebhookValidateCreate(t *testing.T) {
 	}
 }
 
-func TestChannelAuthRuleWebhookValidateUpdateDelete(t *testing.T) {
+func TestChannelAuthRuleWebhookValidateCreateMissingChannel(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
+	v := &channelAuthRuleCustomValidator{Client: cl}
+
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+		},
+	}
+	if _, err := v.ValidateCreate(context.Background(), rule); err == nil {
+		t.Fatal("expected ValidateCreate error when managed Channel missing")
+	}
+}
+
+func TestChannelAuthRuleWebhookValidateUpdateDelete(t *testing.T) {
+	scheme := webhookTestScheme(t)
+	cl := fake.NewClientBuilder().WithScheme(scheme).
+		WithObjects(sampleWebhookConn("ns"), sampleWebhookChannel("ns", "orders-app", "ORDERS.APP")).
+		Build()
 	v := &channelAuthRuleCustomValidator{Client: cl}
 	rule := &messagingv1alpha1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
