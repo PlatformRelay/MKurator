@@ -127,7 +127,7 @@ tasks:
     cmds:
       - |
         cd config/manager && {{.KUSTOMIZE}} edit set image controller={{.DOCKER_IMAGE}}
-      - kubectl apply --server-side -k config/default
+      - kubectl apply --server-side --force-conflicts -k config/default
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
@@ -158,6 +158,21 @@ tasks:
         fi
       - task: install:crds
       - task: deploy:operator
+    env:
+      KUBECONFIG: "{{.KUBECONFIG}}"
+
+  deploy:helm:operator:
+    desc: Install operator via Helm chart without rebuilding the image (assumes image is loaded)
+    deps: [helm:sync-crds]
+    cmds:
+      - |
+        helm upgrade --install kurator ./charts/kurator \
+          --namespace kurator-system \
+          --create-namespace \
+          -f ./charts/kurator/samples/values-kind.yaml \
+          --set image.repository={{.DOCKER_IMAGE | splitList ":" | first}} \
+          --set image.tag={{.DOCKER_IMAGE | splitList ":" | last}} \
+          --wait --timeout 5m
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 

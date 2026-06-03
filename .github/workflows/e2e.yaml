@@ -13,6 +13,9 @@ on:
       - "docs/**"
       - "charts/**/README.md"
   workflow_dispatch:
+  schedule:
+    # Weekly Helm e2e (Monday 04:00 UTC) in addition to workflow_dispatch.
+    - cron: "0 4 * * 1"
 
 permissions:
   contents: read
@@ -28,6 +31,8 @@ env:
   KUBECONFIG: ${{ github.workspace }}/hack/kind-cluster/.state/kubeconfig.yaml
   CERT_MANAGER_INSTALL_SKIP: "true"
   KURATOR_E2E_MQ: "1"
+  # PR: skip slow specs (metrics curl, QMC rotation); full suite on main/dispatch.
+  KURATOR_E2E_LABEL_FILTER: ${{ github.event_name == 'pull_request' && '!slow' || '' }}
   # arduino/setup-task@v2.0.0 still declares node20; no Node 24 release yet.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -87,8 +92,8 @@ jobs:
     name: e2e (helm)
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    # Helm deploy path is slower; run on main pushes and manual dispatch (not every PR).
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    # Helm deploy path: manual dispatch or weekly cron (not PR or routine main push).
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:

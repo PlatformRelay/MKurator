@@ -153,10 +153,16 @@ Local equivalent: `task test:integration:local` or `task ci:integration`.
 
 ### `e2e`
 Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml):
-`task tools:install` → `task cluster:up` (kind + Terraform + IBM MQ) →
-`hack/ci/wait-mqweb.sh` → `task test:e2e` with `KURATOR_E2E_MQ=1` and
-`CERT_MANAGER_INSTALL_SKIP=true` (cert-manager is already installed by
-Terraform) → `task cluster:down` (always). Local equivalent: `task ci:e2e`.
+
+- **`e2e (kustomize)`** — every qualifying PR and `main` push: platform up →
+  `task test:e2e` with `KURATOR_E2E_MQ=1`, parallel Ginkgo (`KURATOR_E2E_NODES=3`),
+  and PR label filter `!slow` (skips metrics and QMC rotation specs).
+- **`e2e (helm)`** — `workflow_dispatch` and weekly cron only (not PRs): same
+  platform, then `task test:e2e:helm` (`KURATOR_E2E_DEPLOY=helm`).
+
+Both jobs use `CERT_MANAGER_INSTALL_SKIP=true` (cert-manager from Terraform) and
+`task cluster:down` (always). Local: `task ci:e2e`; kustomize + Helm on one cluster:
+`KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
 ### `release` (tags only)
 Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and

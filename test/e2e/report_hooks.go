@@ -18,6 +18,7 @@ var _ = ReportAfterEach(func(report SpecReport) {
 		e2eSpecLine("SPEC PASS", report.FullText())
 	case types.SpecStateFailed, types.SpecStatePanicked, types.SpecStateTimedout, types.SpecStateInterrupted:
 		e2eSpecLine("SPEC FAIL", report.FullText())
+		invalidateWebhookReadyCache()
 	case types.SpecStateSkipped, types.SpecStatePending:
 		e2eSpecLine("SPEC SKIP", report.FullText())
 	default:

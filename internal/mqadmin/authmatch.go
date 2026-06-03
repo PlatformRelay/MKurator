@@ -22,7 +22,9 @@ func ChannelAuthNeedsUpdate(desired ChannelAuthSpec, observed *ChannelAuthState)
 	if !strings.EqualFold(strings.TrimSpace(desired.CheckClient), strings.TrimSpace(observed.CheckClient)) {
 		return true
 	}
-	if strings.TrimSpace(desired.Description) != strings.TrimSpace(observed.Description) {
+	// IBM MQ DISPLAY CHLAUTH text often omits DESCR; treat empty observed as unknown.
+	if obs := strings.TrimSpace(observed.Description); obs != "" &&
+		strings.TrimSpace(desired.Description) != obs {
 		return true
 	}
 	return false

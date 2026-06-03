@@ -159,11 +159,11 @@ delegate to Task so both produce the same artifacts.
 Prefer `task` for day-to-day work. Use `make` only when following Kubebuilder
 scaffold targets (`make test-e2e`, `make run`, …) or tooling that expects Make.
 
-**E2e deploy:** the suite builds the image in `BeforeSuite` (`task docker:build`)
-and deploys in `BeforeAll` via `task deploy` (Kustomize, default) or `task deploy:helm`
-when `KURATOR_E2E_DEPLOY=helm` (`test/e2e/deploy_helpers.go` — build, kind load,
-CRDs, and operator manifests). Teardown uses `task undeploy:operator` or
-`task undeploy:helm` to match.
+**E2e deploy:** process 1 in `SynchronizedBeforeSuite` builds and loads images once
+(`task docker:build`), then installs CRDs and the operator via `task install:crds` +
+`task deploy:operator` (Kustomize, default) or `task deploy:helm:operator` when
+`KURATOR_E2E_DEPLOY=helm` — no second image build during deploy
+(`test/e2e/deploy_helpers.go`). `AfterSuite` undeploys and removes test namespaces.
 
 **E2e Helm admission path (deferred-e2e-helm):** validating webhook negative apply
 specs in `test/e2e/e2e_test.go` exercise the same resource names whether the operator
@@ -178,9 +178,10 @@ those resources (`charts/kurator/templates/webhook-*.yaml`,
 | Kustomize (default) | unset or `KURATOR_E2E_DEPLOY=kustomize` | `task deploy` | `task undeploy:operator` | `task test:e2e` |
 | Helm | `KURATOR_E2E_DEPLOY=helm` | `task deploy:helm` | `task undeploy:helm` | `task test:e2e:helm` |
 
-The Helm e2e entry point is wired but **not run in CI yet** — run locally after
-`task cluster:up` (cert-manager is preinstalled on the kind platform). First green
-`task test:e2e:helm` is the remaining exit check before adding a CI matrix job.
+**Helm e2e in CI:** [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml) runs
+`e2e (helm)` on `workflow_dispatch` and weekly cron (not on every PR). PRs run
+`e2e (kustomize)` only. Local Helm path: `KURATOR_E2E_MQ=1 task test:e2e:helm` after
+`task cluster:up`. Full kustomize + Helm on one cluster: `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
 Build the manager binary (CGO-free, static):
 
@@ -474,8 +475,14 @@ same style as other CI tasks (`==> <timestamp> …`). Full platform bring-up use
 | `[e2e] SPEC START` / `SPEC PASS` / `SPEC FAIL` | Per-spec boundaries |
 | `[e2e] …` | Progress lines from `e2eBy()` inside specs |
 
-Ginkgo runs with `-ginkgo.vv`, `-ginkgo.show-node-events`, and `-ginkgo.procs=1`
-(serial). In GitHub Actions, `-ginkgo.github-output` is added for workflow annotations.
+Ginkgo runs with `-ginkgo.vv`, `-ginkgo.show-node-events`, and `-ginkgo.procs` (default
+**3** via `KURATOR_E2E_NODES`). MQ specs use per-family namespaces (`kurator-e2e-queues`,
+`kurator-e2e-topics`, `kurator-e2e-channels`, `kurator-e2e-auth`) and unique MQ object
+prefixes per process (`E2E.N1.…`). CHLAUTH specs run in a **serial** `mq-auth-serial` lane.
+PR CI sets `KURATOR_E2E_LABEL_FILTER='!slow'` (skips metrics and QMC rotation). Override
+locally, e.g. `KURATOR_E2E_NODES=1 KURATOR_E2E_LABEL_FILTER= task test:e2e` for a full
+serial run. `-race` stays enabled (`CGO_ENABLED=1`); reduce nodes on small hosts if flaky.
+In GitHub Actions, `-ginkgo.github-output` is added for workflow annotations.
 
 On spec failure, diagnostics go to **GinkgoWriter** (visible with `-v`). Controller
 logs are **truncated** (`kubectl logs --tail=40`) unless
@@ -483,8 +490,11 @@ logs are **truncated** (`kubectl logs --tail=40`) unless
 
 ```sh
 KURATOR_E2E_MQ=1 task test:e2e                              # suite only (cluster already up)
+KURATOR_E2E_NODES=3 KURATOR_E2E_MQ=1 task test:e2e        # parallel MQ lanes (default nodes)
+KURATOR_E2E_NODES=1 KURATOR_E2E_MQ=1 task test:e2e        # fully serial Ginkgo
 KURATOR_E2E_VERBOSE_LOGS=1 KURATOR_E2E_MQ=1 task test:e2e   # full controller logs on failure
 task ci:e2e                                                 # PLATFORM UP + MQ wait + suite
+KURATOR_CI_E2E_BOTH=1 task ci:e2e                           # same cluster: kustomize then Helm
 ```
 
 Guidelines:

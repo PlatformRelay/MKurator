@@ -25,14 +25,24 @@ func eventuallyExpectObjectEvent(ns, kind, name, eventType, reason string) {
 }
 
 func hasObjectEvent(ns, kind, name, eventType, reason string) (bool, error) {
-	cmd := exec.Command("kubectl", "get", "events", "-n", ns,
-		"--field-selector", fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind),
-		"-o", "jsonpath={range .items[*]}{.type}{\" \"}{.reason}{\"\\n\"}{end}",
-	)
-	out, err := utils.Run(cmd)
-	if err != nil {
-		return false, err
+	selector := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind)
+	for _, resource := range []string{"events.events.k8s.io", "events"} {
+		cmd := exec.Command("kubectl", "get", resource, "-n", ns,
+			"--field-selector", selector,
+			"-o", "jsonpath={range .items[*]}{.type}{\" \"}{.reason}{\"\\n\"}{end}",
+		)
+		out, err := utils.Run(cmd)
+		if err != nil {
+			continue
+		}
+		if found, ok := eventLinesMatch(out, eventType, reason); ok {
+			return found, nil
+		}
 	}
+	return false, nil
+}
+
+func eventLinesMatch(out, eventType, reason string) (bool, bool) {
 	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -43,10 +53,10 @@ func hasObjectEvent(ns, kind, name, eventType, reason string) (bool, error) {
 			continue
 		}
 		if fields[0] == eventType && fields[1] == reason {
-			return true, nil
+			return true, true
 		}
 	}
-	return false, nil
+	return false, true
 }
 
 func eventuallyExpectQueueAvailableEvent(ns, queueName string) {

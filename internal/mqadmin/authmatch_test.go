@@ -45,6 +45,24 @@ func TestChannelAuthNeedsUpdateAddress(t *testing.T) {
 	}
 }
 
+func TestChannelAuthNeedsUpdateDescriptionEmptyObserved(t *testing.T) {
+	t.Parallel()
+	desired := ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+		Description: "e2e address map rule",
+	}
+	observed := &ChannelAuthState{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+	}
+	if ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected no update when DISPLAY omits DESCR (empty observed description)")
+	}
+}
+
 func TestChannelAuthNeedsUpdateDescription(t *testing.T) {
 	t.Parallel()
 	desired := ChannelAuthSpec{

@@ -22,14 +22,20 @@ if [[ -f "${KIND_KUBECONFIG}" ]]; then
   export KUBECONFIG="${KIND_KUBECONFIG}"
 fi
 
+GINKGO_NODES="${KURATOR_E2E_NODES:-3}"
+
 ci_step "GINKGO E2E — image build, kind load, deploy (platform must already be up; task ci:e2e runs PLATFORM UP first)"
 
 echo "KUBECONFIG=${KUBECONFIG:-<unset>}"
 echo "KIND_CLUSTER=${KIND_CLUSTER:-<unset>}"
 echo "KURATOR_E2E_DEPLOY=${KURATOR_E2E_DEPLOY:-kustomize}"
 echo "KURATOR_E2E_MQ=${KURATOR_E2E_MQ:-<unset>}"
+echo "KURATOR_E2E_NODES=${GINKGO_NODES}"
+echo "KURATOR_E2E_LABEL_FILTER=${KURATOR_E2E_LABEL_FILTER:-<unset>}"
 echo "CERT_MANAGER_INSTALL_SKIP=${CERT_MANAGER_INSTALL_SKIP:-<unset>}"
 echo "KURATOR_E2E_VERBOSE_LOGS=${KURATOR_E2E_VERBOSE_LOGS:-0}"
+echo ""
+echo "Note: go test uses -race (CGO_ENABLED=1). With parallel nodes, use fewer KURATOR_E2E_NODES on small hosts if flaky."
 echo ""
 
 export CGO_ENABLED="${CGO_ENABLED:-1}"
@@ -37,8 +43,11 @@ export CGO_ENABLED="${CGO_ENABLED:-1}"
 GINKGO_FLAGS=(
   -ginkgo.vv
   -ginkgo.show-node-events
-  -ginkgo.procs=1
+  -ginkgo.procs="${GINKGO_NODES}"
 )
+if [[ -n "${KURATOR_E2E_LABEL_FILTER:-}" ]]; then
+  GINKGO_FLAGS+=(-ginkgo.label-filter="${KURATOR_E2E_LABEL_FILTER}")
+fi
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   GINKGO_FLAGS+=(-ginkgo.github-output)
 fi

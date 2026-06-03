@@ -37,16 +37,15 @@ func TestE2E(t *testing.T) {
 	RunSpecs(t, "e2e suite")
 }
 
-var _ = BeforeSuite(func() {
-	e2eStage("PLATFORM PREP — build/load images, cert-manager")
+// SynchronizedBeforeSuite: process 1 builds/loads images and installs cert-manager once.
+var _ = SynchronizedBeforeSuite(func() []byte {
+	e2eStage("PLATFORM PREP — build/load images, cert-manager (process 1)")
 	By("building the manager image")
 	cmd := exec.Command("task", "docker:build")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
 	_, err := utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to build the manager image")
 
-	// TODO(user): If you want to change the e2e test vendor from Kind,
-	// ensure the image is built and available, then remove the following block.
 	By("loading the manager image on Kind")
 	err = utils.LoadImageToKindClusterWithName(managerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load the manager image into Kind")
@@ -62,17 +61,27 @@ var _ = BeforeSuite(func() {
 	err = utils.LoadImageToKindClusterWithName(metricsCurlImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load curl image into Kind")
 
-	configureKubectlKubeRC()
 	setupCertManager()
+	return nil
+}, func(_ []byte) {
+	configureKubectlKubeRC()
+})
+
+// SynchronizedBeforeSuite: process 1 deploys the operator once; all processes then proceed.
+var _ = SynchronizedBeforeSuite(func() []byte {
+	ensureManagerNamespaceAndDeploy()
+	applyChannelAuthPrereqFixtureOnce()
+	return nil
+}, func(_ []byte) {
+	// Per-process: nothing extra; operator is cluster-scoped.
 })
 
 var _ = AfterSuite(func() {
 	teardownCertManager()
+	cleanupE2EResources()
 })
 
 // Disable kubectl kuberc by default for test isolation.
-// This prevents local kubectl configurations from affecting test behavior.
-// To enable kuberc, set: KUBECTL_KUBERC=true
 func configureKubectlKubeRC() {
 	if os.Getenv("KUBECTL_KUBERC") != "true" {
 		By("disabling kubectl kuberc for test isolation")
@@ -85,8 +94,6 @@ func configureKubectlKubeRC() {
 	}
 }
 
-// setupCertManager installs CertManager if needed for webhook tests.
-// Skips installation if CERT_MANAGER_INSTALL_SKIP=true or if already present.
 func setupCertManager() {
 	if os.Getenv("CERT_MANAGER_INSTALL_SKIP") == "true" {
 		_, _ = fmt.Fprintf(GinkgoWriter, "Skipping CertManager installation (CERT_MANAGER_INSTALL_SKIP=true)\n")
@@ -99,15 +106,12 @@ func setupCertManager() {
 		return
 	}
 
-	// Mark for cleanup before installation to handle interruptions and partial installs.
 	shouldCleanupCertManager = true
 
 	By("installing CertManager")
 	Expect(utils.InstallCertManager()).To(Succeed(), "Failed to install CertManager")
 }
 
-// teardownCertManager uninstalls CertManager if it was installed by setupCertManager.
-// This ensures we only remove what we installed.
 func teardownCertManager() {
 	if !shouldCleanupCertManager {
 		_, _ = fmt.Fprintf(GinkgoWriter, "Skipping CertManager cleanup (not installed by this suite)\n")

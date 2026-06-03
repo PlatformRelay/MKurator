@@ -4,10 +4,12 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,28 +18,19 @@ import (
 	"github.com/konih/kurator/test/utils"
 )
 
-// ensureOperatorForMQE2E (re)creates the operator install needed by Queue reconciliation tests.
-// The Manager suite tears down the namespace in AfterAll; MQ specs run afterward.
-func ensureOperatorForMQE2E() {
-	if e2eDeployMode() == "helm" {
-		deployOperatorForE2E()
+var webhookReady atomic.Bool
+
+func invalidateWebhookReadyCache() {
+	webhookReady.Store(false)
+}
+
+// waitForControllerAndWebhookReadyCached waits once per process unless a prior spec failed.
+func waitForControllerAndWebhookReadyCached() {
+	if webhookReady.Load() {
 		return
 	}
-
-	By("creating manager namespace for MQ e2e")
-	Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
-kind: Namespace
-metadata:
-  name: %s
-`, namespace))).To(Succeed())
-
-	By("labeling the namespace to enforce the restricted security policy")
-	cmd := exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
-		"pod-security.kubernetes.io/enforce=restricted")
-	_, err := utils.Run(cmd)
-	Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
-
-	deployOperatorForE2E()
+	waitForControllerAndWebhookReady()
+	webhookReady.Store(true)
 }
 
 // e2eDeployMode returns how the e2e suite installs the operator: "kustomize" (default) or "helm".
@@ -51,13 +44,35 @@ func e2eDeployMode() string {
 }
 
 // deployOperatorForE2E installs the operator using Kustomize (default) or Helm when
-// KURATOR_E2E_DEPLOY=helm.
+// KURATOR_E2E_DEPLOY=helm. Images must already be built and loaded (BeforeSuite).
 func deployOperatorForE2E() {
 	e2eStage("DEPLOY OPERATOR — install controller (" + e2eDeployMode() + ")")
 	switch e2eDeployMode() {
 	case "helm":
 		deployOperatorForE2EHelm()
 	default:
+		deployOperatorForE2EKustomize()
+	}
+}
+
+// ensureManagerNamespaceAndDeploy creates kurator-system (kustomize) and installs the operator once.
+func ensureManagerNamespaceAndDeploy() {
+	switch e2eDeployMode() {
+	case "helm":
+		deployOperatorForE2EHelm()
+	default:
+		By("creating manager namespace")
+		cmd := exec.Command("kubectl", "create", "ns", namespace, "--dry-run=client", "-o", "yaml")
+		manifest, err := utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to render namespace manifest")
+		Expect(kubectlApply(manifest)).To(Succeed())
+
+		By("labeling the namespace to enforce the restricted security policy")
+		cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
+			"pod-security.kubernetes.io/enforce=restricted")
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
+
 		deployOperatorForE2EKustomize()
 	}
 }
@@ -76,13 +91,26 @@ func undeployOperatorForE2E() {
 	}
 }
 
-// deployOperatorForE2EKustomize applies CRDs and the full Kustomize stack via task deploy
-// (docker:build + kind load + install:crds + deploy:operator).
+func taskEnv() []string {
+	env := append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
+	if kc := os.Getenv("KUBECONFIG"); kc != "" {
+		env = append(env, "KUBECONFIG="+kc)
+	}
+	return env
+}
+
+// deployOperatorForE2EKustomize applies CRDs and operator manifests without rebuilding the image.
 func deployOperatorForE2EKustomize() {
-	By("deploying the controller-manager (task deploy)")
-	cmd := exec.Command("task", "deploy")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
+	By("installing CRDs (task install:crds)")
+	cmd := exec.Command("task", "install:crds")
+	cmd.Env = taskEnv()
 	_, err := utils.Run(cmd)
+	Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
+
+	By("deploying the controller-manager (task deploy:operator)")
+	cmd = exec.Command("task", "deploy:operator")
+	cmd.Env = taskEnv()
+	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
 
 	Eventually(func(g Gomega) {
@@ -92,18 +120,25 @@ func deployOperatorForE2EKustomize() {
 	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
 	waitForControllerAndWebhookReady()
+	webhookReady.Store(true)
 }
 
-// deployOperatorForE2EHelm installs CRDs and the operator via task deploy:helm.
+// deployOperatorForE2EHelm installs CRDs and the operator via Helm without rebuilding the image.
 func deployOperatorForE2EHelm() {
 	By("removing stale kurator-system namespace before Helm install")
 	cmd := exec.Command("kubectl", "delete", "ns", namespace, "--ignore-not-found", "--wait=true", "--timeout=120s")
 	_, _ = utils.Run(cmd)
 
-	By("deploying the controller-manager (task deploy:helm)")
-	cmd = exec.Command("task", "deploy:helm")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
+	By("syncing Helm CRDs (task helm:sync-crds)")
+	cmd = exec.Command("task", "helm:sync-crds")
+	cmd.Env = taskEnv()
 	_, err := utils.Run(cmd)
+	Expect(err).NotTo(HaveOccurred(), "Failed to sync Helm CRDs")
+
+	By("deploying the controller-manager (task deploy:helm:operator)")
+	cmd = exec.Command("task", "deploy:helm:operator")
+	cmd.Env = taskEnv()
+	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager via Helm")
 
 	By("labeling the namespace to enforce the restricted security policy")
@@ -119,6 +154,23 @@ func deployOperatorForE2EHelm() {
 	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
 	waitForControllerAndWebhookReady()
+	webhookReady.Store(true)
+}
+
+// applyChannelAuthPrereqFixtureOnce applies channel-auth-prereq.mqsc when MQ e2e is enabled.
+func applyChannelAuthPrereqFixtureOnce() {
+	if !mqE2EEnabled() {
+		return
+	}
+	client, err := newMQClient()
+	Expect(err).NotTo(HaveOccurred())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	Eventually(func(g Gomega) {
+		g.Expect(applyMQSCFixture(ctx, client, "channel-auth-prereq.mqsc")).To(Succeed())
+	}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 }
 
 // waitForControllerAndWebhookReady blocks until cert-manager has issued the webhook
@@ -170,6 +222,15 @@ func waitForControllerAndWebhookReady() {
 	Eventually(func(g Gomega) {
 		g.Expect(webhookAdmissionResponds()).To(Succeed(), "validating webhook should accept traffic")
 	}).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
+	Eventually(func(g Gomega) {
+		cmd := exec.Command("kubectl", "auth", "can-i", "create", "events.events.k8s.io",
+			"-n", namespace,
+			"--as", fmt.Sprintf("system:serviceaccount:%s:%s", namespace, serviceAccountName))
+		out, runErr := utils.Run(cmd)
+		g.Expect(runErr).NotTo(HaveOccurred())
+		g.Expect(strings.TrimSpace(out)).To(Equal("yes"), "controller SA should create events.k8s.io")
+	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
 
 // webhookAdmissionResponds checks the validating webhook is reachable by dry-running an invalid Queue.
