@@ -100,10 +100,18 @@ func (c *Client) GetAuthority(ctx context.Context, spec mqadmin.AuthoritySpec) (
 		return nil, err
 	}
 	state := authorityStateFromAttributes(spec, resp)
-	if len(state.Authorities) == 0 {
+	if authorityRecordRemoved(state.Authorities) {
 		return nil, &mqadmin.NotFoundError{Object: spec.Profile}
 	}
 	return state, nil
+}
+
+// authorityRecordRemoved reports whether DISPLAY AUTHREC shows no effective grants.
+func authorityRecordRemoved(authorities []string) bool {
+	if len(authorities) == 0 {
+		return true
+	}
+	return len(authorities) == 1 && strings.EqualFold(authorities[0], "NONE")
 }
 
 func (c *Client) runDisplayMQSC(ctx context.Context, command, object string) (map[string]string, error) {

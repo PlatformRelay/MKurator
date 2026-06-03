@@ -1125,6 +1125,37 @@ func TestClient_GetChannelAuthDisplayTextOnly(t *testing.T) {
 	}
 }
 
+func TestClient_GetAuthorityNoneAuthListNotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 0,
+				"parameters": map[string]any{
+					"authlist": "NONE",
+				},
+			}},
+			testKeyOverallCompletionCode: 0,
+		})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv.URL, srv.Client())
+	spec := mqadmin.AuthoritySpec{
+		Profile:    "APP.NONE",
+		ObjectType: mqadmin.AuthorityObjectTypeQueue,
+		Principal:  "app",
+	}
+	_, err := c.GetAuthority(context.Background(), spec)
+	if err == nil || !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
 func TestClient_GetAuthorityEmptyAuthListNotFound(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
