@@ -9,6 +9,41 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **ci:** Phase C e2e pyramid and CI filters [dac64ed](https://github.com/konih/kurator/commit/dac64ed7286f168c0eb4907dbccec2f947f5c258)
+
+- **e2e:** Phase C PR labels and main Helm pass [ad0cbeb](https://github.com/konih/kurator/commit/ad0cbeb7970bcff1550e61accaf1e9d93d42b53b)
+
+- **e2e:** Phase C pyramid trim and CI labels [e460d48](https://github.com/konih/kurator/commit/e460d48ef919f2612e7ed2571c99117d4ca6c913)
+
+- **e2e:** Parallel MQ lanes and single deploy [6e24af2](https://github.com/konih/kurator/commit/6e24af2822ea33bd74ba1f64181052e4bbe75dcd)
+
+
+### Bug Fixes
+
+- **test:** Define kurator-system namespace in helpers [6f54727](https://github.com/konih/kurator/commit/6f547276767ae2223be6bf78cbd8307ea9d0cf1e)
+
+- **test:** Prevent e2e AfterSuite undeploy hang [1b2af56](https://github.com/konih/kurator/commit/1b2af56a1214b71db2bed14c155dc271234c1d4f)
+
+- **ci:** Use git-cliff-action content for release notes [5a2642e](https://github.com/konih/kurator/commit/5a2642e2d0a1bd0171f0fd29b8709d9d732fde6c)
+
+- **test:** Make AfterEach kubectl delete non-blocking [85bbfec](https://github.com/konih/kurator/commit/85bbfec12b35c3ed1c9076227af3d8fa3c590404)
+
+- **test:** Stabilize parallel MQ e2e lanes [918fafd](https://github.com/konih/kurator/commit/918fafde0ae9e47d2d23bb52fe4c7f7cf82c2ae8)
+
+- **test:** Avoid corrupt merged coverage.out [56dfb38](https://github.com/konih/kurator/commit/56dfb38fc5f5241a4a692e6b3a574b7ae1cb2a75)
+
+- **rbac:** Allow events.k8s.io for controller [f9d22b7](https://github.com/konih/kurator/commit/f9d22b76d9b2f1481d908496b18fccfaaceef0fc)
+
+- **test:** Let Helm e2e own kurator-system namespace [e71fb05](https://github.com/konih/kurator/commit/e71fb056b039e1747e218f8cadc99ead514c98b3)
+
+- **deps:** Update kubernetes packages [68aec05](https://github.com/konih/kurator/commit/68aec0537ff10cb3df1e4b01d98f9e2bafab5571)
+
+- **deps:** Update go dependencies [cbd3fcd](https://github.com/konih/kurator/commit/cbd3fcd3615a1c6fdd1c65c257527f7b7251b934)
+
+## [0.5.2](https://github.com/konih/kurator/compare/v0.5.1..v0.5.2) - 2026-06-03
+
 ### Bug Fixes
 
 - **helm:** Add auth CR RBAC and verify in helm:lint [fd8d361](https://github.com/konih/kurator/commit/fd8d361868c66beb2f41e7e73bf311fd10dafebb)
