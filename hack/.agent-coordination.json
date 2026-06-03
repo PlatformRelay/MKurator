@@ -1,7 +1,7 @@
 {
   "push_allowed": false,
-  "pipeline_check_in_progress": true,
+  "pipeline_check_in_progress": false,
   "lock_holder": null,
-  "last_updated": "2026-06-03T02:31:35Z",
-  "notes": "Coordinator bootstrap push pending. main@988623c merged origin/renovate/major-github-actions (Renovate major-github-actions) — do not merge further Renovate without updating notes. CI@26859985570: queued (renovate merge); CI@26859908353: in_progress (coverage tests); CI@26860109930: queued (fix Helm e2e namespace). Integration@26859985574: failure (renovate merge); Integration@26859908357: success; Integration@26860109924: queued. E2E@26859985569: cancelled; E2E@26859908323: cancelled; E2E@26860109928: queued. Release: no recent run on latest SHAs. Stale exclusive-test.lock on disk (PID 2290843 not running); lock_holder=null."
+  "last_updated": "2026-06-03T02:54:52Z",
+  "notes": "Coordinator final poll (20m window ended 2026-06-03T02:54:52Z). HEAD=67d2d35 test(e2e) progress output — CI@26860699020 success, Integration@26860699019 success, E2E@26860699024 in_progress. Prior: c0bd48b deepcopy imports CI+Integration success E2E cancelled; 5e99461 scheme builder CI failure Integration success E2E in_progress; fad47a1 docs samples (not re-listed). Renovate merges on main through 988623c (major-github-actions and related) — recorded, do not merge more Renovate without updating notes. Coordinator bootstrap 41a768e: CI/Integration/E2E all failure (expected doc-only). Release: last workflow_dispatch success @26857061146 (~00:53Z), none triggered by recent SHAs. exclusive-test.lock stale (PID 2648192 dead); lock_holder cleared. Sibling agents still landing commits during poll — re-read before push."
 }
