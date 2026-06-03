@@ -101,6 +101,13 @@ helm upgrade --install kurator . \
 `values-kind.yaml` sets `metrics.serviceMonitor` and `metrics.prometheusRule`
 labels to `release: kube-prometheus-stack` for operator discovery.
 
+When `metrics.prometheusRule.enabled=true`, the chart creates a **PrometheusRule**
+with starter alerts: metrics target down, reconcile/MQ operation errors,
+controller pod not ready (`kube_pod_status_ready`), QMC ping and reconcile errors,
+and auth mqweb operation errors (channel auth + authority). See
+[docs/OBSERVABILITY.md](../../docs/OBSERVABILITY.md) for expressions and drift vs
+error metrics.
+
 ## Publishing
 
 Package the chart for an OCI registry or chart museum:

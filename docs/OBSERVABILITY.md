@@ -30,11 +30,44 @@ valid Kubernetes service account token (or a subject allowed by RBAC).
 
 ### Built-in custom metrics
 
-- `kurator_reconcile_total{controller,result}`
-- `kurator_reconcile_errors_total{controller}`
-- `kurator_mq_operations_total{operation,result}`
+| Metric | Labels | Meaning |
+|--------|--------|---------|
+| `kurator_reconcile_total` | `controller`, `result` | Reconcile passes (`success` / `error`) |
+| `kurator_reconcile_errors_total` | `controller` | Passes that returned an error to the manager |
+| `kurator_mq_operations_total` | `operation`, `result` | mqweb adapter calls (`success` / `error`) |
+
+**Controller** label values: `queue`, `topic`, `channel`, `channelauthrule`,
+`authorityrecord`, `queuemanagerconnection`.
+
+**MQ operation** label values include `ping`, queue/topic/channel get/define/delete,
+and auth operations: `get_channel_auth`, `set_channel_auth`, `delete_channel_auth`,
+`get_authority`, `set_authority`, `delete_authority`, plus `run_mqsc` (integration
+fixtures). See `internal/metrics/metrics.go` for the canonical list.
 
 Plus standard controller-runtime workqueue and Go runtime metrics on the same endpoint.
+
+### Drift vs reconcile errors
+
+Attribute **drift** (spec no longer matches MQ) sets workload CR status
+`Synced=False` with `Reason=DriftDetected` and does **not** increment
+`kurator_reconcile_errors_total` — the reconcile pass succeeds after patching status.
+Alert on drift via `kubectl` / GitOps checks on conditions, not on reconcile-error
+metrics. Transient MQ failures and terminal reconcile errors **do** increment
+`kurator_reconcile_errors_total` and often set `Reason=Error`.
+
+## Readiness (`/readyz`, REL-7)
+
+- **Liveness:** `/healthz` — process alive; independent of MQ connectivity.
+- **Readiness:** `/readyz` — aggregated `QueueManagerConnection` status:
+  - **Ready** when there are no non-deleting QMCs, or at least one has `Ready=True`
+    (successful mqweb ping).
+  - **Not ready** (HTTP 500) when one or more non-deleting QMCs exist and **none**
+    report `Ready=True`, so the Deployment stops routing traffic while every
+    configured connection is down.
+
+Implemented in `internal/health` ([NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md)
+REL-7). The Helm alert **KuratorOperatorNotReady** uses `kube_pod_status_ready` on
+the controller-manager pod (requires kube-state-metrics, e.g. kube-prometheus-stack).
 
 ## Enabling Prometheus scrape (Helm)
 
@@ -59,7 +92,21 @@ Optional starter alerts:
 --set metrics.prometheusRule.labels.release=kube-prometheus-stack
 ```
 
-The chart ships a rule that fires when the metrics target is down.
+With `metrics.prometheusRule.enabled=true`, the chart installs **PrometheusRule**
+`kurator.rules` including:
+
+| Alert | Severity | Signal |
+|-------|----------|--------|
+| KuratorMetricsTargetDown | critical | Metrics Service not scraped |
+| KuratorReconcileErrors | warning | Any controller reconcile errors |
+| KuratorMQOperationErrors | warning | Any mqweb operation errors |
+| KuratorOperatorNotReady | critical | Controller pod not ready (`kube_pod_status_ready`) |
+| KuratorQMCPingFailures | warning | `kurator_mq_operations_total{operation="ping",result="error"}` |
+| KuratorQMCReconcileErrors | warning | `kurator_reconcile_errors_total{controller="queuemanagerconnection"}` |
+| KuratorAuthMQOperationErrors | warning | Auth mqweb ops (channel auth + authority) |
+
+**KuratorOperatorNotReady** depends on cluster-level kube-state-metrics; the Kurator
+metrics alerts only need a scrape of `{release}-metrics`.
 
 ### Kustomize installs
 
@@ -114,9 +161,12 @@ In Prometheus UI, query `up{namespace="kurator-system"}` for the Kurator target.
 
 No first-party Grafana dashboard is required for operation. Start from:
 
-- Reconcile error rate: `rate(kurator_reconcile_errors_total[5m])`
-- MQ operation failures: `rate(kurator_mq_operations_total{result="error"}[5m])`
+- Reconcile error rate: `rate(kurator_reconcile_errors_total[5m])` by `controller`
+- MQ ping failures: `rate(kurator_mq_operations_total{operation="ping",result="error"}[5m])`
+- Auth MQ failures: `rate(kurator_mq_operations_total{operation=~"set_channel_auth|get_channel_auth|delete_channel_auth|set_authority|get_authority|delete_authority",result="error"}[5m])`
+- MQ operation failures (all): `rate(kurator_mq_operations_total{result="error"}[5m])`
 - Target up: `up` for the metrics Service
+- Drift: `kubectl get … -o jsonpath='…conditions[?(@.type=="Synced")].reason'` for `DriftDetected` (no dedicated metric today)
 
 Align alerting with [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) (OBS-*).
 

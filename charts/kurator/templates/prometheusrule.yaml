@@ -41,4 +41,48 @@ spec:
           annotations:
             summary: Kurator mqweb operation errors
             description: mqweb adapter operations are failing (check QueueManagerConnection credentials and mqweb reachability).
+        - alert: KuratorOperatorNotReady
+          expr: |
+            max(
+              kube_pod_status_ready{
+                namespace="{{ .Release.Namespace }}",
+                pod=~"{{ include "kurator.fullname" . }}-controller-manager-.*",
+                condition="true"
+              }
+            ) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kurator controller pod is not ready
+            description: |
+              The controller-manager pod in {{ .Release.Namespace }} is not passing its readiness probe (/readyz).
+              When QueueManagerConnections exist but none are Ready, /readyz fails (REL-7) and the Deployment stops routing traffic.
+        - alert: KuratorQMCPingFailures
+          expr: |
+            sum(increase(kurator_mq_operations_total{operation="ping",result="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kurator QueueManagerConnection ping failures
+            description: mqweb ping operations are failing (check credentials, TLS, and mqweb reachability on QueueManagerConnection resources).
+        - alert: KuratorQMCReconcileErrors
+          expr: |
+            sum(increase(kurator_reconcile_errors_total{controller="queuemanagerconnection"}[15m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kurator QueueManagerConnection reconcile errors
+            description: The queuemanagerconnection reconciler returned errors in the last 15 minutes (see operator logs and QMC status conditions).
+        - alert: KuratorAuthMQOperationErrors
+          expr: |
+            sum(increase(kurator_mq_operations_total{operation=~"set_channel_auth|get_channel_auth|delete_channel_auth|set_authority|get_authority|delete_authority",result="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Kurator auth mqweb operation errors
+            description: ChannelAuthRule or AuthorityRecord mqweb operations (get/set/delete channel auth or authority) are failing.
 {{- end }}

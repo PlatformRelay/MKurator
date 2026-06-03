@@ -401,6 +401,7 @@ Full matrix: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). MQSC re
 |-----------|---------|
 | `Synced=True` | Queue exists on MQ with matching attributes |
 | `Synced=False`, `Reason=Progressing` | Waiting for connection `Ready` (see `status.message`; includes QMC `Ready` reason when known) |
+| `Synced=False`, `Reason=DriftDetected` | MQ object exists but attributes differ from spec; operator does not auto-REPLACE (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md)) |
 | `Synced=False`, `Reason=Deleting` | Removing queue from MQ |
 | `Synced=False`, `Reason=Error` | MQ or configuration error (see `status.message` and condition message) |
 
@@ -607,8 +608,11 @@ kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
 
 `Synced=False` with `Reason=Progressing` on a workload CR usually means the
 referenced `QueueManagerConnection` is not **Ready** yet — check `status.message`
-on the workload CR for the QMC `Ready` reason/details. `Reason=Error` surfaces a
-classified mqweb/MQSC summary in `status.message` and the condition message.
+on the workload CR for the QMC `Ready` reason/details. `Reason=DriftDetected`
+means the object on MQ no longer matches spec (out-of-band change); reconcile
+succeeds but the operator will not overwrite MQ without an explicit fix.
+`Reason=Error` surfaces a classified mqweb/MQSC summary in `status.message` and
+the condition message.
 
 For **Queue** resources, `status.desiredMQSC` is a debug/GitOps aid (not
 authoritative): the `DEFINE QLOCAL|QALIAS|QREMOTE REPLACE` line equivalent to what
