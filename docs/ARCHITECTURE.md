@@ -6,6 +6,13 @@ development topology. For conventions and tooling see [DEVELOPMENT.md](DEVELOPME
 plan see [ROADMAP.md](ROADMAP.md). Attribute DEFINE vs drift behaviour:
 [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) ([ADR-0010](adr/0010-drift-based-mq-reconciliation.md)).
 
+**See also**
+
+| Doc | Focus |
+|-----|--------|
+| [GO_MODULE.md](GO_MODULE.md) | Go module path, package layers, generated artifacts, testing pyramid |
+| [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager startup, reconcilers, connection cache, webhooks vs reconcile, errors |
+
 ## Scope
 
 The operator manages **administrative objects on an existing IBM MQ Queue
@@ -33,6 +40,8 @@ flowchart TB
       qrec["QueueReconciler"]
       trec["TopicReconciler"]
       chrec["ChannelReconciler"]
+      charec["ChannelAuthRuleReconciler"]
+      authrec["AuthorityRecordReconciler"]
       port["mqadmin.Admin port"]
       rest["mqrest adapter (mqweb client)"]
     end
@@ -46,10 +55,14 @@ flowchart TB
   mgr --> qrec
   mgr --> trec
   mgr --> chrec
+  mgr --> charec
+  mgr --> authrec
   secret -.->|"resolved by"| crec
   qrec --> port
   trec --> port
   chrec --> port
+  charec --> port
+  authrec --> port
   crec --> port
   port --> rest
   rest -->|"HTTPS REST / MQSC"| qm
@@ -59,7 +72,7 @@ flowchart TB
 |-----------|----------------|
 | **Manager** (`cmd/`) | Wires reconcilers, validating webhooks, caches, health/metrics, leader election. |
 | **Validating webhooks** (`internal/webhook`, `internal/validation`) | Reject invalid CR specs at admission (`failurePolicy: Fail`); same-namespace `connectionRef` and Secret checks; deny `QueueManagerConnection` **delete** when dependent CRs exist — **no mqweb**. ([ADR-0009](adr/0009-validating-admission-webhooks.md)) |
-| **Reconcilers** (`internal/controller`) | Thin control loops for `QueueManagerConnection`, `Queue`, `Topic`, and `Channel`. Translate desired vs. observed state and call the `mqadmin.Admin` port. No HTTP/MQ details. |
+| **Reconcilers** (`internal/controller`) | Thin control loops for `QueueManagerConnection`, `Queue`, `Topic`, `Channel`, `ChannelAuthRule`, and `AuthorityRecord`. Translate desired vs. observed state and call the `mqadmin.Admin` port. No HTTP/MQ details. See [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md). |
 | **MQAdmin port** (`internal/mqadmin`) | Go interface (`Admin`) describing MQ operations (ping, queue/topic/channel define/inspect/delete) plus domain types. The seam that makes controllers testable and backends swappable. |
 | **mqrest adapter** (`internal/adapter/mqrest`) | The only `MQAdmin` implementation today. Talks to `mqweb` over HTTPS, posting MQSC commands and parsing responses. |
 | **Secret** | Holds mqweb credentials (and optionally TLS material), referenced by `QueueManagerConnection`. Never inlined in specs. |
@@ -81,6 +94,12 @@ type Admin interface {
     GetChannel(ctx context.Context, spec ChannelSpec) (*ChannelState, error)
     DefineChannel(ctx context.Context, spec ChannelSpec) error
     DeleteChannel(ctx context.Context, spec ChannelSpec) error
+    SetChannelAuth(ctx context.Context, spec ChannelAuthSpec) error
+    GetChannelAuth(ctx context.Context, spec ChannelAuthSpec) (*ChannelAuthState, error)
+    DeleteChannelAuth(ctx context.Context, spec ChannelAuthSpec) error
+    SetAuthority(ctx context.Context, spec AuthoritySpec) error
+    GetAuthority(ctx context.Context, spec AuthoritySpec) (*AuthorityState, error)
+    DeleteAuthority(ctx context.Context, spec AuthoritySpec) error
 }
 ```
 
@@ -91,19 +110,21 @@ type Admin interface {
 
 ## Operator runtime concerns
 
-The `cmd/` entrypoint wires a single controller-runtime **Manager** that owns
-all cross-cutting runtime behaviour. These are first-class requirements, not
-afterthoughts (NFRs in [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md)).
+The `cmd/` entrypoint wires a single controller-runtime **Manager** (startup,
+reconciler registration, webhooks, connection cache, per-CR reconcile loops,
+finalizers, Events, and error/requeue behaviour are documented in
+[OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md)). Cross-cutting NFRs:
+[NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md).
 
 | Concern | Approach |
 |---------|----------|
-| **Leader election** | Enabled (`--leader-elect`) so a multi-replica Deployment has exactly one active reconciler; standby replicas give fast failover. Uses a `Lease` in the operator namespace. |
-| **Health / readiness** | `healthz` (`/healthz`) always reports ok (process alive). `readyz` (`/readyz`) reports ok when there are no active `QueueManagerConnection` objects, or when at least one has `Ready=True` (successful mqweb ping); otherwise HTTP 500 so the Deployment stops routing traffic while every configured connection is down. Implemented in `internal/health`. |
-| **Metrics** | controller-runtime Prometheus metrics on `:8443` (HTTPS, authn/authz-protected) plus custom MQ counters/histograms. A `ServiceMonitor` is shipped (optional) for the local kube-prometheus-stack. |
-| **Graceful shutdown** | Manager stops on `SIGTERM`/`SIGINT`, draining in-flight reconciles within `terminationGracePeriodSeconds`. |
-| **Configuration** | Flags + env for metrics/health addresses, leader election, log level/format, and reconcile concurrency. No MQ endpoints in operator config — those live in `QueueManagerConnection` CRs. |
-| **Logging** | Structured logging via **`logr` in application code** and **`slog` at bootstrap** ([ADR-0007](adr/0007-structured-logging-logr-slog.md), [LOGGING.md](LOGGING.md)); configurable via file, `KURATOR_LOG_*` env, or flags. JSON in cluster, text optional locally. Never log secrets or full credentialed request bodies. |
-| **Concurrency** | `MaxConcurrentReconciles` tuned per controller; work is queued and rate-limited by controller-runtime. |
+| **Leader election** | `--leader-elect`; `Lease` in operator namespace. |
+| **Health / readiness** | `healthz` ping; `readyz` requires zero QMCs or at least one `Ready=True` (`internal/health`). |
+| **Metrics** | HTTPS metrics on `:8443` (authn/authz) plus custom reconcile metrics; optional `ServiceMonitor`. |
+| **Graceful shutdown** | `SIGTERM`/`SIGINT`; in-flight work drains within pod grace period. |
+| **Configuration** | Flags/env for probes, metrics, leader election, logging, concurrency — not MQ endpoints. |
+| **Logging** | [LOGGING.md](LOGGING.md), [ADR-0007](adr/0007-structured-logging-logr-slog.md). |
+| **Concurrency** | `MaxConcurrentReconciles` shared across all Kurator controllers. |
 
 ### RBAC & least privilege
 
@@ -111,8 +132,8 @@ The operator ships a tightly scoped `ClusterRole` generated from
 `+kubebuilder:rbac` markers:
 
 - Full access to its own API group (`messaging.kurator.dev`): `queues`,
-  `topics`, `channels`, `queuemanagerconnections`, and their `/status` and
-  `/finalizers` subresources.
+  `topics`, `channels`, `channelauthrules`, `authorityrecords`,
+  `queuemanagerconnections`, and their `/status` and `/finalizers` subresources.
 - `get`/`list`/`watch` on the referenced **`Secrets`** (credentials, CA bundles)
   — and nothing broader on core resources.
 - `create`/`patch` on `Events`; reconcilers emit Kubernetes Events on **condition
@@ -123,61 +144,13 @@ The operator ships a tightly scoped `ClusterRole` generated from
 
 No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
 
-### Connection & client lifecycle
+### Connection, events, and errors
 
-- A `QueueManagerConnection` resolves to an `mqadmin.Admin` client: endpoint + TLS
-  trust (from `caSecretRef`) + credentials (from `credentialsSecretRef`).
-- The adapter keeps a **pooled HTTPS client** per connection (reused across
-  reconciles) rather than dialing per request. The cache key includes the
-  connection **generation** and referenced Secret **`resourceVersion`** values
-  (credentials and optional CA bundle). `ReleaseConnection` drops the cached
-  client when a connection CR is deleted.
-- TLS is verified by default; `insecureSkipVerify` is opt-in and intended only
-  for local dev. The mqweb CSRF header (`ibm-mq-rest-csrf-token`) is sent on all
-  mutating calls (see [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md)).
-
-### Event emission
-
-Events supplement status conditions for `kubectl describe` and namespace-level
-auditing. They are emitted **on transitions only** (not every reconcile pass).
-See [ADR-0015](adr/0015-kubernetes-events-on-transitions.md).
-
-| Transition | Type | Reason | When |
-|------------|------|--------|------|
-| Connection becomes Ready | Normal | `Available` | QMC `Ready` → True |
-| MQ object synced | Normal | `Available` | `Synced` → True |
-| Blocked on connection | Normal | `Progressing` | `Synced` → False with `Progressing` |
-| Deletion started | Normal | `Deleting` | Enter `Synced` Deleting |
-| MQ object removed | Normal | `Deleted` | After successful MQ delete |
-| Terminal/config/MQ failure | Warning | Classified (`MQSCError`, `ConnectionNotFound`, …) | Non-transient reconcile error |
-| Transient MQ/network failure | *(none)* | — | Status updated; no Event |
-
-Warning reasons are derived from typed port errors (`TerminalError.Reason`,
-Kubernetes `NotFound` on connections/secrets, etc.). Implementation lives in
-[`internal/controller/events.go`](../internal/controller/events.go).
-
-### Error handling & requeue strategy
-
-Errors are classified at the `MQAdmin` port boundary so controllers can react
-without string-parsing ([ADR-0014](adr/0014-mq-error-taxonomy-and-requeue.md)):
-
-| Class | Examples | Reconciler response |
-|-------|----------|---------------------|
-| **Terminal** | invalid MQSC, 400/403, auth misconfig | Set a failing condition with a clear reason; emit a Warning Event; do **not** hot-loop. |
-| **Transient** | 5xx, network timeout, QM not running (503) | Return the error (or `RequeueAfter` with backoff) so controller-runtime retries with rate limiting. |
-| **NotFound** | object absent on QM | Treated as "needs create" on ensure, or "already gone" on delete. |
-
-Principles: wrap with `%w` and context; use `errors.Is`/`errors.As`; let
-controller-runtime own backoff for transient failures; never panic in a
-reconcile.
-
-Workload reconcilers (`Queue`, `Topic`, `Channel`) **watch**
-`QueueManagerConnection` Ready/status changes so they requeue promptly when a
-connection becomes healthy instead of polling on a fixed interval only.
-
-The `mqrest.Client` also exposes `RunMQSC` for ad-hoc MQSC (e2e fixtures,
-future Phase 5 objects). It is **not** part of the `mqadmin.Admin` port —
-reconcilers depend only on typed Admin methods.
+Connection client caching, Kubernetes Event rules, and the terminal/transient/not-found
+error taxonomy are covered in [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) (with
+[ADR-0014](adr/0014-mq-error-taxonomy-and-requeue.md) and
+[ADR-0015](adr/0015-kubernetes-events-on-transitions.md)). mqweb TLS and CSRF:
+[IBM_MQ_REST_API.md](IBM_MQ_REST_API.md).
 
 ## Security model
 
@@ -302,9 +275,11 @@ Design choices (Queue, Topic, Channel):
 
 ## Reconcile flow
 
-`Queue`, `Topic`, and `Channel` reconcilers share the same lifecycle pattern
-(connection wait → finalizer → display/define/delete via `mqadmin.Admin`).
-Example for a `Queue`:
+`Queue`, `Topic`, `Channel`, `ChannelAuthRule`, and `AuthorityRecord` reconcilers
+share the same lifecycle pattern (connection wait → finalizer → ensure/delete via
+`mqadmin.Admin`). Full flowchart and per-kind notes:
+[OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md#reconcile-flow-workload-crs). Example
+for a `Queue`:
 
 ```mermaid
 sequenceDiagram
@@ -328,8 +303,8 @@ sequenceDiagram
   end
 ```
 
-`TopicReconciler` and `ChannelReconciler` call the corresponding topic/channel
-port methods with the same ensure/delete structure.
+Other workload kinds call the corresponding `Admin` methods (`DefineTopic`,
+`SetChannelAuth`, `SetAuthority`, etc.) with the same ensure/delete structure.
 
 Principles:
 
@@ -391,7 +366,7 @@ flowchart LR
   ingress, TLS, monitoring, and the Queue Manager.
 - The operator reaches mqweb in-cluster (e.g. `https://ibm-mq.ibm-mq.svc:9443`);
   humans reach the console/REST via ingress at `https://mq.localhost:30443`.
-- e2e (`KURATOR_E2E_MQ=1`) asserts that applying Queue, Topic, and Channel CRs
-  produces the expected MQSC objects on the live Queue Manager.
+- e2e (`KURATOR_E2E_MQ=1`) asserts that applying workload and auth CRs produces
+  the expected MQSC objects on the live Queue Manager.
 - Unit/envtest layers need no MQ at all (port is mocked), keeping the inner loop
   fast.

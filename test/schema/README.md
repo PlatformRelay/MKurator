@@ -9,8 +9,8 @@ kubebuilder marker drift without kind or e2e.
 2. Regenerate the golden: `task test:schema:update`
 3. Commit `test/schema/golden/<kind>.spec.openapi.yaml`
 
-Today only **Queue** is enforced; other kinds (`Topic`, `Channel`, `QueueManagerConnection`,
-`ChannelAuthRule`, `AuthorityRecord`) follow the same steps when you need contract lock-in.
+Enforced kinds: **Queue**, **Topic**, **Channel**, **ChannelAuthRule**, **AuthorityRecord**,
+**QueueManagerConnection**. Add a `DefaultCases` row and golden to extend coverage.
 
 ## Commands
 

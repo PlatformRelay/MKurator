@@ -23,6 +23,9 @@ Full doc index by role (with navigation emojis): **[docs/README.md](docs/README.
 | 🏗️ | [docs/ATTRIBUTE_RECONCILIATION.md](docs/ATTRIBUTE_RECONCILIATION.md) | DEFINE vs DISPLAY drift matrix per MQ object type. |
 | 🛠️ | [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md) | Install dev tools (Go, Task, kind, Terraform, …). |
 | 🛠️ | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Prerequisites, inner loop, local cluster, test tiers. |
+| 🛠️ | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) | CRD codegen checklist, test tiers per change, MQAdmin mocks. |
+| 🧩 | [docs/GO_MODULE.md](docs/GO_MODULE.md) | Go module layout, import layers, arch lint. |
+| ⚙️ | [docs/OPERATOR_RUNTIME.md](docs/OPERATOR_RUNTIME.md) | Manager wiring, probes, concurrency, shutdown. |
 | 📋 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery plan. |
 | 📋 | [docs/CICD.md](docs/CICD.md) | CI/CD pipeline and `verify` discipline. |
 | 📋 | [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) | NFRs: security, reliability, observability, performance. |

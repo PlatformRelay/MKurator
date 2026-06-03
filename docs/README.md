@@ -5,7 +5,10 @@
 | 🎯 | Install and manage MQ objects on your queue manager → [INSTALL_AND_USE.md](INSTALL_AND_USE.md) |
 | 🛠️ | Install dev tools → [LOCAL_SETUP.md](LOCAL_SETUP.md) |
 | 🛠️ | Hack on the operator locally → [DEVELOPMENT.md](DEVELOPMENT.md) |
+| 🛠️ | What to regenerate / test after a code change → [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) |
 | 🏗️ | Understand design and reconciliation → [ARCHITECTURE.md](ARCHITECTURE.md) |
+| 🏗️ | Go packages, layers, and tests → [GO_MODULE.md](GO_MODULE.md) |
+| 🏗️ | Manager, reconcilers, webhooks → [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) |
 | 🤖 | AI agent conventions and workflow → [../AGENTS.md](../AGENTS.md) |
 | ✉️ | Commit format (Conventional Commits + gitmoji) → [CONTRIBUTING.md](CONTRIBUTING.md) |
 
@@ -20,11 +23,16 @@
 | 🔧 | [../charts/kurator/README.md](../charts/kurator/README.md) | Helm chart to install the operator |
 | 🛠️ | [LOCAL_SETUP.md](LOCAL_SETUP.md) | Install Go, Task, Docker, kind, Terraform, and other dev tools |
 | 🛠️ | [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, inner loop, local platform, deploy, test tiers |
+| 🛠️ | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | CRD codegen, reconciler/MQAdmin test matrix, mocks |
+| 🛠️ | [GO_MODULE.md](GO_MODULE.md) | Module layout, import layers, `go-arch-lint` |
+| 🛠️ | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager, health/readiness, metrics, graceful shutdown |
 | 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guidelines, Conventional Commits, gitmoji |
 | 🛠️ | [RELEASE.md](RELEASE.md) | Maintainer guide: tag, changelog, publish a version |
 | 🛠️ | [../hack/kind-cluster/README.md](../hack/kind-cluster/README.md) | kind + Terraform + IBM MQ platform only |
 | 🛠️ | [IBM_MQ_101.md](IBM_MQ_101.md) | MQ console, `runmqsc`, verify Kurator on kind |
-| 🏗️ | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, runtime, CRDs, reconcile flow, security |
+| 🏗️ | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, CRDs, reconcile overview, security, local topology |
+| 🏗️ | [GO_MODULE.md](GO_MODULE.md) | Module path, package layers, codegen, testing pyramid |
+| 🏗️ | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager startup, reconcile loops, cache, webhooks, errors |
 | 🏗️ | [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) | DEFINE vs DISPLAY drift matrix per MQ object type |
 | 🏗️ | [LOGGING.md](LOGGING.md) | Structured logging configuration and guidelines |
 | 🏗️ | [adr/](adr/) | Architecture Decision Records |

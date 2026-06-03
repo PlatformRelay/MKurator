@@ -11,6 +11,10 @@ See [ADR-0006](adr/0006-project-name-kurator.md).
 
 Doc index: [README.md](README.md)
 
+**Codegen and test matrix:** [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) (CRD
+regeneration, reconciler/MQAdmin mocks, which tier to run). **Module layout:**
+[GO_MODULE.md](GO_MODULE.md). **Runtime wiring:** [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md).
+
 ## On this page
 
 | | Section |
@@ -21,6 +25,7 @@ Doc index: [README.md](README.md)
 | 🖥️ | [Local platform (kind + IBM MQ)](#local-platform-kind--ibm-mq) |
 | 📦 | [Deploying a queue manager](#deploying-a-queue-manager-for-kurator) |
 | 🧪 | [Test tiers](#test-tiers) |
+| 📐 | [Developer guide](DEVELOPER_GUIDE.md) — regenerate / test checklist |
 | 🆘 | [Troubleshooting](#troubleshooting) |
 | ✉️ | [Commits and changelog](CONTRIBUTING.md) |
 | ✅ | [Before you push](#before-you-push) |
@@ -389,6 +394,7 @@ task cluster:down    # full platform teardown
 ## Test tiers
 
 Design rationale: [adr/0011-layered-testing-strategy.md](adr/0011-layered-testing-strategy.md).
+Per-change checklist: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 
 ### What CI proves
 
