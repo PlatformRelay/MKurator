@@ -316,37 +316,59 @@ var _ = Describe("Validating admission webhooks", func() {
 	})
 
 	// Requires envtest K8s ≥ 1.27 for admission warning propagation to the client.
-	It("returns admission warnings for unknown queue attribute keys", func() {
-		ctx := context.Background()
-		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
-		})).To(Succeed())
-		conn := sampleWebhookConnection(ns, "qm1")
-		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+	Describe("unknown spec.attributes admission warnings", func() {
+		BeforeEach(func() {
+			ctx := context.Background()
+			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+			})).To(Succeed())
+			Expect(webhookK8sClient.Create(ctx, sampleWebhookConnection(ns, "qm1"))).To(Succeed())
+		})
 
-		var (
-			mu       sync.Mutex
-			warnings []string
-		)
-		warningCfg := rest.CopyConfig(webhookCfg)
-		warningCfg.WarningHandler = warningCapture{store: &warnings, mu: &mu}
-		warningClient, err := client.New(warningCfg, client.Options{Scheme: scheme.Scheme})
-		Expect(err).NotTo(HaveOccurred())
+		It("allows Queue create and warns on unknown attribute keys", func() {
+			ctx := context.Background()
+			warningClient, capture := newWarningCapturingClient()
+			q := &messagingv1alpha1.Queue{
+				ObjectMeta: metav1.ObjectMeta{Name: "warn-queue", Namespace: ns},
+				Spec: messagingv1alpha1.QueueSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					QueueName:     "APP.WARN",
+					Attributes:    map[string]string{"notreal": "x"},
+				},
+			}
+			Expect(warningClient.Create(ctx, q)).To(Succeed())
+			expectUnknownAttributeWarning(capture, "notreal")
+		})
 
-		q := &messagingv1alpha1.Queue{
-			ObjectMeta: metav1.ObjectMeta{Name: "warn-queue", Namespace: ns},
-			Spec: messagingv1alpha1.QueueSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				QueueName:     "APP.WARN",
-				Attributes:    map[string]string{"notreal": "x"},
-			},
-		}
-		Expect(warningClient.Create(ctx, q)).To(Succeed())
+		It("allows Topic create and warns on unknown attribute keys", func() {
+			ctx := context.Background()
+			warningClient, capture := newWarningCapturingClient()
+			topic := &messagingv1alpha1.Topic{
+				ObjectMeta: metav1.ObjectMeta{Name: "warn-topic", Namespace: ns},
+				Spec: messagingv1alpha1.TopicSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					TopicName:     "RETAIL/ORDERS",
+					Attributes:    map[string]string{"boguskey": "y"},
+				},
+			}
+			Expect(warningClient.Create(ctx, topic)).To(Succeed())
+			expectUnknownAttributeWarning(capture, "boguskey")
+		})
 
-		mu.Lock()
-		defer mu.Unlock()
-		Expect(warnings).NotTo(BeEmpty())
-		Expect(strings.Join(warnings, " ")).To(ContainSubstring("notreal"))
+		It("allows Channel create and warns on unknown attribute keys", func() {
+			ctx := context.Background()
+			warningClient, capture := newWarningCapturingClient()
+			ch := &messagingv1alpha1.Channel{
+				ObjectMeta: metav1.ObjectMeta{Name: "warn-channel", Namespace: ns},
+				Spec: messagingv1alpha1.ChannelSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.WARN",
+					Attributes:    map[string]string{"unknownattr": "z"},
+				},
+			}
+			Expect(warningClient.Create(ctx, ch)).To(Succeed())
+			expectUnknownAttributeWarning(capture, "unknownattr")
+		})
 	})
 })
 
@@ -382,4 +404,26 @@ func (w warningCapture) HandleWarningHeader(_ int, _ string, text string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	*w.store = append(*w.store, text)
+}
+
+func newWarningCapturingClient() (client.Client, *warningCapture) {
+	var (
+		mu       sync.Mutex
+		warnings []string
+	)
+	capture := &warningCapture{store: &warnings, mu: &mu}
+	warningCfg := rest.CopyConfig(webhookCfg)
+	warningCfg.WarningHandler = capture
+	warningClient, err := client.New(warningCfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	return warningClient, capture
+}
+
+func expectUnknownAttributeWarning(capture *warningCapture, attrKey string) {
+	capture.mu.Lock()
+	defer capture.mu.Unlock()
+	combined := strings.Join(*capture.store, " ")
+	Expect(*capture.store).NotTo(BeEmpty(), "expected admission warnings, got none")
+	Expect(combined).To(ContainSubstring(attrKey))
+	Expect(combined).To(ContainSubstring("drift-check allow-list"))
 }

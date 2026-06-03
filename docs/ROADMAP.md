@@ -226,8 +226,9 @@ tag and extended rule types pending).
 - Documentation site (Helm chart is published to GHCR OCI on release tags; `.tgz`
   remains attached to GitHub Releases).
 - Commit generated `docs/schemas/mqweb-swagger.json` per target MQ version.
-- **Admission (optional):** envtest assertion for unknown-attribute warnings;
-  **e2e Helm deploy path wired** (`KURATOR_E2E_DEPLOY=helm`, `task test:e2e:helm`) —
+- [x] **Admission:** envtest assertion for unknown-attribute warnings (Queue, Topic,
+  Channel) via `internal/webhook/v1alpha1/suite_test.go`.
+- **e2e Helm deploy path wired** (`KURATOR_E2E_DEPLOY=helm`, `task test:e2e:helm`) —
   pending first green local run and optional CI matrix job.
 - **Runtime cleanup:** migrate off deprecated `GetEventRecorderFor` when
   controller-runtime guidance is stable.
