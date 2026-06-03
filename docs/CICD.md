@@ -196,7 +196,8 @@ pin updates will fail or be skipped.
 
 The job sets `RENOVATE_REPOSITORIES: ${{ github.repository }}` so Renovate knows
 which repo to scan (global-only; do not put `autodiscover` in `renovate.json`).
-Job permissions include `workflows: write` for action pin updates.
+Workflow file updates rely on the PAT `workflow` scope on `RENOVATE_TOKEN`, not
+on `GITHUB_TOKEN` job permissions.
 `LOG_LEVEL=debug` is enabled only on manual `workflow_dispatch` runs.
 
 ## Branch protection
