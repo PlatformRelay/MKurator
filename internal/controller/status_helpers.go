@@ -69,6 +69,22 @@ func applyMQObjectStatusFields(obj client.Object, opts syncStatusOpts, message s
 		if exists != nil {
 			o.Status.MQObjectExists = exists
 		}
+	case *messagingv1alpha1.ChannelAuthRule:
+		o.Status.Message = message
+		if lastSync != nil {
+			o.Status.LastSyncTime = lastSync
+		}
+		if exists != nil {
+			o.Status.MQObjectExists = exists
+		}
+	case *messagingv1alpha1.AuthorityRecord:
+		o.Status.Message = message
+		if lastSync != nil {
+			o.Status.LastSyncTime = lastSync
+		}
+		if exists != nil {
+			o.Status.MQObjectExists = exists
+		}
 	}
 }
 

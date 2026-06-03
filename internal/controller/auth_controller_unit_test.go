@@ -48,6 +48,7 @@ func TestChannelAuthRuleReconciler_TransientError(t *testing.T) {
 
 	spec := toMQChannelAuthSpec(rule)
 	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetChannelAuth(mock.Anything, spec).Return(nil, mqadmin.ErrNotFound)
 	mockAdmin.EXPECT().SetChannelAuth(mock.Anything, spec).Return(&mqadmin.TransientError{Message: "timeout"})
 
 	mockFactory := mqadmintest.NewMockFactory(t)
@@ -185,6 +186,7 @@ func TestAuthorityRecordReconciler_TransientError(t *testing.T) {
 
 	spec := toMQAuthoritySpec(auth)
 	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetAuthority(mock.Anything, spec).Return(nil, mqadmin.ErrNotFound)
 	mockAdmin.EXPECT().SetAuthority(mock.Anything, spec).Return(&mqadmin.TransientError{Message: "timeout"})
 
 	mockFactory := mqadmintest.NewMockFactory(t)
@@ -260,5 +262,260 @@ func TestSetSyncedError_TransientChannelAuthRule(t *testing.T) {
 	)
 	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
+	}
+}
+
+func TestChannelAuthRuleReconciler_NoDriftSkipsSet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "dev-app-addressmap",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+		},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+			UserSource:    "CHANNEL",
+			CheckClient:   "REQUIRED",
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(rule, conn).
+		WithObjects(conn, rule).
+		Build()
+
+	spec := toMQChannelAuthSpec(rule)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetChannelAuth(mock.Anything, spec).Return(&mqadmin.ChannelAuthState{
+		ChannelName: spec.ChannelName,
+		RuleType:    spec.RuleType,
+		Address:     "*",
+		UserSource:  "CHANNEL",
+		CheckClient: "REQUIRED",
+	}, nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+}
+
+func TestChannelAuthRuleReconciler_DriftAppliesSet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "dev-app-addressmap",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+		},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+			UserSource:    "CHANNEL",
+			CheckClient:   "REQUIRED",
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(rule, conn).
+		WithObjects(conn, rule).
+		Build()
+
+	spec := toMQChannelAuthSpec(rule)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetChannelAuth(mock.Anything, spec).Return(&mqadmin.ChannelAuthState{
+		ChannelName: spec.ChannelName,
+		RuleType:    spec.RuleType,
+		Address:     "*",
+		UserSource:  "CHANNEL",
+		CheckClient: "ASQMGR",
+	}, nil)
+	mockAdmin.EXPECT().SetChannelAuth(mock.Anything, spec).Return(nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+}
+
+func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "dev-app-addressmap",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Annotations: map[string]string{
+				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+			},
+		},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+			UserSource:    "CHANNEL",
+			CheckClient:   "REQUIRED",
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(rule, conn).
+		WithObjects(conn, rule).
+		Build()
+
+	spec := toMQChannelAuthSpec(rule)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetChannelAuth(mock.Anything, spec).Return(&mqadmin.ChannelAuthState{
+		ChannelName: spec.ChannelName,
+		RuleType:    spec.RuleType,
+		Address:     "*",
+		UserSource:  "CHANNEL",
+		CheckClient: "ASQMGR",
+	}, nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+
+	updated := &messagingv1alpha1.ChannelAuthRule{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) !=
+		messagingv1alpha1.ReasonDriftDetected {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+	}
+}
+
+func TestAuthorityRecordReconciler_NoDriftSkipsSet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "app-orders-get-put",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+		},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET", "PUT"},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(auth, conn).
+		WithObjects(conn, auth).
+		Build()
+
+	spec := toMQAuthoritySpec(auth)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetAuthority(mock.Anything, spec).Return(&mqadmin.AuthorityState{
+		Profile:     spec.Profile,
+		ObjectType:  spec.ObjectType,
+		Principal:   spec.Principal,
+		Authorities: []string{"GET", "PUT"},
+	}, nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &AuthorityRecordReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+}
+
+func TestAuthorityRecordReconciler_NotFoundCreates(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "kurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "app-orders-get-put",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+		},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET", "PUT"},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(auth, conn).
+		WithObjects(conn, auth).
+		Build()
+
+	spec := toMQAuthoritySpec(auth)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetAuthority(mock.Anything, spec).Return(nil, mqadmin.ErrNotFound)
+	mockAdmin.EXPECT().SetAuthority(mock.Anything, spec).Return(nil)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &AuthorityRecordReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	_, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("Reconcile: %v", err)
 	}
 }

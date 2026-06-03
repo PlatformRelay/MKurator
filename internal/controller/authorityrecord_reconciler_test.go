@@ -61,7 +61,8 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		}
 
 		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
-		mockAdmin.EXPECT().SetAuthority(mock.Anything, desired).Return(nil)
+		mockAdmin.EXPECT().GetAuthority(mock.Anything, desired).Return(nil, mqadmin.ErrNotFound).Once()
+		mockAdmin.EXPECT().SetAuthority(mock.Anything, desired).Return(nil).Once()
 
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
@@ -87,6 +88,57 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
+		Expect(updated.Status.MQObjectExists).NotTo(BeNil())
+		Expect(*updated.Status.MQObjectExists).To(BeTrue())
+		Expect(updated.Status.Message).To(Equal("AuthorityRecord matches spec"))
+		Expect(updated.Status.LastSyncTime).NotTo(BeNil())
+	})
+
+	It("skips SET when AUTHREC already matches", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
+		auth.Finalizers = []string{messagingv1alpha1.AuthorityRecordFinalizer}
+		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
+
+		desired := mqadmin.AuthoritySpec{
+			Profile:     profile,
+			ObjectType:  mqadmin.AuthorityObjectTypeQueue,
+			Principal:   "app",
+			Authorities: []string{"GET", "PUT"},
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetAuthority(mock.Anything, desired).Return(&mqadmin.AuthorityState{
+			Profile:     profile,
+			ObjectType:  mqadmin.AuthorityObjectTypeQueue,
+			Principal:   "app",
+			Authorities: []string{"GET", "PUT"},
+		}, nil).Once()
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &AuthorityRecordReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("removes AUTHREC on delete", func() {
@@ -113,6 +165,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		}
 
 		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetAuthority(mock.Anything, desired).Return(nil, mqadmin.ErrNotFound).Once()
 		mockAdmin.EXPECT().SetAuthority(mock.Anything, desired).Return(nil).Once()
 		mockAdmin.EXPECT().DeleteAuthority(mock.Anything, desired).Return(nil).Once()
 

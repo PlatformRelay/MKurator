@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,23 +79,57 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	if !controllerutil.ContainsFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer) {
 		controllerutil.AddFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer)
-		if err := r.Update(ctx, auth); err != nil {
-			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
+		if updateErr := r.Update(ctx, auth); updateErr != nil {
+			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
 		return ctrl.Result{}, nil
 	}
 
 	spec := toMQAuthoritySpec(auth)
-	if err := admin.SetAuthority(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
+	mqExists, drifted, err := r.ensureAuthority(ctx, admin, spec, auth)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err,
+			syncStatusOpts{mqObjectExists: &mqExists})
+	}
+	if drifted {
+		msg := "AUTHREC on IBM MQ differs from spec (observe-only; not applying)"
+		if err := patchSyncedDrift(ctx, r.Status(), r.Recorder, auth, auth.Generation, msg,
+			syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
+		}
+		logger.Info("AuthorityRecord drift detected (observe-only)", "profile", auth.Spec.Profile)
+		return ctrl.Result{}, nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, auth, auth.Generation,
-		"AuthorityRecord matches spec", syncStatusOpts{}); err != nil {
+		"AuthorityRecord matches spec", syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("AuthorityRecord synced", "profile", auth.Spec.Profile, "type", auth.Spec.ObjectType)
 	return ctrl.Result{}, nil
+}
+
+func (r *AuthorityRecordReconciler) ensureAuthority(
+	ctx context.Context,
+	admin mqadmin.Admin,
+	spec mqadmin.AuthoritySpec,
+	auth *messagingv1alpha1.AuthorityRecord,
+) (bool, bool, error) {
+	observed, err := admin.GetAuthority(ctx, spec)
+	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
+		return false, false, err
+	}
+	exists := observed != nil
+	if observed == nil || mqadmin.AuthorityNeedsUpdate(spec, observed) {
+		if observed != nil && isObserveOnly(auth) {
+			return true, true, nil
+		}
+		if err := admin.SetAuthority(ctx, spec); err != nil {
+			return exists, false, err
+		}
+		return true, false, nil
+	}
+	return true, false, nil
 }
 
 func (r *AuthorityRecordReconciler) handleDeletion(

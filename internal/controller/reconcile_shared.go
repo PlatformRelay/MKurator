@@ -110,10 +110,12 @@ func patchSyncedProgressing(
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	default:
 		return fmt.Errorf("patchSyncedProgressing: unsupported type %T", obj)
@@ -162,12 +164,14 @@ func setSyncedError(
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
 	case *messagingv1alpha1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
 		if statusErr := status.Update(ctx, o); statusErr != nil {
 			return requeue, statusErr
 		}
@@ -216,11 +220,13 @@ func patchSyncedAvailable(
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
 		o.Status.ObservedGeneration = generation
+		applyMQObjectStatusFields(o, opts, message, &now)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, message, generation)
 		o.Status.ObservedGeneration = generation
+		applyMQObjectStatusFields(o, opts, message, &now)
 		return status.Update(ctx, o)
 	default:
 		return fmt.Errorf("patchSyncedAvailable: unsupported type %T", obj)
@@ -257,10 +263,12 @@ func patchSyncedDeleting(
 	case *messagingv1alpha1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	case *messagingv1alpha1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, messagingv1alpha1.ReasonDeleting, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
 		return status.Update(ctx, o)
 	default:
 		return fmt.Errorf("patchSyncedDeleting: unsupported type %T", obj)

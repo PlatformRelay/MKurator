@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,23 +79,57 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	if !controllerutil.ContainsFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer) {
 		controllerutil.AddFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer)
-		if err := r.Update(ctx, rule); err != nil {
-			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
+		if updateErr := r.Update(ctx, rule); updateErr != nil {
+			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
 		return ctrl.Result{}, nil
 	}
 
 	spec := toMQChannelAuthSpec(rule)
-	if err := admin.SetChannelAuth(ctx, spec); err != nil {
-		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
+	mqExists, drifted, err := r.ensureChannelAuth(ctx, admin, spec, rule)
+	if err != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err,
+			syncStatusOpts{mqObjectExists: &mqExists})
+	}
+	if drifted {
+		msg := "CHLAUTH on IBM MQ differs from spec (observe-only; not applying)"
+		if err := patchSyncedDrift(ctx, r.Status(), r.Recorder, rule, rule.Generation, msg,
+			syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
+		}
+		logger.Info("ChannelAuthRule drift detected (observe-only)", "channel", rule.Spec.ChannelName)
+		return ctrl.Result{}, nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, rule, rule.Generation,
-		"ChannelAuthRule matches spec", syncStatusOpts{}); err != nil {
+		"ChannelAuthRule matches spec", syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("ChannelAuthRule synced", "channel", rule.Spec.ChannelName, "type", rule.Spec.RuleType)
 	return ctrl.Result{}, nil
+}
+
+func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
+	ctx context.Context,
+	admin mqadmin.Admin,
+	spec mqadmin.ChannelAuthSpec,
+	rule *messagingv1alpha1.ChannelAuthRule,
+) (bool, bool, error) {
+	observed, err := admin.GetChannelAuth(ctx, spec)
+	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
+		return false, false, err
+	}
+	exists := observed != nil
+	if observed == nil || mqadmin.ChannelAuthNeedsUpdate(spec, observed) {
+		if observed != nil && isObserveOnly(rule) {
+			return true, true, nil
+		}
+		if err := admin.SetChannelAuth(ctx, spec); err != nil {
+			return exists, false, err
+		}
+		return true, false, nil
+	}
+	return true, false, nil
 }
 
 func (r *ChannelAuthRuleReconciler) handleDeletion(

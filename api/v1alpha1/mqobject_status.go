@@ -2,7 +2,7 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// MQObjectStatusFields are shared status fields for Queue, Topic, and Channel.
+// MQObjectStatusFields are shared status fields for Queue, Topic, Channel, and auth CRs.
 type MQObjectStatusFields struct {
 	// Message is a short, user-facing summary of reconcile state (especially when Synced=False).
 	// +optional
