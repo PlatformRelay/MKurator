@@ -55,6 +55,11 @@ dist/
 # Local Renovate working clone (hack/renovate-docker.sh)
 .renovate/
 
+# Agent coordination and planning docs (local/session only, not product docs)
+hack/.agent-coordination.json
+hack/AGENT_COORDINATION.md
+docs/plans/
+
 # Editor/IDE
 # .idea/
 # .vscode/

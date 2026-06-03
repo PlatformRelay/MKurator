@@ -11,7 +11,7 @@ This doc is the contract they implement. See [ROADMAP.md](ROADMAP.md) for
 delivery context.
 
 **Pipeline health:** e2e on `main` was **not consistently green** when tag
-`v0.5.2` was cut (see [DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
+`v0.5.2` was cut before e2e was consistently green on `main`.
 Treat green **E2E (kustomize)** on the exact release SHA as a gate, not an
 assumption from older docs.
 
@@ -111,8 +111,8 @@ kind when the host image is warm).
 
 **Estimated savings (warm cache, typical `ubuntu-latest`):** Go module/build
 **~1–3 min** per job; platform tools download **~30–90 s**; IBM MQ image pull
-**~3–8 min** on integration/e2e platform steps ([E2E_SPEEDUP_PROPOSAL.md](plans/E2E_SPEEDUP_PROPOSAL.md)
-Phase C §5); Helm chart cache **~30 s–2 min** on first Terraform apply.
+**~3–8 min** on integration/e2e platform steps (warm IBM MQ image on the runner);
+Helm chart cache **~30 s–2 min** on first Terraform apply.
 
 `release.yaml` continues to use BuildKit GHA cache for controller image builds
 (not the composites above). `charts/kurator` has no `helm dependency update` step
@@ -286,8 +286,7 @@ Maintainer steps: [RELEASE.md](RELEASE.md). Before tagging: `task changelog` (pr
 bump `charts/kurator/Chart.yaml`, `task changelog:write`, commit, then run
 **Release gate** (`workflow_dispatch`) or manually confirm **CI**, **Integration**,
 and **E2E (kustomize)** are green on the **exact commit SHA** you will tag (do not
-tag ahead of a red pipeline — `v0.5.2` was tagged without this evidence; see
-[DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
+tag ahead of a red pipeline — `v0.5.2` was tagged without this evidence).
 `git tag vX.Y.Z && git push origin vX.Y.Z`. Rationale: [ADR-0008](adr/0008-changelog-git-cliff.md).
 Supply chain: [ADR-0016](adr/0016-release-supply-chain.md).
 
@@ -396,8 +395,7 @@ Do **not** add **`nightly`** or **Release gate** jobs to branch protection (main
 ~90 min merge latency; still runs on every qualifying PR unless cancelled.
 
 Until e2e is consistently green on `main`, keep **`e2e (kustomize)`** off required
-checks and use [release-gate](RELEASE.md#automated-release-gate-workflow) before tags
-([DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
+checks and use [release-gate](RELEASE.md#automated-release-gate-workflow) before tags.
 
 ### Legacy names to remove
 
