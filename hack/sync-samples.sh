@@ -17,6 +17,7 @@ declare -A MAP=(
   [messaging_v1alpha1_channel.yaml]=channel.yaml
   [messaging_v1alpha1_channelauthrule.yaml]=channelauthrule.yaml
   [messaging_v1alpha1_channelauthrule_blockuser.yaml]=channelauthrule-blockuser.yaml
+  [messaging_v1alpha1_channelauthrule_blockaddr.yaml]=channelauthrule-blockaddr.yaml
   [messaging_v1alpha1_authorityrecord.yaml]=authorityrecord.yaml
 )
 
@@ -46,6 +47,7 @@ KUSTOMIZE_RESOURCES=(
   channel.yaml
   channelauthrule.yaml
   channelauthrule-blockuser.yaml
+  channelauthrule-blockaddr.yaml
   authorityrecord.yaml
 )
 

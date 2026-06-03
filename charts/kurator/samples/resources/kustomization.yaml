@@ -13,4 +13,5 @@ resources:
   - channel.yaml
   - channelauthrule.yaml
   - channelauthrule-blockuser.yaml
+  - channelauthrule-blockaddr.yaml
   - authorityrecord.yaml

@@ -18,6 +18,7 @@ and usage guide.
 | `channel.yaml` | `Channel` |
 | `channelauthrule.yaml` | `ChannelAuthRule` (`ADDRESSMAP`) |
 | `channelauthrule-blockuser.yaml` | `ChannelAuthRule` (`BLOCKUSER`, optional) |
+| `channelauthrule-blockaddr.yaml` | `ChannelAuthRule` (`BLOCKADDR`, optional; not in default kustomization) |
 | `authorityrecord.yaml` | `AuthorityRecord` |
 
 **Preferred apply:** `task deploy:samples` (creates `kurator-system` if needed, then

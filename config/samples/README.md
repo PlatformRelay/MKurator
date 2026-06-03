@@ -295,6 +295,23 @@ Helm copy:
 
 ---
 
+## `messaging_v1alpha1_channelauthrule_blockaddr.yaml`
+
+Optional listener-level block: `TYPE(BLOCKADDR)` on channel `*` for a single IP
+(TEST-NET-1 example). Not listed in `kustomization.yaml` by default — apply
+manually when testing BLOCKADDR.
+
+| Field | This sample | Notes |
+|-------|-------------|-------|
+| `channelName` | `*` | Common for listener-wide BLOCKADDR |
+| `ruleType` | `BLOCKADDR` | Requires `address` |
+| `address` | `192.0.2.1` | Documentation range; pick a non-production CIDR in real use |
+
+Helm copy:
+[`charts/kurator/samples/resources/channelauthrule-blockaddr.yaml`](../../charts/kurator/samples/resources/channelauthrule-blockaddr.yaml).
+
+---
+
 ## `messaging_v1alpha1_authorityrecord.yaml`
 
 Grants `GET` and `PUT` on queue profile `APP.ORDERS` to principal `app`.

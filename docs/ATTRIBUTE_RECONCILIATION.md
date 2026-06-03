@@ -87,6 +87,46 @@ DISPLAY attribute matrices below). Extended CHLAUTH rule types (`USERMAP`,
 | `maxinst`, `maxinstc` | yes | yes | Numeric |
 | `sslciph`, `sslcauth` | yes | yes | TLS — Phase 4 DISPLAY drift; `sslcauth` case-insensitive |
 
+## Auth — GET / drift (Phase 5)
+
+`ChannelAuthRule` and `AuthorityRecord` reconcilers do **not** use the DISPLAY
+attribute matrices above. They call `GetChannelAuth` / `GetAuthority` (mqweb
+`DISPLAY CHLAUTH` / `DISPLAY AUTHREC`), parse a fixed field set, and
+**replace-on-diff** via `SET CHLAUTH` / `SET AUTHREC` unless
+`messaging.kurator.dev/drift-policy=observe-only`.
+
+Implementation: `internal/adapter/mqrest/auth.go` (DISPLAY command + attribute
+parsing), `internal/mqadmin/authmatch.go` (desired vs observed).
+
+### `ChannelAuthRule` — CHLAUTH GET
+
+| `spec.ruleType` | DISPLAY CHLAUTH (mqweb) | Parsed from GET | Compared to `spec` (drift) |
+|-----------------|-------------------------|-----------------|------------------------------|
+| `ADDRESSMAP` | `DISPLAY CHLAUTH('<channel>') TYPE(ADDRESSMAP)`; appends `ADDRESS('…')` when `spec.address` is non-empty | `address`, `usersrc`, `chckclnt`, `descr` | `address`, `userSource`, `checkClient`, `description` |
+| `BLOCKUSER` | `DISPLAY CHLAUTH('<channel>') TYPE(BLOCKUSER)` | `userlist`, `descr` | `userList`, `description` |
+| `BLOCKADDR` | `DISPLAY CHLAUTH('<channel>') TYPE(BLOCKADDR)`; appends `ADDRESS('…')` when `spec.address` is non-empty | `address`, `descr` | `address`, `description` |
+
+Notes:
+
+- `channelName` and `ruleType` identify the rule for GET/SET; they are not
+  re-read from DISPLAY for drift (the CR is the source of truth for identity).
+- `ADDRESSMAP`-only SET fields (`userSource`, `checkClient`) are ignored on GET
+  for `BLOCKUSER` / `BLOCKADDR` (empty desired vs empty observed matches).
+- Other enum values (`USERMAP`, `SSLPEERMAP`, `QMGRMAP`) are schema-valid but
+  lack CRD fields and GET parsing until extended — see
+  [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
+
+### `AuthorityRecord` — AUTHREC GET
+
+| Step | Behaviour |
+|------|-----------|
+| DISPLAY | `DISPLAY AUTHREC PROFILE('…') OBJTYPE(…) PRINCIPAL('…')` or `GROUP('…')` |
+| Parsed | `authlist` → comma-separated authority tokens |
+| Drift | `spec.authorities` set must match observed set (`AuthorityNeedsUpdate`; case-insensitive, order-independent) |
+
+`define` keys such as `profile`, `objectType`, `principal` / `group` are identity
+for GET; only `authorities` is drift-checked after the rule exists.
+
 ## Out of scope (not CRDs today)
 
 | MQ surface | MQSC | Phase |

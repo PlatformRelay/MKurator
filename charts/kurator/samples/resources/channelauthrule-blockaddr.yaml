@@ -1,0 +1,11 @@
+apiVersion: messaging.kurator.dev/v1alpha1
+kind: ChannelAuthRule
+metadata:
+  name: dev-app-blockaddr
+spec:
+  connectionRef:
+    name: qm1
+  channelName: "*"
+  ruleType: BLOCKADDR
+  address: 192.0.2.1
+  description: Example listener IP block (TEST-NET-1; optional sample)

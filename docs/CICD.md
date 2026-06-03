@@ -233,12 +233,42 @@ on `GITHUB_TOKEN` job permissions.
 
 ## Branch protection
 
-The default branch requires CI jobs to pass before merge. Exact required checks
-depend on GitHub branch protection settings; `e2e` and `integration` run on every
-non-docs PR today. No direct pushes to the default branch.
+The default branch should require **all** of the following status checks before
+merge (names match `jobs.<id>.name` in the workflow files). No direct pushes to
+`main`.
 
-If branch protection still lists removed job names (`format`, `govulncheck`), update
-required checks to `lint` and `test` — those jobs now run the same `task` targets.
+### Required checks (`ci.yaml` — every PR and `main` push)
+
+| Check name | Workflow | What it runs |
+|------------|----------|--------------|
+| `gitleaks` | CI | Secret scan |
+| `verify` | CI | `task verify` (CRDs, RBAC, deepcopy, mocks) |
+| `lint` | CI | `task format:check` then `task lint` |
+| `test` | CI | `task test:run`, `task vuln:check`, Codecov upload |
+| `build` | CI | `task build` |
+| `docker-build` | CI | `task docker:build` |
+| `helm-lint` | CI | `task helm:lint` |
+
+### Required checks (workflows — non-docs paths only)
+
+| Check name | Workflow | What it runs |
+|------------|----------|--------------|
+| `integration` | Integration | Docker IBM MQ + `task test:integration` |
+| `e2e` | E2E | kind + IBM MQ + `task test:e2e` |
+
+`integration` and `e2e` are skipped when a PR changes only `**.md`, `docs/**`, or
+`charts/**/README.md` (path filters). Docs-only PRs still need the seven `ci.yaml`
+jobs.
+
+### Legacy names to remove
+
+If branch protection still lists retired job names, delete them and use the table
+above:
+
+| Remove (old) | Replaced by |
+|--------------|-------------|
+| `format` | `lint` (`task format:check` runs inside `lint`) |
+| `govulncheck` | `test` (`task vuln:check` runs inside `test`) |
 
 ## Local equivalents
 
