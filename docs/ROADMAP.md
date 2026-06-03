@@ -230,5 +230,4 @@ kind with e2e coverage — **partial** (core auth shipped; **`v0.5.2`** gated on
   Channel) via `internal/webhook/v1alpha1/suite_test.go`.
 - [x] **e2e Helm deploy path** (`KURATOR_E2E_DEPLOY=helm`, `task test:e2e:helm`) —
   CI job `e2e (helm)` on `main` push and `workflow_dispatch` ([`e2e.yaml`](../.github/workflows/e2e.yaml)).
-- **Runtime cleanup:** migrate off deprecated `GetEventRecorderFor` when
-  controller-runtime guidance is stable.
+- [x] **Runtime cleanup:** migrated to `mgr.GetEventRecorder` (events.k8s.io API).
