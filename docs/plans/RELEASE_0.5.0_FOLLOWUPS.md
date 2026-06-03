@@ -41,6 +41,7 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 - [x] Bump `charts/kurator/Chart.yaml` `version` / `appVersion` to **0.5.0**
 - [x] `task changelog:write` and commit `CHANGELOG.md`
 - [x] `git tag v0.5.0` · `gh release create` · `git push origin main` · `git push origin v0.5.0`
+- [x] **Tag moved to Phase 5 wave HEAD** — v0.5.0 retargeted from `3932cb1` (early cut) to include drift/readyz/auth GET/CAR delete/e2e fixes (milestone continuity; not 0.5.1)
 - [ ] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green on the tag push
 
 ## CI hardening (nice-to-have, post-0.5.0)
@@ -54,7 +55,7 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 Optional status fields and CLI aids for inspecting intended MQSC without applying to MQ.
 
 - [x] Queue `status.desiredMQSC` (Phase 1)
-- [ ] Topic, Channel, auth CRs desiredMQSC
+- [x] Topic, Channel, auth CRs desiredMQSC
 - [ ] Optional `kubectl kurator` plugin (future)
 
 ## Repository audit follow-ups (operator UX)

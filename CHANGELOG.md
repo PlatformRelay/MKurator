@@ -11,26 +11,30 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ### Bug Fixes
 
+- **auth:** Unblock ChannelAuthRule delete and e2e waits [4c82f9b](https://github.com/konih/kurator/commit/4c82f9bc579014b530b032b8634ae207002a57b3)
+
+
+### Features
+
+- **auth:** Drift-aware GET reconcile for auth CRs [aedd4e6](https://github.com/konih/kurator/commit/aedd4e6f64b75d481bf7798444d9db5d54bf7eeb)
+
+- **operator:** Gate readyz on QMC connectivity [30eafce](https://github.com/konih/kurator/commit/30eafce5f91e3df3d4c6e578ed9b8c290ed7bf64)
+
+- **controller:** Observe-only drift policy and Phase 4 DISPLAY [46a864e](https://github.com/konih/kurator/commit/46a864e866190f183d33ae3292b28d83c47afb47)
+
+- **validation:** ChannelAuthRule channel referential checks [1783db7](https://github.com/konih/kurator/commit/1783db789aff87cc13ec1dd29b6ada0481de129c)
+
+## [0.5.0](https://github.com/konih/kurator/compare/v0.4.0..v0.5.0) - 2026-06-03
+
+### Bug Fixes
+
+- **ci:** Skip generated files in format:check diff [3932cb1](https://github.com/konih/kurator/commit/3932cb1e788bebf7146b97d936ec72a473d53e40)
+
 - **auth:** Parse DISPLAY text and correct SET AUTHREC MQSC [5fb3bae](https://github.com/konih/kurator/commit/5fb3baeca75414faafd13b05c0b158ca9d9386b5)
 
 - **samples:** Unify deploy:samples for kind [2ebca43](https://github.com/konih/kurator/commit/2ebca431fa8edc9232f4e8f706bea5e99d563c6f)
 
 - **e2e:** Deploy operator via task deploy [3475006](https://github.com/konih/kurator/commit/3475006440542f2b1e05e7ff019b6aeee8d8605b)
-
-
-### Features
-
-- **validation:** Tighten MQ object name checks [29b0d3d](https://github.com/konih/kurator/commit/29b0d3db2c2d6b82bbc1f2f1c1b6661d0ebdba46)
-
-- **controller:** Status UX and reconcile concurrency [9ee2cc1](https://github.com/konih/kurator/commit/9ee2cc1291a26e934d7b0f91ce4640f96a197bcf)
-
-- **webhook:** Require opt-in for insecure QMC TLS [e27adf5](https://github.com/konih/kurator/commit/e27adf5dafaa254ea9ab49aa7f8b95154a91fe05)
-
-- **queue:** Expose status.desiredMQSC for GitOps debug [4bb84b5](https://github.com/konih/kurator/commit/4bb84b53f1dc6049c2958b9a48992c0fed564459)
-
-## [0.5.0](https://github.com/konih/kurator/compare/v0.4.0..v0.5.0) - 2026-06-02
-
-### Bug Fixes
 
 - **task:** Propagate KURATOR_E2E_MQ into test:e2e task env [eaa4300](https://github.com/konih/kurator/commit/eaa4300a0a6c89d35e6a11c5214d83745583c55a)
 
@@ -52,6 +56,14 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 
 ### Features
+
+- **validation:** Tighten MQ object name checks [29b0d3d](https://github.com/konih/kurator/commit/29b0d3db2c2d6b82bbc1f2f1c1b6661d0ebdba46)
+
+- **controller:** Status UX and reconcile concurrency [9ee2cc1](https://github.com/konih/kurator/commit/9ee2cc1291a26e934d7b0f91ce4640f96a197bcf)
+
+- **webhook:** Require opt-in for insecure QMC TLS [e27adf5](https://github.com/konih/kurator/commit/e27adf5dafaa254ea9ab49aa7f8b95154a91fe05)
+
+- **queue:** Expose status.desiredMQSC for GitOps debug [4bb84b5](https://github.com/konih/kurator/commit/4bb84b53f1dc6049c2958b9a48992c0fed564459)
 
 - **auth:** Add GetChannelAuth and GetAuthority MQAdmin paths [32720e9](https://github.com/konih/kurator/commit/32720e9bf55462aa3223939918f25fb1a3cd062c)
 
