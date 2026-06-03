@@ -176,7 +176,7 @@ Both jobs use `CERT_MANAGER_INSTALL_SKIP=true` (cert-manager from Terraform) and
 `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
 `hack/ci/run-e2e.sh` emits Ginkgo JUnit to `artifacts/e2e-junit.xml`
-(`-ginkgo.junit-report`); each e2e job uploads that file as a workflow artifact
+(`go tool ginkgo run --junit-report`); each e2e job uploads that file as a workflow artifact
 (`if: always()`). PR job summaries from JUnit are not generated yet.
 
 ### `nightly` (scheduled + manual)

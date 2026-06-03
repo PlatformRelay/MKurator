@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,33 +18,29 @@ import (
 )
 
 const (
-	mqConnectionName         = "e2e-qm1"
-	mqQueueMaxDepthV1        = "1000"
-	mqQueueMaxDepthV2        = "2000"
-	mqChannelAuthCRName      = "e2e-dev-app-addressmap"
-	mqChannelAuthBlockUserCR = "e2e-dev-app-blockuser"
-	mqChannelPrereqCRName    = "e2e-dev-app-channel"
-	mqAuthorityCRName        = "e2e-app-orders-get-put"
+	mqConnectionName      = "e2e-qm1"
+	mqQueueMaxDepthV1     = "1000"
+	mqChannelAuthCRName   = "e2e-dev-app-addressmap"
+	mqChannelPrereqCRName = "e2e-dev-app-channel"
+	mqAuthorityCRName     = "e2e-app-orders-get-put"
 )
 
 func e2eLocalQueueSpec(name string) mqadmin.QueueSpec {
 	return mqadmin.QueueSpec{Name: name, Type: mqadmin.QueueTypeLocal}
 }
 
-var _ = Describe("Post-manager IBM MQ integration", Label("mq"), func() {
-	BeforeAll(func() {
-		if !mqE2EEnabled() {
-			return
-		}
-		e2eStage("MQ SUITE — IBM MQ reconcile scenarios")
-		ensureMQE2ENamespaces()
-		waitForControllerAndWebhookReadyCached()
-	})
+var mqSuiteOnce sync.Once
 
+var _ = Describe("Post-manager IBM MQ integration", Label("mq"), func() {
 	BeforeEach(func() {
 		if !mqE2EEnabled() {
 			Skip("IBM MQ e2e disabled; set KURATOR_E2E_MQ=1 and run task cluster:up")
 		}
+		mqSuiteOnce.Do(func() {
+			e2eStage("MQ SUITE — IBM MQ reconcile scenarios")
+			ensureMQE2ENamespaces()
+			waitForControllerAndWebhookReadyCached()
+		})
 		if !webhookReady.Load() {
 			waitForControllerAndWebhookReadyCached()
 		}
@@ -134,60 +131,7 @@ spec:
 			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 		})
 
-		It("reconciles Queue attribute updates after spec changes", func() {
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
-
-			queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
-kind: Queue
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  connectionRef:
-    name: %s
-  queueName: %s
-  type: local
-  attributes:
-    maxdepth: "%s"
-    descr: e2e orders queue v1
-`, queueCR, ns, mqConnectionName, queueObject, mqQueueMaxDepthV1)
-			Expect(kubectlApply(queueYAML)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "queue", queueCR, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
-
-			queueYAML = fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
-kind: Queue
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  connectionRef:
-    name: %s
-  queueName: %s
-  type: local
-  attributes:
-    maxdepth: "%s"
-    descr: e2e orders queue v2
-`, queueCR, ns, mqConnectionName, queueObject, mqQueueMaxDepthV2)
-			Expect(kubectlApply(queueYAML)).To(Succeed())
-
-			client, err := newMQClient()
-			Expect(err).NotTo(HaveOccurred())
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			defer cancel()
-
-			Eventually(func(g Gomega) {
-				state, getErr := client.GetQueue(ctx, e2eLocalQueueSpec(queueObject))
-				g.Expect(getErr).NotTo(HaveOccurred())
-				g.Expect(state.Attributes["maxdepth"]).To(Equal(mqQueueMaxDepthV2))
-			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
-		})
+		// Queue attribute replace semantics: test/integration/mq (TestIntegration_Queue_UpdateViaReplace).
 
 		It("recovers QueueManagerConnection readiness after secret rotation", Label("slow"), func() {
 			By("creating intentionally invalid MQ credentials")
@@ -238,10 +182,10 @@ stringData:
 
 	Describe("topics", Label("mq-topic"), func() {
 		var (
-			ns         string
-			prefix     string
+			ns          string
+			prefix      string
 			topicObject string
-			topicCR    string
+			topicCR     string
 		)
 
 		BeforeEach(func() {
@@ -369,26 +313,27 @@ spec:
 		})
 	})
 
-	Describe("auth", Label("mq-auth-serial"), Serial, func() {
-		const ns = namespaceAuth
+})
 
-		BeforeEach(func() {
-			ensureMQCredentialsSecret(ns)
-			waitForControllerAndWebhookReadyCached()
-		})
+var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Serial, Ordered, func() {
+	const ns = namespaceAuth
 
-		AfterEach(func() {
-			kubectlDeleteIgnoreNotFound("channelauthrule", mqChannelAuthCRName, ns)
-			kubectlDeleteIgnoreNotFound("channelauthrule", mqChannelAuthBlockUserCR, ns)
-			kubectlDeleteIgnoreNotFound("authorityrecord", mqAuthorityCRName, ns)
-			kubectlDeleteIgnoreNotFound("channel", mqChannelPrereqCRName, ns)
-			kubectlDeleteIgnoreNotFound("queuemanagerconnection", mqConnectionName, ns)
-		})
+	BeforeEach(func() {
+		ensureMQCredentialsSecret(ns)
+		waitForControllerAndWebhookReadyCached()
+	})
 
-		It("reconciles a ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+	AfterEach(func() {
+		kubectlDeleteIgnoreNotFound("channelauthrule", mqChannelAuthCRName, ns)
+		kubectlDeleteIgnoreNotFound("authorityrecord", mqAuthorityCRName, ns)
+		kubectlDeleteIgnoreNotFound("channel", mqChannelPrereqCRName, ns)
+		kubectlDeleteIgnoreNotFound("queuemanagerconnection", mqConnectionName, ns)
+	})
 
-			channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+	It("reconciles a ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
+		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: %s
@@ -401,17 +346,17 @@ spec:
   attributes:
     trptype: tcp
 `, mqChannelPrereqCRName, ns, mqConnectionName, e2eChannelName)
-			Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
+		Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
 
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "channel", mqChannelPrereqCRName, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, runErr := utils.Run(cmd)
-				g.Expect(runErr).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+		Eventually(func(g Gomega) {
+			cmd := exec.Command("kubectl", "get", "channel", mqChannelPrereqCRName, "-n", ns,
+				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+			out, runErr := utils.Run(cmd)
+			g.Expect(runErr).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-			carYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -426,127 +371,62 @@ spec:
   checkClient: REQUIRED
   description: e2e address map rule
 `, mqChannelAuthCRName, ns, mqConnectionName, e2eChannelName)
-			Expect(applyWithWebhookRetry(carYAML)).To(Succeed())
+		Expect(applyWithWebhookRetry(carYAML)).To(Succeed())
 
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "channelauthrule", mqChannelAuthCRName, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+		Eventually(func(g Gomega) {
+			cmd := exec.Command("kubectl", "get", "channelauthrule", mqChannelAuthCRName, "-n", ns,
+				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+			out, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("True"))
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-			client, err := newMQClient()
-			Expect(err).NotTo(HaveOccurred())
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			defer cancel()
+		client, err := newMQClient()
+		Expect(err).NotTo(HaveOccurred())
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
 
-			carSpec := mqadmin.ChannelAuthSpec{
-				ChannelName: e2eChannelName,
-				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
-				Address:     "*",
-				UserSource:  "CHANNEL",
-				CheckClient: "REQUIRED",
-				Description: "e2e address map rule",
-			}
-			ok, err := channelAuthMatches(ctx, client, carSpec)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ok).To(BeTrue(), "CHLAUTH for %s should match ChannelAuthRule spec", e2eChannelName)
+		carSpec := mqadmin.ChannelAuthSpec{
+			ChannelName: e2eChannelName,
+			RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+			Address:     "*",
+			UserSource:  "CHANNEL",
+			CheckClient: "REQUIRED",
+			Description: "e2e address map rule",
+		}
+		ok, err := channelAuthMatches(ctx, client, carSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ok).To(BeTrue(), "CHLAUTH for %s should match ChannelAuthRule spec", e2eChannelName)
 
-			Expect(kubectlDeleteWait("channelauthrule", mqChannelAuthCRName, ns)).To(Succeed(),
-				"ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
+		Expect(kubectlDeleteWait("channelauthrule", mqChannelAuthCRName, ns)).To(Succeed(),
+			"ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
 
-			carLookup := mqadmin.ChannelAuthSpec{
-				ChannelName: e2eChannelName,
-				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
-				Address:     "*",
-			}
-			Eventually(func(g Gomega) {
-				ok, err := channelAuthExists(ctx, client, carLookup)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse(), "CHLAUTH for %s should be removed from MQ after CR delete", e2eChannelName)
-			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+		carLookup := mqadmin.ChannelAuthSpec{
+			ChannelName: e2eChannelName,
+			RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+			Address:     "*",
+		}
+		Eventually(func(g Gomega) {
+			ok, err := channelAuthExists(ctx, client, carLookup)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeFalse(), "CHLAUTH for %s should be removed from MQ after CR delete", e2eChannelName)
+		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+	})
+
+	// BLOCKUSER CHLAUTH edge cases: test/integration/mq (TestIntegration_GetChannelAuth_BlockUser).
+
+	It("reconciles an AuthorityRecord CR against the kind IBM MQ queue manager", func() {
+		prefix := mqObjectPrefix()
+		queueObject := mqQueueObjectName(prefix)
+		queueCR := mqCRName("e2e-orders", prefix)
+
+		DeferCleanup(func() {
+			kubectlDeleteIgnoreNotFound("queue", queueCR, ns)
 		})
 
-		It("reconciles a BLOCKUSER ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-			channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
-kind: Channel
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  connectionRef:
-    name: %s
-  channelName: %s
-  type: svrconn
-  attributes:
-    trptype: tcp
-`, mqChannelPrereqCRName, ns, mqConnectionName, e2eChannelName)
-			Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "channel", mqChannelPrereqCRName, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, runErr := utils.Run(cmd)
-				g.Expect(runErr).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
-
-			blockYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
-kind: ChannelAuthRule
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  connectionRef:
-    name: %s
-  channelName: %s
-  ruleType: BLOCKUSER
-  userList: nobody
-  description: e2e block user rule
-`, mqChannelAuthBlockUserCR, ns, mqConnectionName, e2eChannelName)
-			Expect(applyWithWebhookRetry(blockYAML)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "channelauthrule", mqChannelAuthBlockUserCR, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, runErr := utils.Run(cmd)
-				g.Expect(runErr).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
-
-			client, err := newMQClient()
-			Expect(err).NotTo(HaveOccurred())
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			defer cancel()
-
-			blockSpec := mqadmin.ChannelAuthSpec{
-				ChannelName: e2eChannelName,
-				RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
-				UserList:    "nobody",
-				Description: "e2e block user rule",
-			}
-			ok, err := channelAuthMatches(ctx, client, blockSpec)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ok).To(BeTrue())
-
-			Expect(kubectlDeleteWait("channelauthrule", mqChannelAuthBlockUserCR, ns)).To(Succeed())
-		})
-
-		It("reconciles an AuthorityRecord CR against the kind IBM MQ queue manager", func() {
-			prefix := mqObjectPrefix()
-			queueObject := mqQueueObjectName(prefix)
-			queueCR := mqCRName("e2e-orders", prefix)
-
-			DeferCleanup(func() {
-				kubectlDeleteIgnoreNotFound("queue", queueCR, ns)
-			})
-
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
-
-			queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: %s
@@ -559,17 +439,17 @@ spec:
   attributes:
     maxdepth: "%s"
 `, queueCR, ns, mqConnectionName, queueObject, mqQueueMaxDepthV1)
-			Expect(kubectlApply(queueYAML)).To(Succeed())
+		Expect(kubectlApply(queueYAML)).To(Succeed())
 
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "queue", queueCR, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+		Eventually(func(g Gomega) {
+			cmd := exec.Command("kubectl", "get", "queue", queueCR, "-n", ns,
+				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+			out, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("True"))
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-			authYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		authYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: AuthorityRecord
 metadata:
   name: %s
@@ -584,45 +464,44 @@ spec:
     - GET
     - PUT
 `, mqAuthorityCRName, ns, mqConnectionName, queueObject)
-			Expect(kubectlApply(authYAML)).To(Succeed())
+		Expect(kubectlApply(authYAML)).To(Succeed())
 
-			Eventually(func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "authorityrecord", mqAuthorityCRName, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				out, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+		Eventually(func(g Gomega) {
+			cmd := exec.Command("kubectl", "get", "authorityrecord", mqAuthorityCRName, "-n", ns,
+				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+			out, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("True"))
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-			client, err := newMQClient()
-			Expect(err).NotTo(HaveOccurred())
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
+		client, err := newMQClient()
+		Expect(err).NotTo(HaveOccurred())
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 
-			authSpec := mqadmin.AuthoritySpec{
-				Profile:     queueObject,
-				ObjectType:  mqadmin.AuthorityObjectTypeQueue,
-				Principal:   "app",
-				Authorities: []string{"GET", "PUT"},
-			}
-			ok, err := authorityMatches(ctx, client, authSpec)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ok).To(BeTrue(), "AUTHREC for queue %s principal app should match AuthorityRecord spec", queueObject)
+		authSpec := mqadmin.AuthoritySpec{
+			Profile:     queueObject,
+			ObjectType:  mqadmin.AuthorityObjectTypeQueue,
+			Principal:   "app",
+			Authorities: []string{"GET", "PUT"},
+		}
+		ok, err := authorityMatches(ctx, client, authSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ok).To(BeTrue(), "AUTHREC for queue %s principal app should match AuthorityRecord spec", queueObject)
 
-			Expect(kubectlDeleteWait("authorityrecord", mqAuthorityCRName, ns)).To(Succeed(),
-				"AuthorityRecord CR delete should complete within %s", kubectlWaitTimeout)
+		Expect(kubectlDeleteWait("authorityrecord", mqAuthorityCRName, ns)).To(Succeed(),
+			"AuthorityRecord CR delete should complete within %s", kubectlWaitTimeout)
 
-			authLookup := mqadmin.AuthoritySpec{
-				Profile:    queueObject,
-				ObjectType: mqadmin.AuthorityObjectTypeQueue,
-				Principal:  "app",
-			}
-			Eventually(func(g Gomega) {
-				ok, err := authorityExists(ctx, client, authLookup)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse(), "AUTHREC for queue %s principal app should be removed after CR delete", queueObject)
-			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
-		})
+		authLookup := mqadmin.AuthoritySpec{
+			Profile:    queueObject,
+			ObjectType: mqadmin.AuthorityObjectTypeQueue,
+			Principal:  "app",
+		}
+		Eventually(func(g Gomega) {
+			ok, err := authorityExists(ctx, client, authLookup)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeFalse(), "AUTHREC for queue %s principal app should be removed after CR delete", queueObject)
+		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 	})
 })
 
