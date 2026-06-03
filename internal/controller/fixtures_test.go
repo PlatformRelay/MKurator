@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	eventsv1 "k8s.io/api/events/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
@@ -27,6 +28,7 @@ func cleanupNamespace(ctx context.Context, ns string) {
 	deleteAllOf(ctx, &messagingv1alpha1.AuthorityRecordList{}, ns)
 	deleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnectionList{}, ns)
 	deleteAllOf(ctx, &corev1.SecretList{}, ns)
+	deleteAllOf(ctx, &eventsv1.EventList{}, ns)
 }
 
 func deleteAllOf(ctx context.Context, list client.ObjectList, ns string) {
@@ -75,6 +77,10 @@ func deleteAllOf(ctx context.Context, list client.ObjectList, ns string) {
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
 		}
 	case *corev1.SecretList:
+		for i := range items.Items {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &items.Items[i]))).To(Succeed())
+		}
+	case *eventsv1.EventList:
 		for i := range items.Items {
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &items.Items[i]))).To(Succeed())
 		}

@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	eventsv1 "k8s.io/api/events/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -39,6 +40,7 @@ var _ = BeforeSuite(func() {
 	cfg, err := testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(messagingv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(eventsv1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())

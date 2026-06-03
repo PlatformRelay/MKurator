@@ -2,19 +2,32 @@ package controller
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
+	eventsv1 "k8s.io/api/events/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/events"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 	"github.com/konih/kurator/internal/mqadmin"
 	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
+)
+
+const testEventRecorderName = "kurator-controller-manager"
+
+var (
+	testEventBroadcaster      events.EventBroadcaster
+	testEventBroadcasterOnce  sync.Once
+	testEventBroadcasterReady = make(chan struct{})
 )
 
 var _ = Describe("events.k8s.io reconcile events", func() {
@@ -51,18 +64,20 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		q := sampleQueue(ns, key, "qm1", testQueueName)
 		Expect(k8sClient.Create(ctx, q)).To(Succeed())
 
-		recorder := events.NewFakeRecorder(4)
 		rec := &QueueReconciler{
 			Client:    k8sClient,
 			Scheme:    k8sClient.Scheme(),
 			MQFactory: mqadmintest.NewMockFactory(GinkgoT()),
-			Recorder:  recorder,
+			Recorder:  testEventsRecorder(),
 		}
-		_, err := rec.Reconcile(ctx, ctrl.Request{
+		_, err := rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing)
+
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "Queue", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing,
+		)
 	})
 
 	It("records Available on Queue when reconcile succeeds", func() {
@@ -105,25 +120,26 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
 
-		recorder := events.NewFakeRecorder(4)
 		rec := &QueueReconciler{
 			Client:    k8sClient,
 			Scheme:    k8sClient.Scheme(),
 			MQFactory: mockFactory,
-			Recorder:  recorder,
+			Recorder:  testEventsRecorder(),
 		}
 
-		_, err := rec.Reconcile(ctx, ctrl.Request{
+		_, err := rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = rec.Reconcile(ctx, ctrl.Request{
+		_, err = rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "Queue", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+		)
 	})
 
 	It("records Available on Topic when reconcile succeeds", func() {
@@ -161,24 +177,73 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
 
-		recorder := events.NewFakeRecorder(4)
 		rec := &TopicReconciler{
 			Client:    k8sClient,
 			Scheme:    k8sClient.Scheme(),
 			MQFactory: mockFactory,
-			Recorder:  recorder,
+			Recorder:  testEventsRecorder(),
 		}
 
-		_, err := rec.Reconcile(ctx, ctrl.Request{
+		_, err := rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = rec.Reconcile(ctx, ctrl.Request{
+		_, err = rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "Topic", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+		)
 	})
 })
+
+func testEventsRecorder() events.EventRecorder {
+	testEventBroadcasterOnce.Do(func() {
+		cs, err := kubernetes.NewForConfig(testEnv.Config)
+		Expect(err).NotTo(HaveOccurred())
+		testEventBroadcaster = events.NewBroadcaster(&events.EventSinkImpl{Interface: cs.EventsV1()})
+		go func() {
+			defer GinkgoRecover()
+			close(testEventBroadcasterReady)
+			Expect(testEventBroadcaster.StartRecordingToSinkWithContext(context.Background())).To(Succeed())
+		}()
+	})
+	<-testEventBroadcasterReady
+	return testEventBroadcaster.NewRecorder(k8sClient.Scheme(), testEventRecorderName)
+}
+
+func eventuallyExpectEventsAPIEvent(
+	ctx context.Context,
+	ns, kind, name, eventType, reason string,
+) {
+	Eventually(func(g Gomega) {
+		g.Expect(hasEventsAPIEvent(ctx, ns, kind, name, eventType, reason)).To(BeTrue(),
+			"expected %s event with reason %q on %s/%s (events.k8s.io)", eventType, reason, kind, name)
+	}).WithTimeout(5 * time.Second).WithPolling(200 * time.Millisecond).Should(Succeed())
+}
+
+func hasEventsAPIEvent(ctx context.Context, ns, kind, name, eventType, reason string) bool {
+	var list eventsv1.EventList
+	if err := k8sClient.List(ctx, &list, client.InNamespace(ns)); err != nil {
+		return false
+	}
+	for _, ev := range list.Items {
+		if ev.Regarding.Kind != kind || ev.Regarding.Name != name {
+			continue
+		}
+		if ev.Type != eventType || ev.Reason != reason {
+			continue
+		}
+		if gvk := ev.GetObjectKind().GroupVersionKind(); gvk.Group != "" && (gvk.Group != "events.k8s.io" || gvk.Version != "v1") {
+			continue
+		}
+		if ev.Action != eventActionReconcile {
+			continue
+		}
+		return true
+	}
+	return false
+}
