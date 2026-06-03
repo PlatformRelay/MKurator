@@ -50,7 +50,7 @@ check_go_version() {
   fi
 }
 
-echo "Kurator dev tools check (tier ${TIER})"
+echo "MKurator dev tools check (tier ${TIER})"
 echo "  docs/LOCAL_SETUP.md · task tools:install · brew bundle (macOS)"
 echo ""
 

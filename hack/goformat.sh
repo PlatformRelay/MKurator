@@ -13,6 +13,6 @@ fi
 
 for dir in "${dirs[@]}"; do
 	gofmt -w "${dir}"/*.go
-	go tool goimports -local github.com/konih/kurator -w "${dir}"/*.go
+	go tool goimports -local github.com/konih/mkurator -w "${dir}"/*.go
 	go tool golines -w --max-len=120 --shorten-comments "${dir}"/*.go
 done

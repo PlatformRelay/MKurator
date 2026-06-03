@@ -1,6 +1,6 @@
 # Logging
 
-How **Kurator** emits structured logs, how to configure them at runtime, and the
+How **MKurator** emits structured logs, how to configure them at runtime, and the
 rules every contributor must follow. The architectural choice is recorded in
 [ADR-0007](adr/0007-structured-logging-logr-slog.md); observability and security
 requirements are in [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md)
@@ -67,14 +67,14 @@ env:
   - name: KURATOR_LOG_FORMAT
     value: json
   - name: KURATOR_LOG_CONFIG
-    value: /etc/kurator/logging.yaml
+    value: /etc/mkurator/logging.yaml
 volumeMounts:
   - name: logging-config
-    mountPath: /etc/kurator
+    mountPath: /etc/mkurator
     readOnly: true
 ```
 
-Mount a `ConfigMap` at `/etc/kurator/logging.yaml` to change logging without
+Mount a `ConfigMap` at `/etc/mkurator/logging.yaml` to change logging without
 rebuilding the image.
 
 ## Requirements

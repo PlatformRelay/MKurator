@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 )
 
 func TestValidateChannelAuthRuleSpecAddressMapRequiresAddress(t *testing.T) {

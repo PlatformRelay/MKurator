@@ -1,0 +1,13 @@
+apiVersion: messaging.mkurator.dev/v1alpha1
+kind: AuthorityRecord
+metadata:
+  name: app-orders-get-put
+spec:
+  connectionRef:
+    name: qm1
+  profile: APP.ORDERS
+  objectType: QUEUE
+  principal: app
+  authorities:
+    - GET
+    - PUT

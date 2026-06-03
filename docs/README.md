@@ -1,4 +1,4 @@
-# Kurator documentation
+# MKurator documentation
 
 | | Start here |
 |---|------------|
@@ -20,7 +20,7 @@
 | 🎯 | [UPGRADE.md](UPGRADE.md) | Upgrade operator, CRDs, webhooks, cert-manager |
 | 🎯 | [OBSERVABILITY.md](OBSERVABILITY.md) | Prometheus metrics, ServiceMonitor, RBAC |
 | 🔧 | [../config/samples/README.md](../config/samples/README.md) | Annotated sample Secret, Connection, Queue, Topic, Channel, auth YAML |
-| 🔧 | [../charts/kurator/README.md](../charts/kurator/README.md) | Helm chart to install the operator |
+| 🔧 | [../charts/mkurator/README.md](../charts/mkurator/README.md) | Helm chart to install the operator |
 | 🛠️ | [LOCAL_SETUP.md](LOCAL_SETUP.md) | Install Go, Task, Docker, kind, Terraform, and other dev tools |
 | 🛠️ | [DEVELOPMENT.md](DEVELOPMENT.md) | Prerequisites, inner loop, local platform, deploy, test tiers |
 | 🛠️ | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | CRD codegen, reconciler/MQAdmin test matrix, mocks |
@@ -29,7 +29,7 @@
 | 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guidelines, Conventional Commits, gitmoji |
 | 🛠️ | [RELEASE.md](RELEASE.md) | Maintainer guide: tag, changelog, publish a version |
 | 🛠️ | [../hack/kind-cluster/README.md](../hack/kind-cluster/README.md) | kind + Terraform + IBM MQ platform only |
-| 🛠️ | [IBM_MQ_101.md](IBM_MQ_101.md) | MQ console, `runmqsc`, verify Kurator on kind |
+| 🛠️ | [IBM_MQ_101.md](IBM_MQ_101.md) | MQ console, `runmqsc`, verify MKurator on kind |
 | 🏗️ | [ARCHITECTURE.md](ARCHITECTURE.md) | Components, CRDs, reconcile overview, security, local topology |
 | 🏗️ | [GO_MODULE.md](GO_MODULE.md) | Module path, package layers, codegen, testing pyramid |
 | 🏗️ | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager startup, reconcile loops, cache, webhooks, errors |

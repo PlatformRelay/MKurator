@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 // Config holds connection parameters for a PCF/MQI client.

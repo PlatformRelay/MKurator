@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/konih/kurator/internal/adapter/mqrest"
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/adapter/mqrest"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 const e2eChannelName = "DEV.APP.SVRCONN.0TLS"

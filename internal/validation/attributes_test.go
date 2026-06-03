@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestUnknownAttributeWarnings(t *testing.T) {

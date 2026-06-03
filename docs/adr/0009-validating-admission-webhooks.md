@@ -5,7 +5,7 @@
 
 ## Context
 
-Kurator CR specs can be invalid in ways OpenAPI markers alone do not catch:
+MKurator CR specs can be invalid in ways OpenAPI markers alone do not catch:
 wrong queue-type attribute combinations, missing `connectionRef` targets, or
 deleting a `QueueManagerConnection` while workloads still reference it. Without
 admission checks, users only see failures after reconcile (or confusing status).

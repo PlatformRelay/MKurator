@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CLUSTER_NAME: kurator
-  KIND_CLUSTER: kurator
+  CLUSTER_NAME: mkurator
+  KIND_CLUSTER: mkurator
   KUBECONFIG: ${{ github.workspace }}/hack/kind-cluster/.state/kubeconfig.yaml
   CERT_MANAGER_INSTALL_SKIP: "true"
   KURATOR_E2E_MQ: "1"
@@ -122,10 +122,10 @@ jobs:
           {
             echo "=== kubectl get pods -A ==="
             kubectl get pods -A -o wide 2>&1 || true
-            echo "=== kubectl describe pods -n kurator-system ==="
-            kubectl describe pods -n kurator-system 2>&1 || true
-            echo "=== kurator-system logs ==="
-            kubectl logs -n kurator-system -l control-plane=controller-manager --tail=200 2>&1 || true
+            echo "=== kubectl describe pods -n mkurator-system ==="
+            kubectl describe pods -n mkurator-system 2>&1 || true
+            echo "=== mkurator-system logs ==="
+            kubectl logs -n mkurator-system -l control-plane=controller-manager --tail=200 2>&1 || true
           } > "${diag}"
 
       - name: Upload failure diagnostics
@@ -189,10 +189,10 @@ jobs:
           {
             echo "=== kubectl get pods -A ==="
             kubectl get pods -A -o wide 2>&1 || true
-            echo "=== kubectl describe pods -n kurator-system ==="
-            kubectl describe pods -n kurator-system 2>&1 || true
-            echo "=== kurator-system logs ==="
-            kubectl logs -n kurator-system -l control-plane=controller-manager --tail=200 2>&1 || true
+            echo "=== kubectl describe pods -n mkurator-system ==="
+            kubectl describe pods -n mkurator-system 2>&1 || true
+            echo "=== mkurator-system logs ==="
+            kubectl logs -n mkurator-system -l control-plane=controller-manager --tail=200 2>&1 || true
           } > "${diag}"
 
       - name: Upload failure diagnostics

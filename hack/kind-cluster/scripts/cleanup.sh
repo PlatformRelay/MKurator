@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 KUBECONFIG_PATH="${KUBECONFIG_PATH:-${ROOT_DIR}/.state/kubeconfig.yaml}"
 TLS_ENV="${TLS_ENV:-${ROOT_DIR}/.state/tls.env}"
-CLUSTER_NAME="${CLUSTER_NAME:-kurator}"
+CLUSTER_NAME="${CLUSTER_NAME:-mkurator}"
 
 echo "This removes resources created by Terraform (ingress, cert-manager, monitoring, IBM MQ)."
 echo "Set DELETE_CLUSTER=true to also delete the kind cluster, DELETE_STATE=true to wipe .state."

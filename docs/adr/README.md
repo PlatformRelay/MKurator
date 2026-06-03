@@ -31,7 +31,7 @@ supersedes the old one rather than editing history.
 | [0003](0003-connection-model.md) | Decouple connection details with QueueManagerConnection | Accepted |
 | [0004](0004-task-as-task-runner.md) | Use Task as the task runner | Accepted |
 | [0005](0005-keep-tooling-lean.md) | Keep tooling lean; borrow discipline, not org overhead | Accepted |
-| [0006](0006-project-name-kurator.md) | Project name and module identity (Kurator) | Accepted |
+| [0006](0006-project-name-kurator.md) | Project name and module identity (Kurator) | Superseded by [0018](0018-project-rename-mkurator.md) |
 | [0007](0007-structured-logging-logr-slog.md) | Structured logging with logr and slog | Accepted |
 | [0008](0008-changelog-git-cliff.md) | Generate changelogs with git-cliff | Accepted |
 | [0009](0009-validating-admission-webhooks.md) | Validating admission webhooks (no MQ at admission) | Accepted |
@@ -43,3 +43,4 @@ supersedes the old one rather than editing history.
 | [0015](0015-kubernetes-events-on-transitions.md) | Kubernetes Events on status transitions only | Accepted |
 | [0016](0016-release-supply-chain.md) | Release supply chain (image, SBOM, signing, scan) | Accepted |
 | [0017](0017-pcf-adapter-behind-mqadmin.md) | PCF adapter behind the MQAdmin port | Proposed |
+| [0018](0018-project-rename-mkurator.md) | Rename project Kurator → MKurator | Accepted |

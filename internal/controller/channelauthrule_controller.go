@@ -13,10 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/adapter/mqrest"
-	"github.com/konih/kurator/internal/metrics"
-	"github.com/konih/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/adapter/mqrest"
+	"github.com/konih/mkurator/internal/metrics"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 // ChannelAuthRuleReconciler reconciles ChannelAuthRule objects into CHLAUTH on IBM MQ.
@@ -28,10 +28,10 @@ type ChannelAuthRuleReconciler struct {
 }
 
 //nolint:lll // kubebuilder rbac marker is a single line
-// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=channelauthrules,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=channelauthrules/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=channelauthrules/finalizers,verbs=update
-// +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queuemanagerconnections,verbs=get;list;watch
+// +kubebuilder:rbac:groups=messaging.mkurator.dev,resources=channelauthrules,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=messaging.mkurator.dev,resources=channelauthrules/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=messaging.mkurator.dev,resources=channelauthrules/finalizers,verbs=update
+// +kubebuilder:rbac:groups=messaging.mkurator.dev,resources=queuemanagerconnections,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch

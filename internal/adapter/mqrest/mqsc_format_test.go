@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestFormatDefineQueueMQSC_Local(t *testing.T) {

@@ -1,6 +1,6 @@
 # Releasing a new version
 
-Step-by-step guide for maintainers publishing a **Kurator** release. Consumers
+Step-by-step guide for maintainers publishing a **MKurator** release. Consumers
 install published artifacts via [INSTALL_AND_USE.md](INSTALL_AND_USE.md).
 
 Related: [CONTRIBUTING.md](CONTRIBUTING.md#changelog-and-releases) (commits),
@@ -134,7 +134,7 @@ Review grouping (Features, Bug Fixes, Breaking Changes). Skipped types: `docs`,
 
 ### 3. Bump the Helm chart
 
-Edit [`charts/kurator/Chart.yaml`](../charts/kurator/Chart.yaml):
+Edit [`charts/mkurator/Chart.yaml`](../charts/mkurator/Chart.yaml):
 
 ```yaml
 version: 0.3.0
@@ -152,7 +152,7 @@ task changelog:write
 Commit chart bump and changelog together:
 
 ```sh
-git add charts/kurator/Chart.yaml CHANGELOG.md
+git add charts/mkurator/Chart.yaml CHANGELOG.md
 git commit -m "chore(release): :bookmark: prepare v0.3.0"
 ```
 
@@ -175,20 +175,20 @@ Fix forward with a new patch tag instead.
 
 ## What CI publishes
 
-The [release workflow](https://github.com/konih/kurator/actions/workflows/release.yaml)
+The [release workflow](https://github.com/konih/mkurator/actions/workflows/release.yaml)
 (on tag push):
 
 | Output | Location |
 |--------|----------|
-| Container image | `ghcr.io/konih/kurator:0.3.0` (and `:v0.3.0`), multi-arch |
+| Container image | `ghcr.io/konih/mkurator:0.3.0` (and `:v0.3.0`), multi-arch |
 | OCI SBOM + SLSA provenance | GHCR attestations on the image |
 | GitHub Release | Notes from git-cliff + install section; attached files below |
 | `install-crds.yaml` | Kustomize CRD bundle |
 | `install.yaml` | Full operator install (image pinned to tag) |
-| `kurator-0.3.0.tgz` | Helm chart tarball |
+| `mkurator-0.3.0.tgz` | Helm chart tarball |
 | `sbom.spdx.json` | SPDX SBOM |
 | `checksums.txt` | SHA256 of release files |
-| Helm chart (OCI) | `oci://ghcr.io/konih/kurator` |
+| Helm chart (OCI) | `oci://ghcr.io/konih/mkurator` |
 
 Release notes are assembled by
 [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh) (git-cliff
@@ -199,7 +199,7 @@ Committed history lives in repo-root [`CHANGELOG.md`](../CHANGELOG.md).
 Local dry-run of install manifests (without pushing):
 
 ```sh
-bash hack/release-assets.sh 0.3.0 ghcr.io/konih/kurator
+bash hack/release-assets.sh 0.3.0 ghcr.io/konih/mkurator
 ls -la dist/
 ```
 
@@ -226,23 +226,23 @@ workflow_dispatch after fixing generation on the tagged commit.
 
 ## Verify after release
 
-1. Open [GitHub Releases](https://github.com/konih/kurator/releases) — notes, attachments, tag.
-2. Pull the image: `docker pull ghcr.io/konih/kurator:0.3.0`
+1. Open [GitHub Releases](https://github.com/konih/mkurator/releases) — notes, attachments, tag.
+2. Pull the image: `docker pull ghcr.io/konih/mkurator:0.3.0`
 3. Optional cosign verify (substitute digest from GHCR):
 
 ```sh
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp '^https://github.com/konih/kurator/.+' \
-  ghcr.io/konih/kurator@sha256:<digest>
+  --certificate-identity-regexp '^https://github.com/konih/mkurator/.+' \
+  ghcr.io/konih/mkurator@sha256:<digest>
 ```
 
 4. Smoke install from release YAML (see [INSTALL_AND_USE.md](INSTALL_AND_USE.md)):
 
 ```sh
 VERSION=0.5.2   # replace with the tag you just published
-curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install-crds.yaml"
-curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install.yaml"
+curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/install-crds.yaml"
+curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/install.yaml"
 kubectl apply -f install-crds.yaml
 kubectl apply -f install.yaml
 ```
@@ -254,9 +254,9 @@ kubectl apply -f install.yaml
 
 ```sh
 task changelog
-# edit charts/kurator/Chart.yaml → version + appVersion
+# edit charts/mkurator/Chart.yaml → version + appVersion
 task changelog:write
-git add charts/kurator/Chart.yaml CHANGELOG.md
+git add charts/mkurator/Chart.yaml CHANGELOG.md
 git commit -m "chore(release): :bookmark: prepare vX.Y.Z"
 git tag vX.Y.Z
 git push origin main && git push origin vX.Y.Z

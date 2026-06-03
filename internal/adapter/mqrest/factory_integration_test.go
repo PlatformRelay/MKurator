@@ -9,14 +9,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/adapter/mqrest"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/adapter/mqrest"
 )
 
 func TestClientFactory_ForConnection(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	if err := messagingv1alpha1.AddToScheme(scheme.Scheme); err != nil {
 		t.Fatal(err)
 	}

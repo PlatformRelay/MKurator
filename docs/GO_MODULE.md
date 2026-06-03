@@ -1,6 +1,6 @@
 # Go module layout
 
-How the **Kurator** codebase is organized as a Go module: import paths, package
+How the **MKurator** codebase is organized as a Go module: import paths, package
 layers, generated artifacts, and how tests map to those layers. For runtime
 behaviour (manager, reconcilers, webhooks) see
 [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md). For the product-level design see
@@ -10,13 +10,13 @@ behaviour (manager, reconcilers, webhooks) see
 
 | Item | Value |
 |------|--------|
-| **Module path** | `github.com/konih/kurator` |
-| **API group** | `messaging.kurator.dev` |
+| **Module path** | `github.com/konih/mkurator` |
+| **API group** | `messaging.mkurator.dev` |
 | **API version** | `v1alpha1` |
 | **Entrypoint** | `cmd/main.go` |
 | **Go version** | Floor in `go.mod` (`go` directive); CI uses the pinned toolchain via `GOTOOLCHAIN` |
 
-The Git repository is [konih/kurator](https://github.com/konih/kurator); a local
+The Git repository is [konih/mkurator](https://github.com/konih/mkurator); a local
 clone may use another directory name (for example `IBM-Message-Queue-Operator`).
 
 ## Repository map (Go packages)
@@ -45,7 +45,7 @@ clone may use another directory name (for example `IBM-Message-Queue-Operator`).
 └── config/                    # Kustomize CRDs, RBAC, manager, webhook (not Go)
 ```
 
-Helm (`charts/kurator/`) and Kustomize (`config/`) deploy the same binary; they
+Helm (`charts/mkurator/`) and Kustomize (`config/`) deploy the same binary; they
 are not part of the module graph but consume generated CRDs and RBAC.
 
 ## Layered dependency model

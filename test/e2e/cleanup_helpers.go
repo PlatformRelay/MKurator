@@ -14,13 +14,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 
-	"github.com/konih/kurator/test/utils"
+	"github.com/konih/mkurator/test/utils"
 )
 
 const e2eCleanupTimeout = 5 * time.Minute
 
-// kuratorMQResources are namespaced messaging.kurator.dev kinds (kubectl resource names).
-var kuratorMQResources = []string{
+// mkuratorMQResources are namespaced messaging.mkurator.dev kinds (kubectl resource names).
+var mkuratorMQResources = []string{
 	"queuemanagerconnection",
 	"queue",
 	"topic",
@@ -62,19 +62,19 @@ func cleanupE2EResourcesOnce() {
 	deleteE2ENamespacesNoWait(namespaces)
 }
 
-// deleteAllE2ECustomResources removes messaging.kurator.dev CRs from kurator-e2e-* and
-// kurator-system without waiting on operator finalizers, then strips stuck finalizers.
+// deleteAllE2ECustomResources removes messaging.mkurator.dev CRs from mkurator-e2e-* and
+// mkurator-system without waiting on operator finalizers, then strips stuck finalizers.
 // Run before CRD delete so kubectl does not block on InstanceDeletionInProgress.
 func deleteAllE2ECustomResources() {
 	namespaces := e2eCleanupNamespaces()
-	deleteAllKuratorCRsNoWait(namespaces)
+	deleteAllMKuratorCRsNoWait(namespaces)
 	stripRemainingFinalizers(namespaces)
 }
 
-func deleteAllKuratorCRsNoWait(namespaces []string) {
-	By("deleting Kurator custom resources in e2e namespaces (no wait)")
+func deleteAllMKuratorCRsNoWait(namespaces []string) {
+	By("deleting MKurator custom resources in e2e namespaces (no wait)")
 	for _, ns := range namespaces {
-		for _, res := range kuratorMQResources {
+		for _, res := range mkuratorMQResources {
 			_, _ = runKubectl("delete", res, "--all", "-n", ns,
 				"--ignore-not-found", "--wait=false")
 		}
@@ -85,7 +85,7 @@ func deleteAllKuratorCRsNoWait(namespaces []string) {
 func stripRemainingFinalizers(namespaces []string) {
 	const patch = `{"metadata":{"finalizers":null}}`
 	for _, ns := range namespaces {
-		for _, res := range kuratorMQResources {
+		for _, res := range mkuratorMQResources {
 			out, err := runKubectl("get", res, "-n", ns,
 				"-o", "jsonpath={range .items[*]}{.metadata.name}{\"\\n\"}{end}")
 			if err != nil {
@@ -118,13 +118,13 @@ func undeployKustomizeOperatorNoWait() {
 	_, _ = utils.Run(cmd)
 }
 
-func undeployKuratorCRDsNoWait() {
+func undeployMKuratorCRDsNoWait() {
 	if skipCRDUndeploy() {
 		_, _ = fmt.Fprintf(GinkgoWriter,
-			"Skipping Kurator CRD delete (KURATOR_E2E_SKIP_CRD_UNDEPLOY=1)\n")
+			"Skipping MKurator CRD delete (KURATOR_E2E_SKIP_CRD_UNDEPLOY=1)\n")
 		return
 	}
-	By("removing Kurator CRDs (no wait)")
+	By("removing MKurator CRDs (no wait)")
 	projectDir, err := utils.GetProjectDir()
 	if err != nil {
 		_, _ = fmt.Fprintf(GinkgoWriter, "undeploy CRDs: get project dir: %v\n", err)

@@ -1,6 +1,6 @@
 # ADR-0006: Project name and module identity (Kurator)
 
-- **Status**: Accepted
+- **Status**: Superseded by [ADR-0018](0018-project-rename-mkurator.md)
 - **Date**: 2026-06-02
 
 ## Context
@@ -25,9 +25,9 @@ product affiliation.
 
 ## Consequences
 
-- All docs, samples, RBAC markers, and codegen use `messaging.kurator.dev`.
+- All docs, samples, RBAC markers, and codegen used `messaging.kurator.dev`.
 - Existing local clusters created as `ibm-mq-operator` keep working if
-  `CLUSTER_NAME=ibm-mq-operator` is set; new bring-ups use `kurator`.
+  `CLUSTER_NAME=ibm-mq-operator` is set; new bring-ups used `kurator`.
 - Repository directory name may stay `IBM-Message-Queue-Operator` until a rename
   is convenient; the Go module path is authoritative.
 

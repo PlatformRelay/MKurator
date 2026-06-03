@@ -19,7 +19,7 @@ const (
 	certmanagerURLTmpl = "https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml"
 
 	defaultKindBinary  = "kind"
-	defaultKindCluster = "kurator"
+	defaultKindCluster = "mkurator"
 )
 
 func defaultKubeconfigPath(projectDir string) string {

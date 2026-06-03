@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 // runCommandRequest matches docs/schemas/mqsc-runcommand.schema.json runCommand.

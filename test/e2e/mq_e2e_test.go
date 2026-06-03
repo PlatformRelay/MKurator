@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 const (
@@ -83,7 +83,7 @@ var _ = Describe("Post-manager IBM MQ integration", Label("mq"), func() {
 			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
 
-			queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+			queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: %s
@@ -161,7 +161,9 @@ stringData:
   mqAdminPassword: %s
 `, ns, envOr("KURATOR_E2E_MQ_PASSWORD", "passw0rd")))).To(Succeed())
 
-			Expect(kubectlDeleteWait("queuemanagerconnection", mqConnectionName, ns)).To(Succeed())
+			invalidateWebhookReadyCache()
+			waitForControllerAndWebhookReadyCached()
+			Expect(kubectlDeleteWithWebhookRetry("queuemanagerconnection", mqConnectionName, ns)).To(Succeed())
 			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
 			Eventually(func(g Gomega) {
@@ -193,9 +195,11 @@ stringData:
 		})
 
 		It("reconciles a Topic CR against the kind IBM MQ queue manager", func() {
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+			invalidateWebhookReadyCache()
+			waitForControllerAndWebhookReadyCached()
+			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
-			topicYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+			topicYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Topic
 metadata:
   name: %s
@@ -259,7 +263,7 @@ spec:
 		It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
 			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
-			channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+			channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: %s
@@ -307,7 +311,10 @@ var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Seri
 	const ns = namespaceAuth
 
 	BeforeEach(func() {
+		ensureE2ENamespace(ns)
 		ensureMQCredentialsSecret(ns)
+		// Serial auth specs run long MQ reconciles; re-verify webhook reachability each spec.
+		invalidateWebhookReadyCache()
 		waitForControllerAndWebhookReadyCached()
 	})
 
@@ -321,7 +328,7 @@ var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Seri
 	It("reconciles a ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: %s
@@ -343,7 +350,7 @@ spec:
 			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -410,9 +417,9 @@ spec:
 			kubectlForceRemoveNamespaced("queue", queueCR, ns)
 		})
 
-		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+		Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 
-		queueYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: %s
@@ -425,7 +432,7 @@ spec:
   attributes:
     maxdepth: "%s"
 `, queueCR, ns, mqConnectionName, queueObject, mqQueueMaxDepthV1)
-		Expect(kubectlApply(queueYAML)).To(Succeed())
+		Expect(applyWithWebhookRetry(queueYAML)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			out, err := runKubectl("get", "queue", queueCR, "-n", ns,
@@ -434,7 +441,7 @@ spec:
 			g.Expect(out).To(Equal("True"))
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		authYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+		authYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: AuthorityRecord
 metadata:
   name: %s
@@ -482,21 +489,23 @@ spec:
 			Principal:  "app",
 		}
 		Eventually(func(g Gomega) {
-			ok, err := authorityExists(ctx, client, authLookup)
+			pollCtx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+			defer cancel()
+			ok, err := authorityExists(pollCtx, client, authLookup)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(ok).To(BeFalse(), "AUTHREC for queue %s principal app should be removed after CR delete", queueObject)
-		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 	})
 })
 
 func connectionManifest(ns string) string {
-	return fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+	return fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: QueueManagerConnection
 metadata:
   name: %s
   namespace: %s
   annotations:
-    messaging.kurator.dev/allow-insecure-tls: "true"
+    messaging.mkurator.dev/allow-insecure-tls: "true"
 spec:
   queueManager: %s
   endpoint: https://ibm-mq.ibm-mq.svc:9443

@@ -6,9 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-CHART="./charts/kurator"
-NAMESPACE="kurator-system"
-RELEASE="kurator"
+CHART="./charts/mkurator"
+NAMESPACE="mkurator-system"
+RELEASE="mkurator"
 
 rendered="$(mktemp)"
 trap 'rm -f "${rendered}"' EXIT
@@ -32,19 +32,19 @@ require_kind "Service"
 require_kind "Certificate"
 require_kind "Issuer"
 
-webhook_count="$(grep -c 'path: /validate-messaging-kurator-dev-v1alpha1-' "${rendered}" || true)"
+webhook_count="$(grep -c 'path: /validate-messaging-mkurator-dev-v1alpha1-' "${rendered}" || true)"
 if [[ "${webhook_count}" -ne 6 ]]; then
   echo "helm-verify-admission: expected 6 validating webhook paths, found ${webhook_count}" >&2
   exit 1
 fi
 
 for path in \
-  /validate-messaging-kurator-dev-v1alpha1-authorityrecord \
-  /validate-messaging-kurator-dev-v1alpha1-channel \
-  /validate-messaging-kurator-dev-v1alpha1-channelauthrule \
-  /validate-messaging-kurator-dev-v1alpha1-queue \
-  /validate-messaging-kurator-dev-v1alpha1-queuemanagerconnection \
-  /validate-messaging-kurator-dev-v1alpha1-topic
+  /validate-messaging-mkurator-dev-v1alpha1-authorityrecord \
+  /validate-messaging-mkurator-dev-v1alpha1-channel \
+  /validate-messaging-mkurator-dev-v1alpha1-channelauthrule \
+  /validate-messaging-mkurator-dev-v1alpha1-queue \
+  /validate-messaging-mkurator-dev-v1alpha1-queuemanagerconnection \
+  /validate-messaging-mkurator-dev-v1alpha1-topic
 do
   if ! grep -q "path: ${path}" "${rendered}"; then
     echo "helm-verify-admission: missing webhook path ${path}" >&2
@@ -53,10 +53,10 @@ do
 done
 
 for name in \
-  kurator-validating-webhook-configuration \
-  kurator-webhook-service \
-  kurator-serving-cert \
-  kurator-selfsigned-issuer
+  mkurator-validating-webhook-configuration \
+  mkurator-webhook-service \
+  mkurator-serving-cert \
+  mkurator-selfsigned-issuer
 do
   if ! grep -q "name: ${name}" "${rendered}"; then
     echo "helm-verify-admission: missing resource name ${name}" >&2
@@ -64,7 +64,7 @@ do
   fi
 done
 
-if ! grep -Eq 'cert-manager.io/inject-ca-from: "?kurator-system/kurator-serving-cert"?' "${rendered}"; then
+if ! grep -Eq 'cert-manager.io/inject-ca-from: "?mkurator-system/mkurator-serving-cert"?' "${rendered}"; then
   echo "helm-verify-admission: missing cert-manager CA injection annotation" >&2
   exit 1
 fi

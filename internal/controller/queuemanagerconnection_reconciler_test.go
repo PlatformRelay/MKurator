@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/mqadmin"
-	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/mqadmin"
+	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
 
 var _ = Describe("QueueManagerConnectionReconciler", func() {

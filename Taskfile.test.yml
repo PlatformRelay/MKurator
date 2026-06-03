@@ -70,7 +70,7 @@ tasks:
       KURATOR_E2E_MQ:
         sh: echo "${KURATOR_E2E_MQ:-0}"
       KIND_CLUSTER:
-        sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
+        sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-mkurator}}"
       KUBECONFIG:
         sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
     cmds:
@@ -84,7 +84,7 @@ tasks:
       KURATOR_E2E_MQ:
         sh: echo "${KURATOR_E2E_MQ:-0}"
       KIND_CLUSTER:
-        sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
+        sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-mkurator}}"
       KUBECONFIG:
         sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
     cmds:

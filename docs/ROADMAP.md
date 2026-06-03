@@ -1,6 +1,6 @@
 # Roadmap
 
-Phased delivery plan for **Kurator**. Each phase is shippable
+Phased delivery plan for **MKurator**. Each phase is shippable
 on its own and keeps the tree green (build + lint + tests + `verify` pass). See
 [ARCHITECTURE.md](ARCHITECTURE.md) for design, [DEVELOPMENT.md](DEVELOPMENT.md) for
 conventions, [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) for
@@ -44,8 +44,8 @@ Exit criteria: design and local MQ platform documented and runnable — **met**.
 
 **Also delivered in Phase 1:**
 
-- [x] [ADR-0006](adr/0006-project-name-kurator.md) — project name, module path,
-  API group `messaging.kurator.dev`.
+- [x] [ADR-0006](adr/0006-project-name-mkurator.md) — project name, module path,
+  API group `messaging.mkurator.dev`.
 - [x] [ADR-0007](adr/0007-structured-logging-logr-slog.md) + [LOGGING.md](LOGGING.md)
   — `logr`/`slog`, redaction handler, manager flags/env.
 - [x] `hack/verify.sh` (codegen drift check) and `hack/goformat.sh`.
@@ -79,8 +79,8 @@ locally and in CI — **met**.
 - [x] [docs/schemas/](schemas/) — `mqsc-runcommand.schema.json` + README; optional
   `scripts/fetch-mqweb-swagger.sh` for full mqweb Swagger export.
 - [x] `task deploy` — `go tool kustomize`, explicit CRD apply (no global kustomize).
-- [x] **`charts/kurator/`** — publishable Helm chart, `helm:sync-crds`, kind
-  `values-kind.yaml`, sample Secret + CRs under `charts/kurator/samples/resources/`.
+- [x] **`charts/mkurator/`** — publishable Helm chart, `helm:sync-crds`, kind
+  `values-kind.yaml`, sample Secret + CRs under `charts/mkurator/samples/resources/`.
 - [x] Local workflow tasks: `deploy:helm`, `deploy:samples`, `local:up` /
   `local:deploy` / `local:info` / `local:down`.
 - [x] README + [DEVELOPMENT.md](DEVELOPMENT.md) + [LOCAL_SETUP.md](LOCAL_SETUP.md)
@@ -112,7 +112,7 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
   `task ci:e2e` for local parity).
 - [x] Release workflow (`.github/workflows/release.yaml`): multi-arch distroless
   image publish to GHCR + Trivy image scan + published Kustomize/Helm install
-  manifests (`hack/release-assets.sh`, `charts/kurator/samples/values-release.yaml`,
+  manifests (`hack/release-assets.sh`, `charts/mkurator/samples/values-release.yaml`,
   `.trivyignore`) on `v*.*.*` tags (NFR OPS-1/OPS-2, SEC-4/SEC-6).
 - [x] Release supply chain — OCI SBOM + SLSA provenance (`docker/build-push-action`),
   SPDX SBOM on GitHub Releases (`anchore/sbom-action`), cosign keyless signing
@@ -120,7 +120,7 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
 
 **Also delivered in Phase 3:**
 
-- [x] Helm install path for local and release publish (`charts/kurator`, `task helm:*`).
+- [x] Helm install path for local and release publish (`charts/mkurator`, `task helm:*`).
 - [x] `RunMQSC` helper on `mqrest` client (`runCommand` plaintext) + unit test —
   groundwork for e2e fixtures and Phase 5 MQSC.
 
@@ -139,7 +139,7 @@ before access-control work.
 - [x] Extend `MQAdmin` port and `mqrest` adapter for topic/channel operations;
   table-driven adapter tests with `httptest`.
 - [x] Thin reconcilers, RBAC, samples under `config/samples/` and
-  `charts/kurator/samples/resources/`.
+  `charts/mkurator/samples/resources/`.
 - [x] Unit + envtest coverage; [x] e2e scenarios on kind against live `QM1`
   (Queue, Topic, Channel — see [`test/e2e/mq_e2e_test.go`](../test/e2e/mq_e2e_test.go)).
 - [x] [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) — DEFINE vs DISPLAY
@@ -218,13 +218,13 @@ types remain optional.
 ## Repo visibility
 
 - [x] README badges — CI, MIT license, Codecov, Go module / pkg.go.dev
-  ([konih/kurator](https://github.com/konih/kurator)).
+  ([konih/mkurator](https://github.com/konih/mkurator)).
 - [x] User guide — [INSTALL_AND_USE.md](INSTALL_AND_USE.md) + annotated
   [config/samples/README.md](../config/samples/README.md).
 - [x] CI coverage export — `coverage.out` artifact, job summary, Codecov upload
   (`codecov.yml`; first green `main` run registers the project).
 - [x] **Go Report Card** — badge in [README.md](../README.md); refresh at
-  [goreportcard.com/report/github.com/konih/kurator](https://goreportcard.com/report/github.com/konih/kurator)
+  [goreportcard.com/report/github.com/konih/mkurator](https://goreportcard.com/report/github.com/konih/mkurator)
   after significant API changes (uses module path from `go.mod`).
 - [x] Release badge — [`README.md`](../README.md) links GitHub Releases (latest tag).
 - [x] [LOCAL_SETUP.md](LOCAL_SETUP.md) — tiered dev tool install (`Brewfile`,

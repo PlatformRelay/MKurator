@@ -1,6 +1,6 @@
 # Phase 5 — authority and channel-auth API sketch
 
-Planning document for Kurator **Phase 5** ([ROADMAP.md](ROADMAP.md)). It maps
+Planning document for MKurator **Phase 5** ([ROADMAP.md](ROADMAP.md)). It maps
 reference MQSC from
 ibm-messaging/mq-gitops-samples `qmdemo-mqsc-config-map.yaml` (mirrored in [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc))
 and patterns in [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) to CRD fields.
@@ -23,13 +23,13 @@ CRD reconciles `DEFINE CHANNEL` … `CHLTYPE(SVRCONN)` with drift detection. See
 integration coverage for additional rule/object types — see
 [ROADMAP.md](ROADMAP.md#phase-5--user--authority-management).
 
-Kurator reconciles Phase 5 objects via the existing **mqweb `/mqsc`** path
+MKurator reconciles Phase 5 objects via the existing **mqweb `/mqsc`** path
 ([ADR-0002](adr/0002-manage-mq-via-mqweb-rest.md)), not via IBM’s ConfigMap-at-
 `QueueManager` bootstrap model.
 
 ## Reference MQSC (gitops basic deployment)
 
-Source: IBM `mq-gitops-samples` (Apache-2.0 header in upstream file). Kurator e2e
+Source: IBM `mq-gitops-samples` (Apache-2.0 header in upstream file). MKurator e2e
 fixture: [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc).
 
 ```mqsc
@@ -67,7 +67,7 @@ integration GET). See [README.md#what-ci-proves](../README.md#what-ci-proves).
 Additional rule types in the OpenAPI enum (schema + admission only until API/MQ
 fields land):
 
-| `ruleType` | Typical use | Kurator today |
+| `ruleType` | Typical use | MKurator today |
 |------------|-------------|---------------|
 | `BLOCKUSER` | `USERLIST` — deny privileged IDs | Shipped — `spec.userList`; samples + tests |
 | `USERMAP` | Map `CLNTUSER` to `MCAUSER` | **Deferred** — no `clientUser` / `mcaUser` on CRD or `mqrest` builder |
@@ -107,18 +107,18 @@ via `RunMQSC` / `runCommand`.
 
 **GET paths (shipped):** `GetChannelAuth` and `GetAuthority` run `DISPLAY CHLAUTH` /
 `DISPLAY AUTHREC`. Reconcilers **replace-on-diff** when observed state differs from
-`spec` (unless `messaging.kurator.dev/drift-policy=observe-only`). Parsed CHLAUTH
+`spec` (unless `messaging.mkurator.dev/drift-policy=observe-only`). Parsed CHLAUTH
 fields today: `address`, `userlist`, `usersrc`, `chckclnt`, `descr` — not
 `clntuser` / `mcauser` / `sslpeer`. See
 [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy).
 
 ## What we are not copying from IBM samples
 
-| IBM pattern | Kurator approach |
+| IBM pattern | MKurator approach |
 |-------------|------------------|
 | `spec.queueManager.mqsc` ConfigMap on `QueueManager` | Per-object CRs + continuous reconcile |
 | Dynamic MQSC volume reload (gitops `queue-manager-deployment`) | Operator observes CR spec generation |
-| IBM MQ Operator webhook / OLM install | Out of scope — Kurator targets existing mqweb |
+| IBM MQ Operator webhook / OLM install | Out of scope — MKurator targets existing mqweb |
 
 ## E2e and fixtures
 

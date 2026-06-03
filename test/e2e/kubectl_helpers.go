@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/konih/kurator/test/utils"
+	"github.com/konih/mkurator/test/utils"
 )
 
 // kubectlWaitTimeout is passed to kubectl delete --wait and kubectl wait.
@@ -23,7 +23,7 @@ const (
 	kubectlRequestTimeout = "30s"
 	kubectlCommandTimeout = 35 * time.Second
 
-	webhookApplyRetryTimeout  = 2 * time.Minute
+	webhookApplyRetryTimeout  = 8 * time.Minute
 	webhookApplyRetryInterval = 2 * time.Second
 )
 
@@ -61,6 +61,13 @@ func isTransientKubectlApplyError(err error) bool {
 	return isWebhookConnectionRefused(err) || isCRDDiscoveryNotReady(err)
 }
 
+func retryAfterWebhookUnreachable(lastErr error) {
+	if isWebhookConnectionRefused(lastErr) {
+		invalidateWebhookReadyCache()
+		waitForControllerAndWebhookReadyCached()
+	}
+}
+
 // applyWithWebhookRetry applies a manifest, retrying transient webhook and CRD discovery errors.
 func applyWithWebhookRetry(manifest string) error {
 	deadline := time.Now().Add(webhookApplyRetryTimeout)
@@ -73,6 +80,7 @@ func applyWithWebhookRetry(manifest string) error {
 		if !isTransientKubectlApplyError(lastErr) {
 			return lastErr
 		}
+		retryAfterWebhookUnreachable(lastErr)
 		time.Sleep(webhookApplyRetryInterval)
 	}
 	if lastErr == nil {
@@ -92,6 +100,27 @@ func kubectlDeleteWait(resource, name, ns string) error {
 		)
 	}
 	return nil
+}
+
+// kubectlDeleteWithWebhookRetry deletes with --wait, retrying transient webhook reachability errors.
+func kubectlDeleteWithWebhookRetry(resource, name, ns string) error {
+	deadline := time.Now().Add(webhookApplyRetryTimeout)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		lastErr = kubectlDeleteWait(resource, name, ns)
+		if lastErr == nil {
+			return nil
+		}
+		if !isWebhookConnectionRefused(lastErr) {
+			return lastErr
+		}
+		retryAfterWebhookUnreachable(lastErr)
+		time.Sleep(webhookApplyRetryInterval)
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("timed out after %s waiting to delete %s/%s", webhookApplyRetryTimeout, resource, name)
+	}
+	return fmt.Errorf("kubectl delete %s/%s -n %s (webhook retries exhausted): %w", resource, name, ns, lastErr)
 }
 
 // kubectlWait runs kubectl wait --for=<condition> with kubectlWaitTimeout.

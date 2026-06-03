@@ -19,12 +19,12 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/adapter/mqrest"
-	"github.com/konih/kurator/internal/controller"
-	"github.com/konih/kurator/internal/health"
-	"github.com/konih/kurator/internal/logging"
-	webhookv1alpha1 "github.com/konih/kurator/internal/webhook/v1alpha1"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/adapter/mqrest"
+	"github.com/konih/mkurator/internal/controller"
+	"github.com/konih/mkurator/internal/health"
+	"github.com/konih/mkurator/internal/logging"
+	webhookv1alpha1 "github.com/konih/mkurator/internal/webhook/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -191,7 +191,7 @@ func main() {
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "bdd44880.kurator.dev",
+		LeaderElectionID:       "bdd44880.mkurator.dev",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -212,7 +212,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	mqFactory := mqrest.NewClientFactory(mgr.GetClient())
-	eventRecorder := mgr.GetEventRecorder("kurator-controller-manager")
+	eventRecorder := mgr.GetEventRecorder("mkurator-controller-manager")
 	if err := (&controller.QueueManagerConnectionReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),

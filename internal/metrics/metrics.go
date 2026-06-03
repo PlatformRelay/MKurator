@@ -1,4 +1,4 @@
-// Package metrics registers Kurator Prometheus collectors on controller-runtime's registry.
+// Package metrics registers MKurator Prometheus collectors on controller-runtime's registry.
 package metrics
 
 import (
@@ -45,7 +45,7 @@ const (
 var (
 	ReconcileTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "kurator_reconcile_total",
+			Name: "mkurator_reconcile_total",
 			Help: "Total reconciliations by controller and result.",
 		},
 		[]string{"controller", "result"},
@@ -53,7 +53,7 @@ var (
 
 	ReconcileErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "kurator_reconcile_errors_total",
+			Name: "mkurator_reconcile_errors_total",
 			Help: "Total reconcile passes that returned an error to the manager.",
 		},
 		[]string{"controller"},
@@ -61,7 +61,7 @@ var (
 
 	MQOperationsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "kurator_mq_operations_total",
+			Name: "mkurator_mq_operations_total",
 			Help: "Total mqweb operations by operation and result.",
 		},
 		[]string{"operation", "result"},

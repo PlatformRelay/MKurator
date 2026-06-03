@@ -1,6 +1,6 @@
 # Attribute reconciliation model
 
-Kurator applies IBM MQ objects through **mqweb `runCommandJSON`** (`DEFINE … REPLACE`).
+MKurator applies IBM MQ objects through **mqweb `runCommandJSON`** (`DEFINE … REPLACE`).
 Reconcilers compare desired `spec.attributes` to **DISPLAY** results before re-applying.
 
 Implementation lives in `internal/adapter/mqrest/mqsc_params.go` (DISPLAY parameter lists)
@@ -93,7 +93,7 @@ DISPLAY attribute matrices below). Extended CHLAUTH rule types (`USERMAP`,
 attribute matrices above. They call `GetChannelAuth` / `GetAuthority` (mqweb
 `DISPLAY CHLAUTH` / `DISPLAY AUTHREC`), parse a fixed field set, and
 **replace-on-diff** via `SET CHLAUTH` / `SET AUTHREC` unless
-`messaging.kurator.dev/drift-policy=observe-only`.
+`messaging.mkurator.dev/drift-policy=observe-only`.
 
 Implementation: `internal/adapter/mqrest/auth.go` (DISPLAY command + attribute
 parsing), `internal/mqadmin/authmatch.go` (desired vs observed).
@@ -149,7 +149,7 @@ Sketch and rule-type roadmap: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
 ## Manual and out-of-band MQ changes
 
-Kurator is **declarative**: the operator drives IBM MQ toward what your CRs specify. Changes made
+MKurator is **declarative**: the operator drives IBM MQ toward what your CRs specify. Changes made
 outside the operator (MQ console, `runmqsc`, another tool) are handled as follows:
 
 - **Drift-checked attributes** (see tables above) — on the next reconcile, DISPLAY shows a
@@ -157,12 +157,12 @@ outside the operator (MQ console, `runmqsc`, another tool) are handled as follow
   see below).
 - **Define-only attributes** — manual edits are **not** detected; the CR must change (or you
   must alter a drift-checked field) to trigger a new DEFINE.
-- **Objects with no CR** — Kurator does not delete queues, topics, or channels it does not
+- **Objects with no CR** — MKurator does not delete queues, topics, or channels it does not
   manage; it only creates/updates/deletes objects backed by a CR with a finalizer.
 
 ## Observe-only drift policy
 
-Set annotation `messaging.kurator.dev/drift-policy=observe-only` on a `Queue`,
+Set annotation `messaging.mkurator.dev/drift-policy=observe-only` on a `Queue`,
 `Topic`, `Channel`, `ChannelAuthRule`, or `AuthorityRecord` to **report drift
 without applying** DEFINE/ALTER (or auth GET/replace) to IBM MQ:
 

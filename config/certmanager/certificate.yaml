@@ -5,15 +5,15 @@ metadata:
     app.kubernetes.io/name: certificate
     app.kubernetes.io/instance: serving-cert
     app.kubernetes.io/component: certificate
-    app.kubernetes.io/created-by: kurator
-    app.kubernetes.io/part-of: kurator
+    app.kubernetes.io/created-by: mkurator
+    app.kubernetes.io/part-of: mkurator
     app.kubernetes.io/managed-by: kustomize
   name: serving-cert
   namespace: system
 spec:
   dnsNames:
-  - kurator-webhook-service.kurator-system.svc
-  - kurator-webhook-service.kurator-system.svc.cluster.local
+  - mkurator-webhook-service.mkurator-system.svc
+  - mkurator-webhook-service.mkurator-system.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer

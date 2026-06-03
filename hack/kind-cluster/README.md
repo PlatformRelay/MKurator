@@ -1,6 +1,6 @@
 # Local kind dev cluster
 
-A one-command local environment for developing and testing the Kurator
+A one-command local environment for developing and testing the MKurator
 operator. It provisions a [kind](https://kind.sigs.k8s.io/) cluster and,
 via Terraform + Helm, installs:
 
@@ -37,7 +37,7 @@ task cluster:cleanup  # terraform destroy (keeps kind cluster)
 task cluster:down     # destroy Terraform + delete kind + wipe .state
 ```
 
-`task cluster:up` is idempotent: an existing `kurator` cluster is reused; other
+`task cluster:up` is idempotent: an existing `mkurator` cluster is reused; other
 kind clusters blocking NodePorts 30080/30443 are removed automatically.
 
 ## Access (after `task cluster:up`)
@@ -52,7 +52,7 @@ kind clusters blocking NodePorts 30080/30443 are removed automatically.
 
 In-cluster: `https://ibm-mq.ibm-mq.svc:9443` (`QueueManagerConnection.endpoint`).
 
-## Kurator operator on this cluster
+## MKurator operator on this cluster
 
 From the repository root:
 
@@ -65,10 +65,10 @@ task local:info      # URLs + qmc/queue status
 
 See [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md),
 [docs/IBM_MQ_101.md](../../docs/IBM_MQ_101.md) (console, CLI, operator checks), and
-[charts/kurator/README.md](../../charts/kurator/README.md).
+[charts/mkurator/README.md](../../charts/mkurator/README.md).
 
 ## Notes
 
-- Cluster name defaults to `kurator` (`CLUSTER_NAME` env var overrides).
+- Cluster name defaults to `mkurator` (`CLUSTER_NAME` env var overrides).
 - State lives under `hack/kind-cluster/.state/` (git-ignored).
 - IBM MQ uses the Advanced for Developers license (`license: accept`) for local dev only.

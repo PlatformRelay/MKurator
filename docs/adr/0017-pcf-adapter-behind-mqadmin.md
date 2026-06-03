@@ -8,7 +8,7 @@
 [ADR-0002](0002-manage-mq-via-mqweb-rest.md) chose **mqweb REST** as the default
 transport for IBM MQ administration and placed all MQ interaction behind the
 **`MQAdmin` port** (`internal/mqadmin`). That decision remains correct for
-Kurator's primary build: pure Go, CGO-free, slim images, and straightforward
+MKurator's primary build: pure Go, CGO-free, slim images, and straightforward
 `httptest` unit tests.
 
 Some deployments cannot expose **mqweb** (firewall policy, legacy queue managers,

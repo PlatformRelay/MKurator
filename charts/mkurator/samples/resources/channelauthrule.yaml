@@ -1,0 +1,13 @@
+apiVersion: messaging.mkurator.dev/v1alpha1
+kind: ChannelAuthRule
+metadata:
+  name: dev-app-addressmap
+spec:
+  connectionRef:
+    name: qm1
+  channelName: DEV.APP.SVRCONN.0TLS
+  ruleType: ADDRESSMAP
+  address: "*"
+  userSource: CHANNEL
+  checkClient: REQUIRED
+  description: Allows connection via APP channel

@@ -1,17 +1,17 @@
 <p align="center">
-  <img src="docs/images/kurator-logo.png" alt="Kurator logo" width="200">
+  <img src="docs/images/mkurator-logo.png" alt="MKurator logo" width="200">
 </p>
 
-# Kurator
+# MKurator
 
-[![CI](https://github.com/konih/kurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/konih/kurator/actions/workflows/ci.yaml)
-[![E2E](https://github.com/konih/kurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/konih/kurator/actions/workflows/e2e.yaml)
-[![License: MIT](https://img.shields.io/github/license/konih/kurator)](https://github.com/konih/kurator/blob/main/LICENSE)
-[![codecov](https://codecov.io/gh/konih/kurator/graph/badge.svg)](https://codecov.io/gh/konih/kurator)
-[![Go](https://img.shields.io/github/go-mod/go-version/konih/kurator)](https://pkg.go.dev/github.com/konih/kurator)
-[![Go Reference](https://pkg.go.dev/badge/github.com/konih/kurator.svg)](https://pkg.go.dev/github.com/konih/kurator)
-[![Go Report Card](https://goreportcard.com/badge/github.com/konih/kurator)](https://goreportcard.com/report/github.com/konih/kurator)
-[![Release](https://img.shields.io/github/v/release/konih/kurator)](https://github.com/konih/kurator/releases)
+[![CI](https://github.com/konih/mkurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/ci.yaml)
+[![E2E](https://github.com/konih/mkurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/e2e.yaml)
+[![License: MIT](https://img.shields.io/github/license/konih/mkurator)](https://github.com/konih/mkurator/blob/main/LICENSE)
+[![codecov](https://codecov.io/gh/konih/mkurator/graph/badge.svg)](https://codecov.io/gh/konih/mkurator)
+[![Go](https://img.shields.io/github/go-mod/go-version/konih/mkurator)](https://pkg.go.dev/github.com/konih/mkurator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/konih/mkurator.svg)](https://pkg.go.dev/github.com/konih/mkurator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/konih/mkurator)](https://goreportcard.com/report/github.com/konih/mkurator)
+[![Release](https://img.shields.io/github/v/release/konih/mkurator)](https://github.com/konih/mkurator/releases)
 
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
@@ -37,9 +37,9 @@ more later.
 `SET AUTHREC` for queue/channel-style profiles. See
 [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md) for rule-type roadmap.
 
-**Repository:** [github.com/konih/kurator](https://github.com/konih/kurator) — Go module
-[`github.com/konih/kurator`](https://pkg.go.dev/github.com/konih/kurator), images
-`ghcr.io/konih/kurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md)). Your
+**Repository:** [github.com/konih/mkurator](https://github.com/konih/mkurator) — Go module
+[`github.com/konih/mkurator`](https://pkg.go.dev/github.com/konih/mkurator), images
+`ghcr.io/konih/mkurator` ([ADR-0006](docs/adr/0006-project-name-mkurator.md)). Your
 local clone directory may differ from the module/repo name (for example
 `IBM-Message-Queue-Operator`).
 
@@ -53,7 +53,7 @@ local clone directory may differ from the module/repo name (for example
 
 Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 
-Latest tagged release: [GitHub Releases](https://github.com/konih/kurator/releases)
+Latest tagged release: [GitHub Releases](https://github.com/konih/mkurator/releases)
 (current badge above). `main` may include fixes not yet in a tag. See
 [CHANGELOG.md](CHANGELOG.md) for version history (generated from Conventional Commits).
 
@@ -76,7 +76,7 @@ adapter. Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · extended map:
 [AGENTS.md](AGENTS.md#repository-layout).
 
 ```text
-kurator/
+mkurator/
 ├── 📦 api/v1alpha1/                 CRD types + deepcopy (QMC, Queue, Topic, Channel, auth)
 ├── 🚀 cmd/                          Manager entrypoint (controller-runtime)
 ├── 🧠 internal/
@@ -88,7 +88,7 @@ kurator/
 │   ├── logging/                     Structured logging helpers
 │   └── metrics/                     Prometheus metrics
 ├── ⚙️  config/                       Kustomize — CRDs, RBAC, manager, webhook, samples
-├── ⎈  charts/kurator/                Publishable Helm chart + sample CRs
+├── ⎈  charts/mkurator/                Publishable Helm chart + sample CRs
 ├── 🧪 test/
 │   ├── integration/                 Docker MQ tests (build tag `integration`)
 │   ├── e2e/                         kind + live QM1 (build tag `e2e`)
@@ -115,12 +115,12 @@ Sample YAML with annotations:
 ```sh
 # After task deploy:helm or task local:up — preferred one-shot sample apply:
 task deploy:samples
-kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
+kubectl get qmc,mq,tp,chl,car,auth -n mkurator-system
 ```
 
 **`task deploy:samples`** is the supported path on kind: it ensures the
-`kurator-system` namespace exists and server-side-applies
-`charts/kurator/samples/resources/` (Secret + all sample CRs). Annotated reference
+`mkurator-system` namespace exists and server-side-applies
+`charts/mkurator/samples/resources/` (Secret + all sample CRs). Annotated reference
 YAML lives under `config/samples/` — edit there, then `task samples:sync`.
 
 ## Local development (contributors)
@@ -145,7 +145,7 @@ Full index with paths by role: **[docs/README.md](docs/README.md)**.
 
 | | Doc |
 |---|-----|
-| 🎯 **Use Kurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Upgrade](docs/UPGRADE.md) · [Metrics](docs/OBSERVABILITY.md) · [Logging](docs/LOGGING.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/kurator/README.md) |
+| 🎯 **Use MKurator** | [Install and use](docs/INSTALL_AND_USE.md) · [Upgrade](docs/UPGRADE.md) · [Metrics](docs/OBSERVABILITY.md) · [Logging](docs/LOGGING.md) · [Sample YAML](config/samples/README.md) · [Helm chart](charts/mkurator/README.md) |
 | 🛠️ **Develop locally** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](docs/CONTRIBUTING.md) · [MQ on kind](docs/IBM_MQ_101.md) · [Platform (kind/Terraform/MQ)](hack/kind-cluster/README.md) |
 | 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [Attribute reconciliation](docs/ATTRIBUTE_RECONCILIATION.md) · [ADRs](docs/adr/) |
 | 📋 **Project** | [Roadmap](docs/ROADMAP.md) · [CI/CD](docs/CICD.md) · [Release guide](docs/RELEASE.md) · [NFRs](docs/NON_FUNCTIONAL_REQUIREMENTS.md) · [Security](SECURITY.md) |

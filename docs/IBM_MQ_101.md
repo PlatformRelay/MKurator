@@ -1,6 +1,6 @@
-# IBM MQ 101 — local kind cluster and Kurator
+# IBM MQ 101 — local kind cluster and MKurator
 
-A short guide for checking that IBM MQ and the Kurator operator are working on the
+A short guide for checking that IBM MQ and the MKurator operator are working on the
 [`hack/kind-cluster`](../hack/kind-cluster/README.md) platform. For MQSC object
 details see [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md); for mqweb see
 [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md).
@@ -14,7 +14,7 @@ Yes. The kind stack installs IBM MQ with **`web.enable: true`**, which starts
 |--------|-----|
 | **Web console** | https://mq.localhost:30443/ibmmq/console/ — user `admin`, password `passw0rd` (local default) |
 | **MQSC CLI** | `runmqsc` inside the MQ pod — `task mq:cli` (see below) |
-| **Admin REST** | https://mq.localhost:30443/ibmmq/rest/v3/... — same credentials; used by Kurator |
+| **Admin REST** | https://mq.localhost:30443/ibmmq/rest/v3/... — same credentials; used by MKurator |
 
 Run `task mq:console` to print the console URL and login hints.
 
@@ -28,10 +28,10 @@ tooling, not part of IBM MQ.
 | **Queue manager (QM)** | The MQ “server” process. Local name: **`QM1`**. |
 | **Queue** | Named message destination, e.g. **`APP.ORDERS`**. |
 | **MQSC** | Text commands (`DEFINE QLOCAL`, `DISPLAY QLOCAL`, …) applied with `runmqsc`. |
-| **Kurator `Queue` CR** | Desired queue on an existing QM; reconciler runs MQSC via **mqweb**. |
-| **`QueueManagerConnection`** | How Kurator reaches mqweb (URL + Secret). |
+| **MKurator `Queue` CR** | Desired queue on an existing QM; reconciler runs MQSC via **mqweb**. |
+| **`QueueManagerConnection`** | How MKurator reaches mqweb (URL + Secret). |
 
-Kurator does **not** install the queue manager — only objects **on** `QM1`.
+MKurator does **not** install the queue manager — only objects **on** `QM1`.
 
 ## One-shot local stack
 
@@ -44,15 +44,15 @@ task local:up
 This runs `cluster:up` (kind + IBM MQ + ingress), installs the operator, applies
 sample CRs (`APP.ORDERS` queue), and prints status.
 
-## Verify Kurator is working
+## Verify MKurator is working
 
 ### 1. Kubernetes — CR status
 
 ```sh
 task local:info
 # or:
-kubectl get qmc,queue -n kurator-system
-kubectl describe queue orders -n kurator-system
+kubectl get qmc,queue -n mkurator-system
+kubectl describe queue orders -n mkurator-system
 ```
 
 Look for **`Synced=True`** on the `Queue` and **`Ready=True`** on the
@@ -65,7 +65,7 @@ task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH DESCR"
 ```
 
 You should see `MAXDEPTH(5000)` and `DESCR(Orders intake queue)` matching
-[`charts/kurator/samples/resources/queue.yaml`](../charts/kurator/samples/resources/queue.yaml).
+[`charts/mkurator/samples/resources/queue.yaml`](../charts/mkurator/samples/resources/queue.yaml).
 
 ### 3. Web console
 
@@ -85,11 +85,11 @@ task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH"
 ### 5. Delete test (optional)
 
 ```sh
-kubectl delete queue orders -n kurator-system --wait
+kubectl delete queue orders -n mkurator-system --wait
 task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS')"
 ```
 
-Expect “not found” (or completion code indicating the object is gone). Kurator
+Expect “not found” (or completion code indicating the object is gone). MKurator
 uses a finalizer to delete the queue on the QM before removing the CR.
 
 ## Useful tasks
@@ -102,7 +102,7 @@ uses a finalizer to delete the queue on the QM before removing the CR.
 | `task mq:cli` | Interactive `runmqsc` session on `QM1` |
 | `task mq:runmqsc -- "<mqsc>"` | One-shot MQSC command |
 | `task local:up` | Cluster + operator + samples |
-| `task local:info` | Cluster URLs + Kurator CR status |
+| `task local:info` | Cluster URLs + MKurator CR status |
 
 ## Troubleshooting
 
@@ -110,12 +110,12 @@ uses a finalizer to delete the queue on the QM before removing the CR.
 |---------|--------|
 | Console TLS warning | Run `mkcert -install` once, then `task cluster:tls` |
 | `mq:cli` — no pod | `kubectl get pods -n ibm-mq`; wait for MQ ready after `cluster:up` |
-| Queue `Synced=False` | Operator logs: `kubectl logs -n kurator-system -l control-plane=controller-manager` |
-| mqweb 401 | Secret `mq-credentials` in `kurator-system`; keys `username` + `mqAdminPassword` |
+| Queue `Synced=False` | Operator logs: `kubectl logs -n mkurator-system -l control-plane=controller-manager` |
+| mqweb 401 | Secret `mq-credentials` in `mkurator-system`; keys `username` + `mqAdminPassword` |
 | Wrong console path | Use `/ibmmq/console/` (9.4 mqweb), not legacy `/ibm/mq/console/` |
 
 ## Next steps
 
-- Change samples: edit files under `charts/kurator/samples/resources/`
+- Change samples: edit files under `charts/mkurator/samples/resources/`
 - E2E against live MQ: `KURATOR_E2E_MQ=1 task test:e2e` (see [DEVELOPMENT.md](DEVELOPMENT.md))
 - Deeper MQSC: [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md)

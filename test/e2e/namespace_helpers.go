@@ -12,15 +12,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konih/kurator/test/utils"
+	"github.com/konih/mkurator/test/utils"
 )
 
 const (
-	namespace         = "kurator-system"
-	namespaceQueues   = "kurator-e2e-queues"
-	namespaceTopics   = "kurator-e2e-topics"
-	namespaceChannels = "kurator-e2e-channels"
-	namespaceAuth     = "kurator-e2e-auth"
+	namespace         = "mkurator-system"
+	namespaceQueues   = "mkurator-e2e-queues"
+	namespaceTopics   = "mkurator-e2e-topics"
+	namespaceChannels = "mkurator-e2e-channels"
+	namespaceAuth     = "mkurator-e2e-auth"
 )
 
 var mqE2ENamespaces = []string{

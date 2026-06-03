@@ -96,7 +96,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/konih/kurator
+        - github.com/konih/mkurator
   exclusions:
     generated: lax
     paths:

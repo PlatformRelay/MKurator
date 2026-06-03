@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestMqscResponseOverallFailed_RESTErrorOnly(t *testing.T) {

@@ -1,8 +1,8 @@
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: orders-app
-  namespace: kurator-system
+  namespace: mkurator-system
 spec:
   connectionRef:
     name: qm1

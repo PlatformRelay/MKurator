@@ -1,4 +1,4 @@
-# Kurator dev dependencies — install from repo root:
+# MKurator dev dependencies — install from repo root:
 #   brew bundle
 # See docs/LOCAL_SETUP.md for tiers and task tools:install (CI-pinned kind/mkcert/task/terraform in bin/).
 

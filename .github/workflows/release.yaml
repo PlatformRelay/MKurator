@@ -16,7 +16,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: kurator
+  IMAGE_NAME: mkurator
 
 jobs:
   release:
@@ -125,7 +125,7 @@ jobs:
       # Reuses GHCR credentials from docker/login-action (~/.docker/config.json).
       - name: Publish Helm chart to GHCR (OCI)
         run: |
-          helm push "dist/kurator-${{ steps.version.outputs.version }}.tgz" "${{ steps.chart.outputs.oci }}"
+          helm push "dist/mkurator-${{ steps.version.outputs.version }}.tgz" "${{ steps.chart.outputs.oci }}"
 
       - name: Generate changelog
         id: cliff
@@ -155,11 +155,11 @@ jobs:
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Kurator ${{ steps.version.outputs.version }}
+          name: MKurator ${{ steps.version.outputs.version }}
           body_path: ${{ runner.temp }}/release-body.md
           files: |
             dist/install-crds.yaml
             dist/install.yaml
-            dist/kurator-${{ steps.version.outputs.version }}.tgz
+            dist/mkurator-${{ steps.version.outputs.version }}.tgz
             dist/sbom.spdx.json
             dist/checksums.txt

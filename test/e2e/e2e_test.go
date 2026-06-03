@@ -15,17 +15,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konih/kurator/test/utils"
+	"github.com/konih/mkurator/test/utils"
 )
 
 // serviceAccountName created for the project
-const serviceAccountName = "kurator-controller-manager"
+const serviceAccountName = "mkurator-controller-manager"
 
 // metricsServiceName is the name of the metrics service of the project
-const metricsServiceName = "kurator-controller-manager-metrics-service"
+const metricsServiceName = "mkurator-controller-manager-metrics-service"
 
 // metricsRoleBindingName is the name of the RBAC that will be created to allow get the metrics data
-const metricsRoleBindingName = "kurator-metrics-binding"
+const metricsRoleBindingName = "mkurator-metrics-binding"
 
 var _ = Describe("Manager", Serial, Ordered, Label("smoke"), func() {
 	var controllerPodName string
@@ -84,12 +84,12 @@ var _ = Describe("Manager", Serial, Ordered, Label("smoke"), func() {
 
 			By("validating that ValidatingWebhookConfiguration is installed")
 			cmd := exec.Command("kubectl", "get", "validatingwebhookconfiguration",
-				"kurator-validating-webhook-configuration")
+				"mkurator-validating-webhook-configuration")
 			_, err := utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "ValidatingWebhookConfiguration should exist")
 
 			By("applying an alias Queue without targq and missing connectionRef target")
-			invalidQueue := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+			invalidQueue := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: webhook-e2e-invalid
@@ -136,13 +136,13 @@ stringData:
   mqAdminPassword: placeholder
 `, namespace))).To(Succeed())
 
-			Expect(kubectlApply(fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: QueueManagerConnection
 metadata:
   name: %s
   namespace: %s
   annotations:
-    messaging.kurator.dev/allow-insecure-tls: "true"
+    messaging.mkurator.dev/allow-insecure-tls: "true"
 spec:
   queueManager: QM1
   endpoint: https://placeholder.invalid:9443
@@ -152,7 +152,7 @@ spec:
     name: webhook-e2e-car-creds
 `, carWebhookQMC, namespace))).To(Succeed())
 
-			invalidCAR := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+			invalidCAR := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: ChannelAuthRule
 metadata:
   name: webhook-e2e-car-invalid
@@ -179,7 +179,7 @@ spec:
 			By("creating a ClusterRoleBinding for the service account to allow access to metrics")
 			kubectlDeleteClusterIgnoreNotFound("clusterrolebinding", metricsRoleBindingName)
 			cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
-				"--clusterrole=kurator-metrics-reader",
+				"--clusterrole=mkurator-metrics-reader",
 				fmt.Sprintf("--serviceaccount=%s:%s", namespace, serviceAccountName),
 			)
 			_, err := utils.Run(cmd)

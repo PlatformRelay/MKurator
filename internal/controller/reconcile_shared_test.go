@@ -18,14 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestRequestsForConnection_EnqueuesDependents(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -155,7 +155,7 @@ func TestIgnoreNotFound(t *testing.T) {
 func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	conn := &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
@@ -200,7 +200,7 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 func TestWaitForConnectionReady_AlreadyReady(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	conn := readyConnForUnit(ns)
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
@@ -214,7 +214,7 @@ func TestWaitForConnectionReady_AlreadyReady(t *testing.T) {
 func TestPatchSyncedAvailable_Queue(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 2},
@@ -252,7 +252,7 @@ func TestPatchSyncedAvailable_Queue(t *testing.T) {
 func TestPatchSyncedProgressing_Channel(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	ch := &messagingv1alpha1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1},
@@ -266,7 +266,7 @@ func TestPatchSyncedProgressing_Channel(t *testing.T) {
 func TestPatchSyncedDeleting_Topic(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	topic := &messagingv1alpha1.Topic{
 		ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: ns, Generation: 1},
@@ -280,7 +280,7 @@ func TestPatchSyncedDeleting_Topic(t *testing.T) {
 func TestSetSyncedError_TerminalQueue(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
@@ -348,7 +348,7 @@ func TestConnectionWatchPredicates(t *testing.T) {
 func TestWatchConnectionStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 
 	conn := &messagingv1alpha1.QueueManagerConnection{
@@ -384,7 +384,7 @@ func TestConnectionRefName_Unsupported(t *testing.T) {
 func TestSetSyncedError_TransientChannel(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	ch := &messagingv1alpha1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1},
@@ -401,7 +401,7 @@ func TestSetSyncedError_TransientChannel(t *testing.T) {
 func TestPatchSyncedAvailable_ChannelAuthRule(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	rule := &messagingv1alpha1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 2},
@@ -415,7 +415,7 @@ func TestPatchSyncedAvailable_ChannelAuthRule(t *testing.T) {
 func TestPatchSyncedDrift_MQObjects(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	exists := true
 	opts := syncStatusOpts{mqObjectExists: &exists}
@@ -448,7 +448,7 @@ func TestPatchSyncedDrift_UnsupportedType(t *testing.T) {
 func TestSetSyncedError_AuthorityRecord(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	auth := &messagingv1alpha1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
@@ -471,7 +471,7 @@ func TestSetSyncedError_AuthorityRecord(t *testing.T) {
 func TestPatchSyncedProgressing_ChannelAuthRule(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	rule := &messagingv1alpha1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1},
@@ -485,7 +485,7 @@ func TestPatchSyncedProgressing_ChannelAuthRule(t *testing.T) {
 func TestPatchSyncedDeleting_AuthorityRecord(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	auth := &messagingv1alpha1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
@@ -537,7 +537,7 @@ func TestConnectionRefName_AuthTypes(t *testing.T) {
 func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	auth := &messagingv1alpha1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},

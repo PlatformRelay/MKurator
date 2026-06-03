@@ -16,19 +16,19 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konih/kurator/test/utils"
+	"github.com/konih/mkurator/test/utils"
 )
 
 var webhookReady atomic.Bool
 
-// kuratorE2ECRDs lists CRDs installed by task install:crds / helm:sync-crds.
-var kuratorE2ECRDs = []string{
-	"queuemanagerconnections.messaging.kurator.dev",
-	"queues.messaging.kurator.dev",
-	"topics.messaging.kurator.dev",
-	"channels.messaging.kurator.dev",
-	"channelauthrules.messaging.kurator.dev",
-	"authorityrecords.messaging.kurator.dev",
+// mkuratorE2ECRDs lists CRDs installed by task install:crds / helm:sync-crds.
+var mkuratorE2ECRDs = []string{
+	"queuemanagerconnections.messaging.mkurator.dev",
+	"queues.messaging.mkurator.dev",
+	"topics.messaging.mkurator.dev",
+	"channels.messaging.mkurator.dev",
+	"channelauthrules.messaging.mkurator.dev",
+	"authorityrecords.messaging.mkurator.dev",
 }
 
 func invalidateWebhookReadyCache() {
@@ -66,7 +66,7 @@ func deployOperatorForE2E() {
 	}
 }
 
-// ensureManagerNamespaceAndDeploy creates kurator-system (kustomize) and installs the operator once.
+// ensureManagerNamespaceAndDeploy creates mkurator-system (kustomize) and installs the operator once.
 func ensureManagerNamespaceAndDeploy() {
 	switch e2eDeployMode() {
 	case "helm":
@@ -99,10 +99,10 @@ func undeployOperatorForE2E() {
 		cmd := exec.Command("task", "undeploy:helm")
 		cmd.Env = taskEnv()
 		_, _ = utils.Run(cmd)
-		undeployKuratorCRDsNoWait()
+		undeployMKuratorCRDsNoWait()
 	default:
 		undeployKustomizeOperatorNoWait()
-		undeployKuratorCRDsNoWait()
+		undeployMKuratorCRDsNoWait()
 	}
 }
 
@@ -120,13 +120,35 @@ func taskEnv() []string {
 	return env
 }
 
-// waitForKuratorCRDsEstablished blocks until all Kurator CRDs are Established, not
-// terminating, and messaging.kurator.dev kinds are visible in API discovery. Call on
-// every Ginkgo process after SynchronizedBeforeSuite process 1 deploys CRDs.
-func waitForKuratorCRDsEstablished() {
-	By("waiting for Kurator CRDs to be Established and discoverable")
+// waitForMKuratorCRDsNotTerminating blocks until MKurator CRDs from a prior e2e
+// AfterSuite (--wait=false delete) are gone or re-Established. Stuck terminating CRDs
+// are force-cleared so a back-to-back local e2e run can proceed.
+func waitForMKuratorCRDsNotTerminating() {
+	By("waiting for MKurator CRDs to finish terminating from a prior e2e run")
 	Eventually(func(g Gomega) {
-		for _, crd := range kuratorE2ECRDs {
+		for _, crd := range mkuratorE2ECRDs {
+			cmd := exec.Command("kubectl", "get", "crd", crd,
+				"-o", "jsonpath={.metadata.deletionTimestamp}")
+			out, runErr := utils.Run(cmd)
+			if runErr != nil {
+				continue
+			}
+			if ts := strings.TrimSpace(out); ts != "" {
+				_, _ = runKubectl("patch", "crd", crd, "--type=merge",
+					"-p", `{"metadata":{"finalizers":null}}`)
+				g.Expect(ts).To(BeEmpty(), "CRD %s should not be terminating", crd)
+			}
+		}
+	}).WithTimeout(10 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+}
+
+// waitForMKuratorCRDsEstablished blocks until all MKurator CRDs are Established, not
+// terminating, and messaging.mkurator.dev kinds are visible in API discovery. Call on
+// every Ginkgo process after SynchronizedBeforeSuite process 1 deploys CRDs.
+func waitForMKuratorCRDsEstablished() {
+	By("waiting for MKurator CRDs to be Established and discoverable")
+	Eventually(func(g Gomega) {
+		for _, crd := range mkuratorE2ECRDs {
 			cmd := exec.Command("kubectl", "get", "crd", crd,
 				"-o", "jsonpath={.status.conditions[?(@.type=='Established')].status}{\"\\t\"}{.metadata.deletionTimestamp}")
 			out, runErr := utils.Run(cmd)
@@ -138,10 +160,10 @@ func waitForKuratorCRDsEstablished() {
 				g.Expect(fields[1]).To(BeEmpty(), "CRD %s should not be terminating", crd)
 			}
 		}
-		cmd := exec.Command("kubectl", "api-resources", "--api-group=messaging.kurator.dev",
+		cmd := exec.Command("kubectl", "api-resources", "--api-group=messaging.mkurator.dev",
 			"-o", "name")
 		out, runErr := utils.Run(cmd)
-		g.Expect(runErr).NotTo(HaveOccurred(), "messaging.kurator.dev API group should be discoverable")
+		g.Expect(runErr).NotTo(HaveOccurred(), "messaging.mkurator.dev API group should be discoverable")
 		for _, kind := range []string{
 			"queuemanagerconnections", "queues", "topics", "channels",
 			"channelauthrules", "authorityrecords",
@@ -154,6 +176,8 @@ func waitForKuratorCRDsEstablished() {
 
 // deployOperatorForE2EKustomize applies CRDs and operator manifests without rebuilding the image.
 func deployOperatorForE2EKustomize() {
+	waitForMKuratorCRDsNotTerminating()
+
 	By("installing CRDs (task install:crds)")
 	cmd := exec.Command("task", "install:crds")
 	cmd.Env = taskEnv()
@@ -161,7 +185,7 @@ func deployOperatorForE2EKustomize() {
 	Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
 
 	By("removing stale controller-manager deployment before apply")
-	cmd = exec.Command("kubectl", "delete", "deployment", "kurator-controller-manager", "-n", namespace,
+	cmd = exec.Command("kubectl", "delete", "deployment", "mkurator-controller-manager", "-n", namespace,
 		"--ignore-not-found", "--wait=true", "--timeout=120s")
 	_, _ = utils.Run(cmd)
 
@@ -171,7 +195,7 @@ func deployOperatorForE2EKustomize() {
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
 
-	waitForKuratorCRDsEstablished()
+	waitForMKuratorCRDsEstablished()
 
 	waitForControllerAndWebhookReady()
 	webhookReady.Store(true)
@@ -179,7 +203,9 @@ func deployOperatorForE2EKustomize() {
 
 // deployOperatorForE2EHelm installs CRDs and the operator via Helm without rebuilding the image.
 func deployOperatorForE2EHelm() {
-	By("removing stale kurator-system namespace before Helm install")
+	waitForMKuratorCRDsNotTerminating()
+
+	By("removing stale mkurator-system namespace before Helm install")
 	cmd := exec.Command("kubectl", "delete", "ns", namespace, "--ignore-not-found", "--wait=true", "--timeout=120s")
 	_, _ = utils.Run(cmd)
 
@@ -201,7 +227,7 @@ func deployOperatorForE2EHelm() {
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
-	waitForKuratorCRDsEstablished()
+	waitForMKuratorCRDsEstablished()
 
 	waitForControllerAndWebhookReady()
 	webhookReady.Store(true)
@@ -227,7 +253,7 @@ func applyChannelAuthPrereqFixtureOnce() {
 // TLS secret, the controller-manager is rolled out, and the webhook Service has endpoints.
 func waitForControllerAndWebhookReady() {
 	Eventually(func(g Gomega) {
-		cmd := exec.Command("kubectl", "get", "certificate", "kurator-serving-cert", "-n", namespace,
+		cmd := exec.Command("kubectl", "get", "certificate", "mkurator-serving-cert", "-n", namespace,
 			"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
 		out, err := utils.Run(cmd)
 		g.Expect(err).NotTo(HaveOccurred(), "serving Certificate should exist")
@@ -241,7 +267,7 @@ func waitForControllerAndWebhookReady() {
 	}).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
 	Eventually(func(g Gomega) {
-		cmd := exec.Command("kubectl", "rollout", "status", "deployment/kurator-controller-manager",
+		cmd := exec.Command("kubectl", "rollout", "status", "deployment/mkurator-controller-manager",
 			"-n", namespace, "--timeout=2m")
 		_, err := utils.Run(cmd)
 		g.Expect(err).NotTo(HaveOccurred(), "controller-manager rollout should complete")
@@ -257,7 +283,7 @@ func waitForControllerAndWebhookReady() {
 	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
 	Eventually(func(g Gomega) {
-		cmd := exec.Command("kubectl", "get", "endpoints", "kurator-webhook-service", "-n", namespace,
+		cmd := exec.Command("kubectl", "get", "endpoints", "mkurator-webhook-service", "-n", namespace,
 			"-o", "jsonpath={.subsets[0].addresses[0].ip}")
 		out, runErr := utils.Run(cmd)
 		g.Expect(runErr).NotTo(HaveOccurred())
@@ -266,7 +292,7 @@ func waitForControllerAndWebhookReady() {
 
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "validatingwebhookconfiguration",
-			"kurator-validating-webhook-configuration")
+			"mkurator-validating-webhook-configuration")
 		_, runErr := utils.Run(cmd)
 		g.Expect(runErr).NotTo(HaveOccurred(), "ValidatingWebhookConfiguration should exist")
 	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
@@ -287,7 +313,7 @@ func waitForControllerAndWebhookReady() {
 
 // webhookAdmissionResponds checks the validating webhook is reachable by dry-running an invalid Queue.
 func webhookAdmissionResponds() error {
-	invalidQueue := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
+	invalidQueue := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: webhook-readiness-probe

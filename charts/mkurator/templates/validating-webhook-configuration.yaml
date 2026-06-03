@@ -1,0 +1,103 @@
+{{- if .Values.webhooks.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "mkurator.validatingWebhookConfigurationName" . }}
+  labels:
+    {{- include "mkurator.labels" . | nindent 4 }}
+  {{- if .Values.webhooks.certManager.create }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ include "mkurator.webhookCertInjectCAFrom" . | quote }}
+  {{- end }}
+webhooks:
+  - admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: {{ include "mkurator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-messaging-mkurator-dev-v1alpha1-authorityrecord
+        port: 443
+    failurePolicy: Fail
+    name: vauthorityrecord.kb.io
+    rules:
+      - apiGroups: [messaging.mkurator.dev]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [authorityrecords]
+    sideEffects: None
+  - admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: {{ include "mkurator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-messaging-mkurator-dev-v1alpha1-channel
+        port: 443
+    failurePolicy: Fail
+    name: vchannel.kb.io
+    rules:
+      - apiGroups: [messaging.mkurator.dev]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [channels]
+    sideEffects: None
+  - admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: {{ include "mkurator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-messaging-mkurator-dev-v1alpha1-channelauthrule
+        port: 443
+    failurePolicy: Fail
+    name: vchannelauthrule.kb.io
+    rules:
+      - apiGroups: [messaging.mkurator.dev]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [channelauthrules]
+    sideEffects: None
+  - admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: {{ include "mkurator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-messaging-mkurator-dev-v1alpha1-queue
+        port: 443
+    failurePolicy: Fail
+    name: vqueue.kb.io
+    rules:
+      - apiGroups: [messaging.mkurator.dev]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [queues]
+    sideEffects: None
+  - admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: {{ include "mkurator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-messaging-mkurator-dev-v1alpha1-queuemanagerconnection
+        port: 443
+    failurePolicy: Fail
+    name: vqueuemanagerconnection.kb.io
+    rules:
+      - apiGroups: [messaging.mkurator.dev]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE, DELETE]
+        resources: [queuemanagerconnections]
+    sideEffects: None
+  - admissionReviewVersions: [v1]
+    clientConfig:
+      service:
+        name: {{ include "mkurator.webhookServiceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: /validate-messaging-mkurator-dev-v1alpha1-topic
+        port: 443
+    failurePolicy: Fail
+    name: vtopic.kb.io
+    rules:
+      - apiGroups: [messaging.mkurator.dev]
+        apiVersions: [v1alpha1]
+        operations: [CREATE, UPDATE]
+        resources: [topics]
+    sideEffects: None
+{{- end }}

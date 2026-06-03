@@ -6,12 +6,12 @@
 #   - Prometheus serviceMonitorSelector labels matching metrics.serviceMonitor.labels
 #
 # Apply:
-#   helm upgrade --install kurator ./charts/kurator \
-#     --namespace kurator-system \
+#   helm upgrade --install mkurator ./charts/mkurator \
+#     --namespace mkurator-system \
 #     --create-namespace \
 #     -f config/samples/observability/metrics-helm-values.yaml
 #
-# Local kind stack (build + load image first): use charts/kurator/samples/values-kind.yaml
+# Local kind stack (build + load image first): use charts/mkurator/samples/values-kind.yaml
 # instead — it includes the same metrics toggles plus image/logging overrides.
 #
 # See docs/OBSERVABILITY.md for RBAC (metrics-reader binding) and verification steps.
@@ -22,7 +22,7 @@ metrics:
   secure: true
 
   serviceMonitor:
-    # Creates charts/kurator/templates/servicemonitor.yaml in the release namespace.
+    # Creates charts/mkurator/templates/servicemonitor.yaml in the release namespace.
     enabled: true
     interval: 30s
     scrapeTimeout: 10s
@@ -31,15 +31,15 @@ metrics:
       release: kube-prometheus-stack
 
   prometheusRule:
-    # Creates charts/kurator/templates/prometheusrule.yaml (kurator.rules alert group).
+    # Creates charts/mkurator/templates/prometheusrule.yaml (mkurator.rules alert group).
     enabled: true
     labels:
       release: kube-prometheus-stack
 
 # Custom metrics scraped from /metrics (see internal/metrics/metrics.go):
-#   kurator_reconcile_total{controller,result}
-#   kurator_reconcile_errors_total{controller}
-#   kurator_mq_operations_total{operation,result}
+#   mkurator_reconcile_total{controller,result}
+#   mkurator_reconcile_errors_total{controller}
+#   mkurator_mq_operations_total{operation,result}
 #
 # Controller labels: queue, topic, channel, channelauthrule, authorityrecord,
 # queuemanagerconnection.

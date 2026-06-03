@@ -14,7 +14,7 @@ const (
 )
 
 // ChannelFinalizer ensures the MQ channel is deleted before the CR is removed.
-const ChannelFinalizer = "messaging.kurator.dev/channel"
+const ChannelFinalizer = "messaging.mkurator.dev/channel"
 
 // ChannelSpec defines a channel to maintain on a referenced queue manager.
 type ChannelSpec struct {

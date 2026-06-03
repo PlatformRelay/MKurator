@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Condition types for Kurator resources.
+// Condition types for MKurator resources.
 const (
 	ConditionReady  = "Ready"
 	ConditionSynced = "Synced"
@@ -20,19 +20,19 @@ const (
 )
 
 // DriftPolicyAnnotation selects how the operator responds to spec vs IBM MQ drift.
-const DriftPolicyAnnotation = "messaging.kurator.dev/drift-policy"
+const DriftPolicyAnnotation = "messaging.mkurator.dev/drift-policy"
 
 // DriftPolicyObserveOnly reports drift without issuing DEFINE/ALTER to correct MQ.
 const DriftPolicyObserveOnly = "observe-only"
 
 // QueueManagerConnectionFinalizer ensures MQ cleanup completes before removal.
-const QueueManagerConnectionFinalizer = "messaging.kurator.dev/connection"
+const QueueManagerConnectionFinalizer = "messaging.mkurator.dev/connection"
 
 // AllowInsecureTLSAnnotation opts in to tls.insecureSkipVerify on QueueManagerConnection (dev only).
-const AllowInsecureTLSAnnotation = "messaging.kurator.dev/allow-insecure-tls"
+const AllowInsecureTLSAnnotation = "messaging.mkurator.dev/allow-insecure-tls"
 
 // QueueFinalizer ensures the MQ queue is deleted before the CR is removed.
-const QueueFinalizer = "messaging.kurator.dev/queue"
+const QueueFinalizer = "messaging.mkurator.dev/queue"
 
 // QueueManagerConnectionSpec defines how to reach an IBM MQ queue manager.
 type QueueManagerConnectionSpec struct {

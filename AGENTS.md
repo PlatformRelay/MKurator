@@ -1,7 +1,7 @@
 # AGENTS.md
 
 This document is the entry point for humans and AI agents working on the
-**Kurator**. It captures what the project is, how it is
+**MKurator**. It captures what the project is, how it is
 structured, and the conventions every change must follow. Read it before
 making changes, and keep it in sync when conventions evolve.
 
@@ -34,7 +34,7 @@ Full doc index by role (with navigation emojis): **[docs/README.md](docs/README.
 
 ## Overview
 
-Kurator is a Kubernetes operator that manages
+MKurator is a Kubernetes operator that manages
 **resources on an existing IBM MQ Queue Manager** declaratively: queues (local,
 alias, remote), topics, SVRCONN channels, **channel auth (CHLAUTH)**, and **OAM
 authority records (AUTHREC)**.
@@ -124,7 +124,7 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 │   ├── webhook/              # validating webhook handlers
 │   ├── mqadmin/              # MQAdmin port (interface) + domain types
 │   └── adapter/mqrest/       # mqweb REST client implementing MQAdmin
-├── charts/kurator/            # publishable Helm chart + kind sample CRs
+├── charts/mkurator/            # publishable Helm chart + kind sample CRs
 ├── config/                    # Kustomize: CRDs, RBAC, manager, webhook, samples
 ├── test/
 │   ├── integration/          # Docker MQ integration tests (build tag integration)
@@ -147,9 +147,9 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 └── AGENTS.md / README.md
 ```
 
-> Module `github.com/konih/kurator`, API group `messaging.kurator.dev`,
-> version `v1alpha1`. GitHub org/repo: [konih/kurator](https://github.com/konih/kurator).
-> See [ADR-0006](docs/adr/0006-project-name-kurator.md).
+> Module `github.com/konih/mkurator`, API group `messaging.mkurator.dev`,
+> version `v1alpha1`. GitHub org/repo: [konih/mkurator](https://github.com/konih/mkurator).
+> See [ADR-0018](docs/adr/0018-project-rename-mkurator.md) (supersedes [ADR-0006](docs/adr/0006-project-name-kurator.md)).
 
 ## Toolchain & dependencies
 
@@ -288,9 +288,9 @@ via `hack/ci/suite-lock.sh` — only one suite at a time per host.
 | `task cluster:info` | Print MQ/Grafana/Argo CD URLs and credentials |
 | `task mq:console` / `task mq:cli` / `task mq:runmqsc` | IBM MQ web UI URL; interactive or one-shot `runmqsc` on kind QM1 |
 | `task deploy` / `task deploy:helm` | Install operator (Kustomize or Helm; uses `go tool kustomize`) |
-| `task deploy:samples` | Apply sample Secret + CRs (`charts/kurator/samples/resources/`) |
+| `task deploy:samples` | Apply sample Secret + CRs (`charts/mkurator/samples/resources/`) |
 | `task undeploy` / `task undeploy:helm` | Remove operator |
-| `task helm:package` | Package `charts/kurator` for publish |
+| `task helm:package` | Package `charts/mkurator` for publish |
 | `task helm:lint` | `helm lint` + admission/RBAC template verify (`hack/helm-verify-*.sh`) |
 | `task test:run` | Run unit + envtest suites (Ginkgo) |
 | `task test:integration` | MQ integration tests vs Docker mqweb (`KURATOR_INTEGRATION_MQ=1`) |

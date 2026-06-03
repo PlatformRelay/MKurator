@@ -1,5 +1,5 @@
-# Example logging configuration for Kurator.
-# Mount as a ConfigMap and set KURATOR_LOG_CONFIG=/etc/kurator/logging.yaml
+# Example logging configuration for MKurator.
+# Mount as a ConfigMap and set KURATOR_LOG_CONFIG=/etc/mkurator/logging.yaml
 # See docs/LOGGING.md for precedence and environment variables.
 
 level: info

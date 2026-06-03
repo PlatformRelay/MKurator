@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Assert the Helm chart renders manager ClusterRole rules aligned with
-# config/rbac/role.yaml (kubebuilder/controller-gen output) for messaging.kurator.dev.
+# config/rbac/role.yaml (kubebuilder/controller-gen output) for messaging.mkurator.dev.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-CHART="./charts/kurator"
-NAMESPACE="kurator-system"
-RELEASE="kurator"
+CHART="./charts/mkurator"
+NAMESPACE="mkurator-system"
+RELEASE="mkurator"
 ROLE_YAML="${ROOT}/config/rbac/role.yaml"
 
 rendered="$(mktemp)"
@@ -25,10 +25,10 @@ if ! grep -q "name: ${RELEASE}-manager" "${rendered}"; then
   exit 1
 fi
 
-# Normalize Helm inline rules: "resources|verbs" per messaging.kurator.dev block.
+# Normalize Helm inline rules: "resources|verbs" per messaging.mkurator.dev block.
 extract_helm_messaging_rules() {
   awk '
-    /apiGroups: \[messaging.kurator.dev\]/ { capture=1; resources=""; verbs=""; next }
+    /apiGroups: \[messaging.mkurator.dev\]/ { capture=1; resources=""; verbs=""; next }
     capture && /resources:/ {
       line=$0
       sub(/^.*resources: \[/, "", line)
@@ -48,10 +48,10 @@ extract_helm_messaging_rules() {
   ' "${rendered}" | sort
 }
 
-# Normalize kubebuilder role.yaml rules: "resources|verbs" per messaging.kurator.dev block.
+# Normalize kubebuilder role.yaml rules: "resources|verbs" per messaging.mkurator.dev block.
 extract_kubebuilder_messaging_rules() {
   awk '
-    /- messaging.kurator.dev/ {
+    /- messaging.mkurator.dev/ {
       in_messaging=1
       resources=""
       verbs=""
@@ -90,7 +90,7 @@ extract_helm_messaging_rules > "${normalized_helm}"
 extract_kubebuilder_messaging_rules > "${normalized_kubebuilder}"
 
 if ! diff -u "${normalized_kubebuilder}" "${normalized_helm}"; then
-  echo "helm-verify-rbac: manager ClusterRole messaging.kurator.dev rules differ from ${ROLE_YAML}" >&2
+  echo "helm-verify-rbac: manager ClusterRole messaging.mkurator.dev rules differ from ${ROLE_YAML}" >&2
   exit 1
 fi
 
