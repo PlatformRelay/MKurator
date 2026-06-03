@@ -1,7 +1,7 @@
 # CI/CD
 
 This document describes the continuous integration and delivery design for
-**Kurator**. The guiding principle: **the same checks run locally
+**MKurator**. The guiding principle: **the same checks run locally
 (via Task and pre-commit) and in CI**, so "green locally" means "green in CI".
 
 CI runs on **GitHub Actions** per the workflows under `.github/workflows/`
@@ -115,7 +115,7 @@ kind when the host image is warm).
 Helm chart cache **~30 s–2 min** on first Terraform apply.
 
 `release.yaml` continues to use BuildKit GHA cache for controller image builds
-(not the composites above). `charts/kurator` has no `helm dependency update` step
+(not the composites above). `charts/mkurator` has no `helm dependency update` step
 in CI — nothing to cache beyond the Terraform MQ chart fetch.
 
 ## Jobs
@@ -165,7 +165,7 @@ Runs in order within the job:
    scheduled govulncheck workflow (Renovate runs weekly).
 
 CI then uploads `coverage.out` as a workflow artifact, prints a **job summary**
-(`go tool cover -func`), and publishes to [Codecov](https://codecov.io/gh/konih/kurator)
+(`go tool cover -func`), and publishes to [Codecov](https://codecov.io/gh/konih/mkurator)
 (`codecov.yml`) via `codecov/codecov-action` using the repository secret
 `CODECOV_TOKEN` with `fail_ci_if_error: true` (upload failures fail the job;
 `codecov.yml` uses `target: auto` only — no strict coverage gate in CI).
@@ -181,7 +181,7 @@ the image builds on every PR and `main` push; **no registry push** (push, scan,
 and signing run only in `release.yaml` on tags).
 
 ### `helm-lint`
-`task helm:lint` — `helm lint ./charts/kurator` on the publishable Helm chart,
+`task helm:lint` — `helm lint ./charts/mkurator` on the publishable Helm chart,
 then [`hack/helm-verify-admission.sh`](../hack/helm-verify-admission.sh) and
 [`hack/helm-verify-rbac.sh`](../hack/helm-verify-rbac.sh) to assert rendered
 webhook and manager ClusterRole templates stay aligned with
@@ -270,7 +270,7 @@ Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and
 digest (keyless OIDC), generates an SPDX SBOM (`dist/sbom.spdx.json`), packages
 release assets via [`hack/release-assets.sh`](../hack/release-assets.sh)
 (Kustomize manifests, Helm `.tgz`, checksums), **pushes the Helm chart to GHCR
-OCI** (`helm push` → `oci://ghcr.io/<owner>/kurator:<version>`; reuses the
+OCI** (`helm push` → `oci://ghcr.io/<owner>/mkurator:<version>`; reuses the
 existing GHCR login — no extra token step), then publishes the same install
 artifacts on the GitHub Release. Runs only on `v*.*.*` tags (or
 `workflow_dispatch` for testing).
@@ -283,7 +283,7 @@ via [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh). Check
 uses `fetch-depth: 0` so tag ranges resolve correctly.
 
 Maintainer steps: [RELEASE.md](RELEASE.md). Before tagging: `task changelog` (preview),
-bump `charts/kurator/Chart.yaml`, `task changelog:write`, commit, then run
+bump `charts/mkurator/Chart.yaml`, `task changelog:write`, commit, then run
 **Release gate** (`workflow_dispatch`) or manually confirm **CI**, **Integration**,
 and **E2E (kustomize)** are green on the **exact commit SHA** you will tag (do not
 tag ahead of a red pipeline — `v0.5.2` was tagged without this evidence).
@@ -318,7 +318,7 @@ controller **docker-build** in CI does not use BuildKit layer cache (release wor
 | Release SBOM | BuildKit attestation on push + SPDX file on GitHub Release |
 | Image signing | cosign keyless (`sigstore/cosign-installer`) on image digest |
 | SLSA provenance | `provenance: mode=max` on `docker/build-push-action` |
-| Helm chart (OCI) | `helm push` to `oci://ghcr.io/<owner>/kurator` on tag (GHCR package) |
+| Helm chart (OCI) | `helm push` to `oci://ghcr.io/<owner>/mkurator` on tag (GHCR package) |
 
 Further supply-chain hardening (OpenSSF Scorecard, SLSA Level 3 builders) remains
 optional; see [ADR-0005](adr/0005-keep-tooling-lean.md).

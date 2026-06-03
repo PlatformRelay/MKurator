@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="${ROOT}/config/crd/bases"
-DST="${ROOT}/charts/kurator/crds"
+DST="${ROOT}/charts/mkurator/crds"
 
 if [[ ! -d "${SRC}" ]]; then
   echo "missing ${SRC}; run: task manifests" >&2

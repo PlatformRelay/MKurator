@@ -12,7 +12,7 @@ trap suite_lock_release EXIT
 
 export CERT_MANAGER_INSTALL_SKIP="${CERT_MANAGER_INSTALL_SKIP:-true}"
 export KURATOR_E2E_MQ="${KURATOR_E2E_MQ:-1}"
-export KIND_CLUSTER="${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
+export KIND_CLUSTER="${KIND_CLUSTER:-${CLUSTER_NAME:-mkurator}}"
 export KUBECONFIG="${KUBECONFIG:-${ROOT}/hack/kind-cluster/.state/kubeconfig.yaml}"
 
 cd "${ROOT}"

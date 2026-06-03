@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestIntegration_GetChannelAuth(t *testing.T) {
@@ -238,7 +238,7 @@ func TestIntegration_GetAuthority_Topic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	topstr := fmt.Sprintf("kurator/it/%d", testNameHash(t.Name())%100000)
+	topstr := fmt.Sprintf("mkurator/it/%d", testNameHash(t.Name())%100000)
 	topicSpec := mqadmin.TopicSpec{
 		Name: profile,
 		Attributes: map[string]string{

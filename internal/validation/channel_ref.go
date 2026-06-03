@@ -7,11 +7,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 )
 
 // ValidateManagedChannelRef ensures a Channel CR exists in the same namespace with matching
-// spec.channelName and spec.connectionRef.name. CHLAUTH rules target channels Kurator manages
+// spec.channelName and spec.connectionRef.name. CHLAUTH rules target channels MKurator manages
 // via Channel CRs; pre-existing MQ-only channels are out of scope for this check.
 func ValidateManagedChannelRef(
 	ctx context.Context,

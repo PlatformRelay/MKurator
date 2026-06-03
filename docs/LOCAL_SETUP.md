@@ -1,6 +1,6 @@
 # Local setup
 
-Install the tools needed to build, test, and run **Kurator** on your machine.
+Install the tools needed to build, test, and run **MKurator** on your machine.
 For day-to-day workflow after setup, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 Doc index: [README.md](README.md)
@@ -234,7 +234,7 @@ task local:info
 ```
 
 Success looks like: MQ console at `https://mq.localhost:30443/ibmmq/console/`,
-operator pods in `kurator-system`, sample CRs with `Synced=True`.
+operator pods in `mkurator-system`, sample CRs with `Synced=True`.
 
 ## Local kind cluster extras
 
@@ -243,7 +243,7 @@ from the root Taskfile). What each one does:
 
 | Tool | Role in `task cluster:up` |
 |------|---------------------------|
-| **kind** | Creates the `kurator` Kubernetes cluster with NodePorts 30080/30443 |
+| **kind** | Creates the `mkurator` Kubernetes cluster with NodePorts 30080/30443 |
 | **Docker** | kind node images; `kind load docker-image` for the operator |
 | **kubectl** | Talk to the cluster; MQ CLI helpers (`task mq:cli`) |
 | **mkcert** | Wildcard TLS for `*.localhost` (HAProxy ingress, MQ console) |

@@ -33,9 +33,9 @@ order (or rely on `task verify`, which runs the same steps and fails on drift):
 |------|---------|-------------------|
 | 1 | `task generate` | `api/*/zz_generated.deepcopy.go`; **mockery** mocks if `.mockery.yaml` lists interfaces |
 | 2 | `task manifests` | `config/crd/bases/*.yaml`, `config/rbac/role.yaml`, webhook manifests under `config/` |
-| 3 | *(automatic in `task verify`)* | `hack/helm-sync-crds.sh` → `charts/kurator/crds/` |
+| 3 | *(automatic in `task verify`)* | `hack/helm-sync-crds.sh` → `charts/mkurator/crds/` |
 | 4 | If CR **spec** OpenAPI changed | `task test:schema:update` → `test/schema/golden/*.spec.openapi.yaml` |
-| 5 | If `config/samples/` CR YAML changed | `task samples:sync` → `charts/kurator/samples/resources/` |
+| 5 | If `config/samples/` CR YAML changed | `task samples:sync` → `charts/mkurator/samples/resources/` |
 
 One-liner after API edits:
 
@@ -54,7 +54,7 @@ Then `task verify` before commit (also runs schema contract tests).
 | Reconciler mapping CR spec → port types | `internal/controller/*_controller.go` |
 | Drift / DEFINE vs DISPLAY policy | [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) and reconciler helpers |
 | User-facing samples | `config/samples/`, [config/samples/README.md](../config/samples/README.md) |
-| Helm-only sample files | `charts/kurator/samples/resources/` (README, Secret template) |
+| Helm-only sample files | `charts/mkurator/samples/resources/` (README, Secret template) |
 
 OpenAPI **contract** tests live in [`test/schema/`](../test/schema/README.md): they
 diff committed CRD YAML against golden spec fragments — no cluster. Adding a new

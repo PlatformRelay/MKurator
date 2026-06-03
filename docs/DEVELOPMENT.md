@@ -1,13 +1,13 @@
 # Development
 
-How to set up, build, test, and run **Kurator** locally. For commit format and
+How to set up, build, test, and run **MKurator** locally. For commit format and
 contributor guidelines see [CONTRIBUTING.md](CONTRIBUTING.md); for Go style and
 agent workflow see [../AGENTS.md](../AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-The Git repository is [konih/kurator](https://github.com/konih/kurator); your
+The Git repository is [konih/mkurator](https://github.com/konih/mkurator); your
 local clone directory may differ (for example `IBM-Message-Queue-Operator`).
-See [ADR-0006](adr/0006-project-name-kurator.md).
+See [ADR-0006](adr/0006-project-name-mkurator.md).
 
 Doc index: [README.md](README.md)
 
@@ -23,7 +23,7 @@ regeneration, reconciler/MQAdmin mocks, which tier to run). **Module layout:**
 | 📋 | [Prerequisites](#prerequisites) |
 | 🔄 | [The inner loop](#the-inner-loop) |
 | 🖥️ | [Local platform (kind + IBM MQ)](#local-platform-kind--ibm-mq) |
-| 📦 | [Deploying a queue manager](#deploying-a-queue-manager-for-kurator) |
+| 📦 | [Deploying a queue manager](#deploying-a-queue-manager-for-mkurator) |
 | 🧪 | [Test tiers](#test-tiers) |
 | 📐 | [Developer guide](DEVELOPER_GUIDE.md) — regenerate / test checklist |
 | 🆘 | [Troubleshooting](#troubleshooting) |
@@ -62,7 +62,7 @@ Platform-only commands live under `task cluster:*` (see
 | `task cluster:info` | MQ/Grafana/Argo CD URLs and passwords |
 | `task cluster:down` | Destroy platform and delete kind cluster |
 | `task deploy` | Operator via Kustomize (`config/default` + CRDs) |
-| `task deploy:helm` | Operator via [Helm chart](../charts/kurator/README.md) (recommended on kind) |
+| `task deploy:helm` | Operator via [Helm chart](../charts/mkurator/README.md) (recommended on kind) |
 | `task deploy:samples` | Sample Secret + `QueueManagerConnection` + `Queue` + `Topic` + `Channel` |
 | `task mq:console` | IBM MQ web UI URL (`https://mq.localhost:30443/ibmmq/console/`) |
 | `task mq:cli` | Interactive `runmqsc` on QM1 |
@@ -82,8 +82,8 @@ Platform-only commands live under `task cluster:*` (see
 After `task local:up`, check reconciliation:
 
 ```sh
-kubectl get qmc,mq,tp,chl -n kurator-system
-kubectl logs -n kurator-system deployment/kurator-controller-manager -f
+kubectl get qmc,mq,tp,chl -n mkurator-system
+kubectl logs -n mkurator-system deployment/mkurator-controller-manager -f
 ```
 
 Confirm on MQ (`task mq:runmqsc`):
@@ -170,17 +170,17 @@ scaffold targets (`make test-e2e`, `make run`, …) or tooling that expects Make
 (`task docker:build`), then installs CRDs and the operator via `task install:crds` +
 `task deploy:operator` (Kustomize, default) or `task deploy:helm:operator` when
 `KURATOR_E2E_DEPLOY=helm` — no second image build during deploy
-(`test/e2e/deploy_helpers.go`). All Ginkgo processes then wait for every Kurator CRD
-to reach `Established` and for `messaging.kurator.dev` kinds to appear in API
+(`test/e2e/deploy_helpers.go`). All Ginkgo processes then wait for every MKurator CRD
+to reach `Established` and for `messaging.mkurator.dev` kinds to appear in API
 discovery before any spec runs (avoids parallel-node `no matches for kind` races).
 `AfterSuite` undeploys CRDs and removes test namespaces — a killed run may leave
 the cluster without CRDs; the next `task test:e2e` reinstalls them in BeforeSuite.
 
 **E2e Helm admission path (deferred-e2e-helm):** validating webhook negative apply
 specs in `test/e2e/e2e_test.go` exercise the same resource names whether the operator
-is installed with Kustomize or Helm (`kurator-validating-webhook-configuration`,
-`kurator-serving-cert`, `kurator-webhook-service`). Helm chart templates now render
-those resources (`charts/kurator/templates/webhook-*.yaml`,
+is installed with Kustomize or Helm (`mkurator-validating-webhook-configuration`,
+`mkurator-serving-cert`, `mkurator-webhook-service`). Helm chart templates now render
+those resources (`charts/mkurator/templates/webhook-*.yaml`,
 `validating-webhook-configuration.yaml`); `task helm:lint` runs
 `hack/helm-verify-admission.sh` to keep them aligned with `config/webhook/manifests.yaml`.
 
@@ -232,7 +232,7 @@ with **HAProxy Ingress** (NodePorts 30080/30443), **cert-manager**, an optional
 > [README.md](../README.md) and [INSTALL_AND_USE.md](INSTALL_AND_USE.md) link here
 > for quick start only.
 
-Cluster name: `kurator` (override with `CLUSTER_NAME` if you have an existing
+Cluster name: `mkurator` (override with `CLUSTER_NAME` if you have an existing
 `ibm-mq-operator` cluster from before the rename). State (kubeconfig, TLS) is
 written to `hack/kind-cluster/.state/`.
 
@@ -252,7 +252,7 @@ cd hack/kind-cluster
 export KUBECONFIG="$(pwd)/.state/kubeconfig.yaml"
 ```
 
-`task cluster:up` is idempotent: an existing `kurator` kind cluster is reused.
+`task cluster:up` is idempotent: an existing `mkurator` kind cluster is reused.
 Override the cluster name with `CLUSTER_NAME=…` (legacy clusters may still be
 named `ibm-mq-operator`).
 
@@ -270,13 +270,13 @@ Printed by `task cluster:info` / `./scripts/info.sh` after bring-up:
 
 Defaults (override via Terraform variables in `hack/kind-cluster/terraform/`):
 Queue Manager **`QM1`**, MQ admin **`admin`** / **`passw0rd`**, namespace
-**`ibm-mq`**. Sample CRs use a `mq-credentials` Secret in **`kurator-system`**
-(see `charts/kurator/samples/resources/`). These are **local-dev defaults
+**`ibm-mq`**. Sample CRs use a `mq-credentials` Secret in **`mkurator-system`**
+(see `charts/mkurator/samples/resources/`). These are **local-dev defaults
 only** — never reuse them anywhere real.
 
-## Deploying a queue manager for Kurator
+## Deploying a queue manager for MKurator
 
-Kurator requires an **existing** queue manager with **mqweb** enabled. It does not
+MKurator requires an **existing** queue manager with **mqweb** enabled. It does not
 install or upgrade Queue Managers. Choose one of the options below; then point a
 `QueueManagerConnection` at the in-cluster mqweb URL (or a reachable equivalent).
 
@@ -301,7 +301,7 @@ checks from your laptop.
 
 ### Option B — IBM MQ Operator (OpenShift or EKS preview)
 
-Use when the queue manager is already managed by IBM’s operator. Kurator only needs
+Use when the queue manager is already managed by IBM’s operator. MKurator only needs
 mqweb credentials and network reachability from the operator namespace.
 
 **OpenShift:** install the IBM Operator Catalog (`icr.io/cpopen/ibm-operator-catalog`)
@@ -320,7 +320,7 @@ Minimum `QueueManager` fields for mqweb (adapt namespace/license as required):
 | `spec.web.console.authentication.provider` / `authorization.provider` | e.g. `manual` for basic registry (see gitops `qmdemo-qm.yaml`) |
 | `spec.pki.keys` / `spec.pki.trust` | TLS material for the QM pod (often from cert-manager Secrets) |
 | `spec.queueManager.name` | QM name — must match `QueueManagerConnection.spec.queueManager` |
-| `spec.queueManager.mqsc` | Optional bootstrap MQSC via ConfigMap (channels, CHLAUTH at install). Kurator reconciles **additional** objects later via CRs. |
+| `spec.queueManager.mqsc` | Optional bootstrap MQSC via ConfigMap (channels, CHLAUTH at install). MKurator reconciles **additional** objects later via CRs. |
 
 On **EKS**, disable OpenShift-only routes in the `QueueManager` spec (see
 [Ingress for IBM MQ Console and REST APIs](https://github.com/ibm-messaging/mq-operator-eks-preview-2025/blob/main/configuring_Ingress_and_LoadBalancers/Ingress_for_IBM_MQ_Console_and_REST_APIs.md)):
@@ -329,7 +329,7 @@ On **EKS**, disable OpenShift-only routes in the `QueueManager` spec (see
 - `spec.queueManager.route.enabled: false`
 - `spec.queueManager.metrics.serviceMonitor.enabled: false` (unless you run Prometheus Operator)
 
-Create a Kubernetes Secret with mqweb admin credentials. Kurator accepts `username` +
+Create a Kubernetes Secret with mqweb admin credentials. MKurator accepts `username` +
 `password` or `mqAdminPassword` (see `internal/adapter/mqrest/factory.go`).
 
 Example `QueueManagerConnection` (same as [samples](../config/samples/)):
@@ -379,9 +379,9 @@ kubectl apply -k config/samples    # legacy kubebuilder samples
 `task deploy` uses `go tool kustomize` (pinned via `go.mod`) — no separate
 kustomize binary required.
 
-Both install paths target namespace **`kurator-system`** and expect mqweb at
+Both install paths target namespace **`mkurator-system`** and expect mqweb at
 `https://ibm-mq.ibm-mq.svc:9443` after `task cluster:up`. Chart details:
-[charts/kurator/README.md](../charts/kurator/README.md).
+[charts/mkurator/README.md](../charts/mkurator/README.md).
 
 ### Tear down
 
@@ -489,8 +489,8 @@ same style as other CI tasks (`==> <timestamp> …`). Full platform bring-up use
 | `[e2e] …` | Progress lines from `e2eBy()` inside specs |
 
 Ginkgo runs with `-ginkgo.vv`, `-ginkgo.show-node-events`, and `-ginkgo.procs` (default
-**3** via `KURATOR_E2E_NODES`). MQ specs use per-family namespaces (`kurator-e2e-queues`,
-`kurator-e2e-topics`, `kurator-e2e-channels`, `kurator-e2e-auth`) and unique MQ object
+**3** via `KURATOR_E2E_NODES`). MQ specs use per-family namespaces (`mkurator-e2e-queues`,
+`mkurator-e2e-topics`, `mkurator-e2e-channels`, `mkurator-e2e-auth`) and unique MQ object
 prefixes per process (`E2E.N1.…`). CHLAUTH specs run in a **serial** `mq-auth-serial` lane.
 PR CI sets `KURATOR_E2E_LABEL_FILTER='(smoke || mq) && !slow'` (manager smoke + MQ
 paths; skips metrics and QMC rotation). Override
@@ -514,14 +514,14 @@ KURATOR_CI_E2E_BOTH=1 task ci:e2e                           # same cluster: kust
 
 If a prior e2e run was killed, remove a stale suite lock when the holder PID is gone:
 `rm -f hack/kind-cluster/.state/locks/exclusive-test.lock`. Confirm CRDs after BeforeSuite:
-`kubectl --kubeconfig=hack/kind-cluster/.state/kubeconfig.yaml get crd queuemanagerconnections.messaging.kurator.dev`.
+`kubectl --kubeconfig=hack/kind-cluster/.state/kubeconfig.yaml get crd queuemanagerconnections.messaging.mkurator.dev`.
 
-AfterSuite teardown deletes all Kurator CRs in e2e namespaces **before** removing the operator
+AfterSuite teardown deletes all MKurator CRs in e2e namespaces **before** removing the operator
 and CRDs (`--wait=false`), strips operator finalizers if the controller is already gone, and
 times out after five minutes so a stuck `kubectl delete` cannot hang the suite forever.
 For local iteration without removing CRDs, set `KURATOR_E2E_SKIP_CRD_UNDEPLOY=1`. If teardown
 still blocks on a terminating CR, patch finalizers then re-run delete, e.g.
-`kubectl patch queue <name> -n kurator-e2e-queues --type=merge -p '{"metadata":{"finalizers":null}}'`.
+`kubectl patch queue <name> -n mkurator-e2e-queues --type=merge -p '{"metadata":{"finalizers":null}}'`.
 
 Guidelines:
 
@@ -564,9 +564,9 @@ failing). See [ARCHITECTURE.md](ARCHITECTURE.md#operator-runtime-concerns) and
 - **IBM MQ pod slow to start**: chart wait up to ~15 min; check
   `kubectl -n ibm-mq get pods` and logs.
 - **Queue `Synced=False` / MQSC errors**: check
-  `kubectl describe queue -n kurator-system` and operator logs; see
+  `kubectl describe queue -n mkurator-system` and operator logs; see
   [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md).
-- **mqweb 401/403**: confirm `mq-credentials` in `kurator-system` (samples use
+- **mqweb 401/403**: confirm `mq-credentials` in `mkurator-system` (samples use
   `username` + `mqAdminPassword`; factory also accepts `password`).
 - **envtest binaries missing**: `task test:run` downloads them via
   `setup-envtest` on first run (needs network).

@@ -9,7 +9,7 @@ if ! terraform -chdir="${ROOT_DIR}/terraform" output >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "=== Kurator local kind cluster ==="
+echo "=== MKurator local kind cluster ==="
 terraform -chdir="${ROOT_DIR}/terraform" output
 
 ARGOCD_ENABLED="$(terraform -chdir="${ROOT_DIR}/terraform" output -raw enable_argocd 2>/dev/null || echo false)"
@@ -40,7 +40,7 @@ In-cluster (QueueManagerConnection.endpoint):
 MQSC CLI (from repo root):
   - task mq:cli
   - task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS')"
-  - docs/IBM_MQ_101.md — verify Kurator + IBM MQ
+  - docs/IBM_MQ_101.md — verify MKurator + IBM MQ
 
 Enable Argo CD on the next apply: ENABLE_ARGOCD=true task cluster:apply
 EOF

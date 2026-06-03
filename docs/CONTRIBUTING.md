@@ -1,6 +1,6 @@
 # Contributing
 
-Developer guidelines for **Kurator**: how we work on the codebase, write commit
+Developer guidelines for **MKurator**: how we work on the codebase, write commit
 messages, and keep release notes accurate. For local setup and commands see
 [DEVELOPMENT.md](DEVELOPMENT.md); for Go style, testing, and agent workflow see
 [AGENTS.md](../AGENTS.md).
@@ -32,7 +32,7 @@ Doc index: [README.md](README.md)
 - **Generated artifacts stay fresh** — run `task generate && task manifests` when
   APIs or kubebuilder markers change, then `task verify` before pushing.
 - **Sample CR YAML** — edit [`config/samples/`](../config/samples/) first, then
-  `task samples:sync` so [`charts/kurator/samples/resources/`](../charts/kurator/samples/resources/)
+  `task samples:sync` so [`charts/mkurator/samples/resources/`](../charts/mkurator/samples/resources/)
   stays in sync (`task verify` checks both).
 - **No secrets in git** — credentials belong in cluster Secrets, not commits or
   logs. pre-commit runs gitleaks; do not routinely use `git commit --no-verify`
@@ -101,7 +101,7 @@ repo:
 | `mqrest` | `internal/adapter/mqrest` REST client |
 | `webhook` | `internal/webhook`, `internal/validation` |
 | `queue`, `topic`, `channel`, `messaging` | CR-specific reconcile or API |
-| `chart` | `charts/kurator` Helm chart |
+| `chart` | `charts/mkurator` Helm chart |
 | `ci` | `.github/workflows` |
 | `docs` | `docs/`, README |
 | `test` | `test/`, `*_test.go` |
@@ -160,9 +160,9 @@ manifests) must be visible in the commit and changelog.
    Commits style).
 
 ```text
-refactor!: :recycle: rename module to github.com/konih/kurator
+refactor!: :recycle: rename module to github.com/konih/mkurator
 
-BREAKING CHANGE: import paths and container image registry moved to konih/kurator.
+BREAKING CHANGE: import paths and container image registry moved to konih/mkurator.
 ```
 
 Breaking commits appear under **Breaking Changes** in [CHANGELOG.md](../CHANGELOG.md).
@@ -206,7 +206,7 @@ per bullet.
 
 1. Merge work on `main` with conventional commits.
 2. `task changelog` — sanity-check grouping.
-3. Bump `charts/kurator/Chart.yaml` `version` and `appVersion`.
+3. Bump `charts/mkurator/Chart.yaml` `version` and `appVersion`.
 4. `task changelog:write` — commit `CHANGELOG.md`.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z` — CI publishes image and GitHub Release.
 

@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=kind-common.sh
 source "${ROOT_DIR}/scripts/kind-common.sh"
 
-CLUSTER_NAME="${CLUSTER_NAME:-kurator}"
+CLUSTER_NAME="${CLUSTER_NAME:-mkurator}"
 KUBECONFIG_OUT="${KUBECONFIG_OUT:-${ROOT_DIR}/.state/kubeconfig.yaml}"
 KIND_CONFIG="${KIND_CONFIG:-${ROOT_DIR}/kind/cluster.yaml}"
 

@@ -25,9 +25,9 @@ kubectl apply -f install.yaml
 ## Install (Helm — OCI)
 
 ```sh
-helm upgrade --install kurator ${CHART_OCI}/kurator \
+helm upgrade --install mkurator ${CHART_OCI}/mkurator \
   --version ${VERSION} \
-  --namespace kurator-system \
+  --namespace mkurator-system \
   --create-namespace \
   --set image.repository=${IMAGE_REPO} \
   --set image.tag=${VERSION}
@@ -36,8 +36,8 @@ helm upgrade --install kurator ${CHART_OCI}/kurator \
 ## Install (Helm — GitHub Release tarball)
 
 ```sh
-helm upgrade --install kurator kurator-${VERSION}.tgz \
-  --namespace kurator-system \
+helm upgrade --install mkurator mkurator-${VERSION}.tgz \
+  --namespace mkurator-system \
   --create-namespace \
   --set image.repository=${IMAGE_REPO} \
   --set image.tag=${VERSION}

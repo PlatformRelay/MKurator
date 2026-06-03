@@ -1,10 +1,10 @@
-# Standalone IBM MQ for Kurator integration tests (mqweb on localhost:9443).
+# Standalone IBM MQ for MKurator integration tests (mqweb on localhost:9443).
 # See README.md and: task mq:integration:up
 services:
   ibm-mq:
     # renovate: datasource=docker depName=icr.io/ibm-messaging/mq
     image: icr.io/ibm-messaging/mq:9.4.5.1-r1
-    container_name: kurator-mq-integration
+    container_name: mkurator-mq-integration
     environment:
       LICENSE: accept
       MQ_QMGR_NAME: QM1

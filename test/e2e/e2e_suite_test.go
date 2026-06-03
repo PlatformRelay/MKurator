@@ -13,14 +13,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/konih/kurator/test/utils"
+	"github.com/konih/mkurator/test/utils"
 )
 
-const metricsCurlImage = "kurator-e2e-curl:dev"
+const metricsCurlImage = "mkurator-e2e-curl:dev"
 
 var (
 	// managerImage is the manager image to be built and loaded for testing.
-	managerImage = "kurator-controller-manager:dev"
+	managerImage = "mkurator-controller-manager:dev"
 	// shouldCleanupCertManager tracks whether CertManager was installed by this suite.
 	shouldCleanupCertManager = false
 )
@@ -33,7 +33,7 @@ var (
 // To skip CertManager installation, set: CERT_MANAGER_INSTALL_SKIP=true
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	_, _ = fmt.Fprintf(GinkgoWriter, "Starting kurator e2e test suite\n")
+	_, _ = fmt.Fprintf(GinkgoWriter, "Starting mkurator e2e test suite\n")
 	RunSpecs(t, "e2e suite")
 }
 
@@ -68,7 +68,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(_ []byte) {
 	configureKubectlKubeRC()
 	// Every parallel Ginkgo process must wait for CRD discovery before applying CRs.
-	waitForKuratorCRDsEstablished()
+	waitForMKuratorCRDsEstablished()
 })
 
 var _ = AfterSuite(func() {

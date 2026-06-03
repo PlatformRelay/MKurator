@@ -14,9 +14,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/adapter/mqrest"
-	"github.com/konih/kurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/adapter/mqrest"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func requireIntegration(t *testing.T) {
@@ -64,7 +64,7 @@ func TestIntegration_Queue_CreateGetDelete(t *testing.T) {
 		Type: mqadmin.QueueTypeLocal,
 		Attributes: map[string]string{
 			"maxdepth": "5000",
-			"descr":    "kurator integration",
+			"descr":    "mkurator integration",
 		},
 	}
 	if err := c.DefineQueue(ctx, spec); err != nil {
@@ -376,7 +376,7 @@ func TestIntegration_Factory_ForConnection_Ping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ns := "kurator-integration"
+	ns := "mkurator-integration"
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns},
 		Data: map[string][]byte{

@@ -18,13 +18,13 @@ type SpecFragmentCase struct {
 // DefaultCases lists CRD kinds with checked-in spec OpenAPI goldens.
 // Add a row and golden under test/schema/golden/ to extend coverage.
 var DefaultCases = []SpecFragmentCase{
-	{CRDFile: "messaging.kurator.dev_queues.yaml", GoldenFile: "queue.spec.openapi.yaml"},
-	{CRDFile: "messaging.kurator.dev_topics.yaml", GoldenFile: "topic.spec.openapi.yaml"},
-	{CRDFile: "messaging.kurator.dev_channels.yaml", GoldenFile: "channel.spec.openapi.yaml"},
-	{CRDFile: "messaging.kurator.dev_channelauthrules.yaml", GoldenFile: "channelauthrule.spec.openapi.yaml"},
-	{CRDFile: "messaging.kurator.dev_authorityrecords.yaml", GoldenFile: "authorityrecord.spec.openapi.yaml"},
+	{CRDFile: "messaging.mkurator.dev_queues.yaml", GoldenFile: "queue.spec.openapi.yaml"},
+	{CRDFile: "messaging.mkurator.dev_topics.yaml", GoldenFile: "topic.spec.openapi.yaml"},
+	{CRDFile: "messaging.mkurator.dev_channels.yaml", GoldenFile: "channel.spec.openapi.yaml"},
+	{CRDFile: "messaging.mkurator.dev_channelauthrules.yaml", GoldenFile: "channelauthrule.spec.openapi.yaml"},
+	{CRDFile: "messaging.mkurator.dev_authorityrecords.yaml", GoldenFile: "authorityrecord.spec.openapi.yaml"},
 	{
-		CRDFile:    "messaging.kurator.dev_queuemanagerconnections.yaml",
+		CRDFile:    "messaging.mkurator.dev_queuemanagerconnections.yaml",
 		GoldenFile: "queuemanagerconnection.spec.openapi.yaml",
 	},
 }

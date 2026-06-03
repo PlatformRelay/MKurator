@@ -18,7 +18,7 @@ const (
 )
 
 // ChannelAuthRuleFinalizer ensures CHLAUTH is removed before the CR is deleted.
-const ChannelAuthRuleFinalizer = "messaging.kurator.dev/channelauthrule"
+const ChannelAuthRuleFinalizer = "messaging.mkurator.dev/channelauthrule"
 
 // ChannelAuthRuleSpec defines a SET CHLAUTH rule on a referenced queue manager.
 type ChannelAuthRuleSpec struct {

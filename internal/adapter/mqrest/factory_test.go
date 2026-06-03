@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 )
 
 func TestCredentialsFromSecret(t *testing.T) {
@@ -69,7 +69,7 @@ BAMMCWxvY2FsaG9zdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABG1234567890
 
 func TestClientFactory_BuildConfigWithCA(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -110,7 +110,7 @@ func TestClientFactory_BuildConfigWithCA(t *testing.T) {
 
 func TestClientFactory_CacheKeyChangesWithSecretResourceVersion(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -158,7 +158,7 @@ func TestClientFactory_CacheKeyChangesWithSecretResourceVersion(t *testing.T) {
 
 func TestClientFactory_BuildConfigMissingCASecret(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -193,7 +193,7 @@ func TestClientFactory_BuildConfigMissingCASecret(t *testing.T) {
 
 func TestClientFactory_BuildConfigInvalidEndpoint(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -225,7 +225,7 @@ func TestClientFactory_BuildConfigInvalidEndpoint(t *testing.T) {
 
 func TestClientFactory_BuildConfigInsecureTLS(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -261,7 +261,7 @@ func TestClientFactory_BuildConfigInsecureTLS(t *testing.T) {
 
 func TestClientFactory_CacheKeyMissingCredSecret(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)

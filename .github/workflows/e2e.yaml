@@ -26,8 +26,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  CLUSTER_NAME: kurator
-  KIND_CLUSTER: kurator
+  CLUSTER_NAME: mkurator
+  KIND_CLUSTER: mkurator
   KUBECONFIG: ${{ github.workspace }}/hack/kind-cluster/.state/kubeconfig.yaml
   CERT_MANAGER_INSTALL_SKIP: "true"
   KURATOR_E2E_MQ: "1"

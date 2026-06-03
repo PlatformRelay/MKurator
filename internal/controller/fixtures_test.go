@@ -8,7 +8,7 @@ import (
 	eventsv1 "k8s.io/api/events/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 )
 
 const (

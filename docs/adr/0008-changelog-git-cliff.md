@@ -8,7 +8,7 @@
 The project already requires [Conventional Commits](https://www.conventionalcommits.org/)
 with a [gitmoji](https://gitmoji.dev/) token in every subject (see
 [AGENTS.md](../../AGENTS.md)). Release artifacts are produced manually: bump
-`charts/kurator/Chart.yaml`, commit [`CHANGELOG.md`](../../CHANGELOG.md), tag
+`charts/mkurator/Chart.yaml`, commit [`CHANGELOG.md`](../../CHANGELOG.md), tag
 `v*`, and let [`.github/workflows/release.yaml`](../../.github/workflows/release.yaml)
 build/push the image and publish install manifests via
 [`hack/release-assets.sh`](../../hack/release-assets.sh).

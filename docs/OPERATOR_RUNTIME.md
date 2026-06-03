@@ -1,6 +1,6 @@
 # Operator runtime
 
-How the Kurator **controller-manager** process starts, registers controllers and
+How the MKurator **controller-manager** process starts, registers controllers and
 webhooks, talks to IBM MQ through a cached client factory, and reconciles each
 custom resource kind. Module layout is in [GO_MODULE.md](GO_MODULE.md); CR
 examples and security are in [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -14,14 +14,14 @@ Startup order:
    `MaxConcurrentReconciles` (`--max-concurrent-reconciles` or
    `KURATOR_MAX_CONCURRENT_RECONCILES`, minimum 1).
 2. **Logging** — `internal/logging` configures structured output (JSON in cluster).
-3. **Scheme** — core Kubernetes types plus `messaging.kurator.dev/v1alpha1`.
+3. **Scheme** — core Kubernetes types plus `messaging.mkurator.dev/v1alpha1`.
 4. **Manager** — controller-runtime `Manager` with metrics server (HTTPS + authz
    filter by default), webhook server, health probes, optional leader election
-   (`LeaderElectionID`: `bdd44880.kurator.dev`).
+   (`LeaderElectionID`: `bdd44880.mkurator.dev`).
 5. **MQ factory** — `mqrest.NewClientFactory(mgr.GetClient())` implements
    `mqadmin.Factory`.
 6. **Reconcilers** — six controllers, shared `events.EventRecorder` name
-   `kurator-controller-manager`.
+   `mkurator-controller-manager`.
 7. **Webhooks** — `webhookv1alpha1.SetupWithManager(mgr)` (validating only).
 8. **Probes** — `healthz` ping; `readyz` via `health.NewMQConnectivityChecker`.
 9. **Run** — `mgr.Start` on SIGTERM/SIGINT.
@@ -114,7 +114,7 @@ Steps in code (`internal/controller/*_controller.go` + `reconcile_shared.go`):
 8. **Success** — `patchSyncedAvailable` sets `Synced=True`, `observedGeneration`,
    optional `lastSyncedTime`.
 
-**Observe-only:** annotation `messaging.kurator.dev/drift-policy=observe-only`
+**Observe-only:** annotation `messaging.mkurator.dev/drift-policy=observe-only`
 reports drift without applying REPLACE/SET (see attribute doc).
 
 ## QueueManagerConnection reconcile

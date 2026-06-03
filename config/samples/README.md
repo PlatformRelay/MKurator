@@ -1,6 +1,6 @@
 # Sample manifests
 
-These YAML files are **starting points** for Kurator custom resources. Adapt
+These YAML files are **starting points** for MKurator custom resources. Adapt
 namespaces, endpoints, TLS, and secrets for your environment before applying in
 production.
 
@@ -13,12 +13,12 @@ credentials Secret and all sample CRs in one step:
 
 ```sh
 task deploy:samples
-kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
+kubectl get qmc,mq,tp,chl,car,auth -n mkurator-system
 ```
 
 **Prerequisites:** cluster reachable (Task defaults `KUBECONFIG` to
 `hack/kind-cluster/.state/kubeconfig.yaml`), operator CRDs installed, and
-`kurator-system` namespace (created automatically by `deploy:samples` or
+`mkurator-system` namespace (created automatically by `deploy:samples` or
 `deploy:helm`).
 
 For manual step-by-step apply or production adaptation, see [Apply order](#apply-order)
@@ -27,9 +27,9 @@ below.
 ## Canonical source and Helm copies
 
 **`config/samples/`** is the Kubebuilder canonical tree (annotated filenames, optional
-`metadata.namespace` on each file). **`charts/kurator/samples/resources/`** holds
+`metadata.namespace` on each file). **`charts/mkurator/samples/resources/`** holds
 Helm-oriented copies: shorter filenames, no per-object namespace (the chart
-`kustomization.yaml` sets `namespace: kurator-system`).
+`kustomization.yaml` sets `namespace: mkurator-system`).
 
 After editing samples here, sync the chart tree:
 
@@ -44,26 +44,26 @@ this directory.
 ## Apply order
 
 ```sh
-kubectl apply -f mq-credentials-secret.yaml   # or charts/kurator/samples/resources/
+kubectl apply -f mq-credentials-secret.yaml   # or charts/mkurator/samples/resources/
 kubectl apply -f messaging_v1alpha1_queuemanagerconnection.yaml
-kubectl wait --for=condition=Ready qmc/qm1 -n kurator-system --timeout=120s
+kubectl wait --for=condition=Ready qmc/qm1 -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_queue.yaml
-kubectl wait --for=condition=Synced queue/orders -n kurator-system --timeout=120s
+kubectl wait --for=condition=Synced queue/orders -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_topic.yaml
-kubectl wait --for=condition=Synced topic/retail-orders -n kurator-system --timeout=120s
+kubectl wait --for=condition=Synced topic/retail-orders -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_channel.yaml
-kubectl wait --for=condition=Synced channel/orders-app -n kurator-system --timeout=120s
+kubectl wait --for=condition=Synced channel/orders-app -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_channelauthrule.yaml
-kubectl wait --for=condition=Synced channelauthrule/dev-app-addressmap -n kurator-system --timeout=120s
+kubectl wait --for=condition=Synced channelauthrule/dev-app-addressmap -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_authorityrecord.yaml
-kubectl wait --for=condition=Synced authorityrecord/app-orders-get-put -n kurator-system --timeout=120s
+kubectl wait --for=condition=Synced authorityrecord/app-orders-get-put -n mkurator-system --timeout=120s
 ```
 
 Or apply everything via Kustomize (create the credentials Secret first — it is
 not bundled in `config/samples/`):
 
 ```sh
-kubectl apply -f charts/kurator/samples/resources/mq-credentials-secret.yaml
+kubectl apply -f charts/mkurator/samples/resources/mq-credentials-secret.yaml
 kubectl apply -k config/samples/
 ```
 
@@ -72,13 +72,13 @@ kubectl apply -k config/samples/
 Points the operator at one queue manager through mqweb.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: QueueManagerConnection
 metadata:
   name: qm1
-  namespace: kurator-system
+  namespace: mkurator-system
   annotations:
-    messaging.kurator.dev/allow-insecure-tls: "true"   # required when skipping TLS verify
+    messaging.mkurator.dev/allow-insecure-tls: "true"   # required when skipping TLS verify
 spec:
   queueManager: QM1
   endpoint: https://ibm-mq.ibm-mq.svc:9443
@@ -97,7 +97,7 @@ spec:
 | `credentialsSecretRef` | `mq-credentials` | Secret in the **same namespace** as this CR |
 
 Helm copy (no namespace in metadata — set with `-n` or Helm release namespace):
-[`charts/kurator/samples/resources/queuemanagerconnection.yaml`](../../charts/kurator/samples/resources/queuemanagerconnection.yaml).
+[`charts/mkurator/samples/resources/queuemanagerconnection.yaml`](../../charts/mkurator/samples/resources/queuemanagerconnection.yaml).
 
 ---
 
@@ -111,7 +111,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: mq-credentials
-  namespace: kurator-system
+  namespace: mkurator-system
 type: Opaque
 stringData:
   username: admin
@@ -119,7 +119,7 @@ stringData:
 ```
 
 Helm copy:
-[`charts/kurator/samples/resources/mq-credentials-secret.yaml`](../../charts/kurator/samples/resources/mq-credentials-secret.yaml).
+[`charts/mkurator/samples/resources/mq-credentials-secret.yaml`](../../charts/mkurator/samples/resources/mq-credentials-secret.yaml).
 
 **Production:** inject credentials from your secret manager; never commit real
 passwords to git.
@@ -131,11 +131,11 @@ passwords to git.
 Declares a local queue on the queue manager referenced by `connectionRef`.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: orders
-  namespace: kurator-system
+  namespace: mkurator-system
 spec:
   connectionRef:
     name: qm1
@@ -155,7 +155,7 @@ spec:
 | `attributes.descr` | Human-readable text | Mapped to MQSC `DESCR` |
 
 Helm copy:
-[`charts/kurator/samples/resources/queue.yaml`](../../charts/kurator/samples/resources/queue.yaml).
+[`charts/mkurator/samples/resources/queue.yaml`](../../charts/mkurator/samples/resources/queue.yaml).
 
 ---
 
@@ -190,11 +190,11 @@ Remote queue definition to `APP.ORDERS` on `QM1` (local demo).
 Declares an administrative topic object on the referenced queue manager.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Topic
 metadata:
   name: retail-orders
-  namespace: kurator-system
+  namespace: mkurator-system
 spec:
   connectionRef:
     name: qm1
@@ -220,7 +220,7 @@ task mq:runmqsc -- "DISPLAY TOPIC('RETAIL.ORDERS') TOPSTR DESCR PUB SUB"
 ```
 
 Helm copy:
-[`charts/kurator/samples/resources/topic.yaml`](../../charts/kurator/samples/resources/topic.yaml).
+[`charts/mkurator/samples/resources/topic.yaml`](../../charts/mkurator/samples/resources/topic.yaml).
 
 ---
 
@@ -229,11 +229,11 @@ Helm copy:
 Declares a server-connection channel for inbound client applications.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: orders-app
-  namespace: kurator-system
+  namespace: mkurator-system
 spec:
   connectionRef:
     name: qm1
@@ -260,7 +260,7 @@ task mq:runmqsc -- "DISPLAY CHANNEL('ORDERS.APP') CHLTYPE(SVRCONN) TRPTYPE DESCR
 ```
 
 Helm copy:
-[`charts/kurator/samples/resources/channel.yaml`](../../charts/kurator/samples/resources/channel.yaml).
+[`charts/mkurator/samples/resources/channel.yaml`](../../charts/mkurator/samples/resources/channel.yaml).
 
 ---
 
@@ -291,7 +291,7 @@ same gitops channel via `TYPE(BLOCKUSER)`.
 | `userList` | `nobody` | Mapped to MQSC `USERLIST('nobody')` |
 
 Helm copy:
-[`charts/kurator/samples/resources/channelauthrule-blockuser.yaml`](../../charts/kurator/samples/resources/channelauthrule-blockuser.yaml).
+[`charts/mkurator/samples/resources/channelauthrule-blockuser.yaml`](../../charts/mkurator/samples/resources/channelauthrule-blockuser.yaml).
 
 ---
 
@@ -308,7 +308,7 @@ manually when testing BLOCKADDR.
 | `address` | `192.0.2.1` | Documentation range; pick a non-production CIDR in real use |
 
 Helm copy:
-[`charts/kurator/samples/resources/channelauthrule-blockaddr.yaml`](../../charts/kurator/samples/resources/channelauthrule-blockaddr.yaml).
+[`charts/mkurator/samples/resources/channelauthrule-blockaddr.yaml`](../../charts/mkurator/samples/resources/channelauthrule-blockaddr.yaml).
 
 ---
 
@@ -345,10 +345,10 @@ See [observability/README.md](observability/README.md) and
 ## Verify reconciliation
 
 ```sh
-kubectl get qmc,mq,tp,chl,car,auth -n kurator-system
-kubectl describe topic retail-orders -n kurator-system
-kubectl describe channel orders-app -n kurator-system
-kubectl logs -n kurator-system deployment/kurator-controller-manager -f
+kubectl get qmc,mq,tp,chl,car,auth -n mkurator-system
+kubectl describe topic retail-orders -n mkurator-system
+kubectl describe channel orders-app -n mkurator-system
+kubectl logs -n mkurator-system deployment/mkurator-controller-manager -f
 ```
 
 On the local kind platform:

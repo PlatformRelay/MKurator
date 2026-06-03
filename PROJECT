@@ -3,9 +3,9 @@
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
 cliVersion: 4.14.0
-domain: kurator.dev
+domain: mkurator.dev
 layout:
 - go.kubebuilder.io/v4
-projectName: kurator
-repo: github.com/konih/kurator
+projectName: mkurator
+repo: github.com/konih/mkurator
 version: "3"

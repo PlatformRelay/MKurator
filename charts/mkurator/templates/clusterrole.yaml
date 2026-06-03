@@ -1,0 +1,53 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "mkurator.fullname" . }}-manager
+  labels:
+    {{- include "mkurator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [create, patch]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch]
+  - apiGroups: [messaging.mkurator.dev]
+    resources: [authorityrecords, channelauthrules, channels, queuemanagerconnections, queues, topics]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [messaging.mkurator.dev]
+    resources: [authorityrecords/finalizers, channelauthrules/finalizers, channels/finalizers, queuemanagerconnections/finalizers, queues/finalizers, topics/finalizers]
+    verbs: [update]
+  - apiGroups: [messaging.mkurator.dev]
+    resources: [authorityrecords/status, channelauthrules/status, channels/status, queuemanagerconnections/status, queues/status, topics/status]
+    verbs: [get, patch, update]
+{{- if .Values.metrics.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "mkurator.fullname" . }}-metrics-auth
+  labels:
+    {{- include "mkurator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [authorization.k8s.io]
+    resources: [subjectaccessreviews]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "mkurator.fullname" . }}-metrics-reader
+  labels:
+    {{- include "mkurator.labels" . | nindent 4 }}
+rules:
+  - nonResourceURLs: ["/metrics"]
+    verbs: [get]
+{{- end }}
+{{- end }}

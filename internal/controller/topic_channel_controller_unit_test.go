@@ -13,9 +13,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/mqadmin"
-	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/mqadmin"
+	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
 
 func TestToMQTopicSpec(t *testing.T) {
@@ -37,7 +37,7 @@ func TestToMQTopicSpec(t *testing.T) {
 func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -95,7 +95,7 @@ func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 func TestTopicReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -165,7 +165,7 @@ func TestToMQChannelSpec(t *testing.T) {
 func TestChannelReconciler_SyncedWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 
@@ -229,7 +229,7 @@ func TestChannelReconciler_SyncedWithoutDefine(t *testing.T) {
 func TestChannelReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 
@@ -285,7 +285,7 @@ func TestChannelReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 func TestTopicReconciler_DefinesWhenMissing(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -326,7 +326,7 @@ func TestTopicReconciler_DefinesWhenMissing(t *testing.T) {
 func TestTopicReconciler_DeletionDeleteFails(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -375,7 +375,7 @@ func TestTopicReconciler_DeletionDeleteFails(t *testing.T) {
 func TestTopicReconciler_Deletion(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -455,7 +455,7 @@ func TestTopicNeedsUpdate_PubSubCaseInsensitive(t *testing.T) {
 func TestChannelReconciler_DefinesWhenMissing(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 
@@ -497,7 +497,7 @@ func TestChannelReconciler_DefinesWhenMissing(t *testing.T) {
 func TestChannelReconciler_DeletionDeleteFails(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 
@@ -546,7 +546,7 @@ func TestChannelReconciler_DeletionDeleteFails(t *testing.T) {
 func TestChannelReconciler_Deletion(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 
@@ -617,7 +617,7 @@ func TestChannelNeedsUpdate(t *testing.T) {
 func TestTopicReconciler_TransientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail-orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -659,7 +659,7 @@ func TestTopicReconciler_TransientError(t *testing.T) {
 func TestChannelReconciler_TransientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 

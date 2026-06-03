@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "MKurator Helm values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "image": {
+      "type": "object",
+      "required": ["repository", "tag"],
+      "additionalProperties": true,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Controller image repository (must be pullable from the cluster)."
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Controller image tag; align with Chart appVersion for releases."
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": ["Always", "IfNotPresent", "Never"]
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Expose Prometheus metrics on the manager pod."
+        },
+        "bindAddress": {
+          "type": "string",
+          "minLength": 1
+        },
+        "secure": {
+          "type": "boolean",
+          "description": "When true, metrics are served over HTTPS with Kubernetes API authn/authz."
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Create a ServiceMonitor CR (requires Prometheus Operator CRDs)."
+            },
+            "interval": {
+              "type": "string"
+            },
+            "scrapeTimeout": {
+              "type": "string"
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "prometheusRule": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "webhooks": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Install validating admission webhooks and mount TLS serving certs."
+        },
+        "certManager": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "description": "Create cert-manager Issuer and Certificate for webhook TLS (requires cert-manager in the cluster)."
+            },
+            "secretName": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Secret mounted at /tmp/k8s-webhook-server/serving-certs on the controller pod."
+            }
+          }
+        }
+      }
+    }
+  }
+}

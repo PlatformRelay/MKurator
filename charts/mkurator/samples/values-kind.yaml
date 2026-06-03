@@ -1,0 +1,28 @@
+# Overrides for the MKurator local kind cluster (hack/kind-cluster).
+# Use with: task deploy:helm
+#
+# Prerequisites:
+#   task cluster:up
+#   task docker:build   # or rely on deploy:helm dependency
+
+image:
+  repository: mkurator-controller-manager
+  tag: dev
+  pullPolicy: IfNotPresent
+
+createNamespace: true
+
+logging:
+  level: debug
+  format: text
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+  prometheusRule:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack

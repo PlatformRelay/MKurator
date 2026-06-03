@@ -1,0 +1,88 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "mkurator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mkurator.labels" . | nindent 4 }}
+    {{- with .Values.metrics.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: mkurator.rules
+      rules:
+        - alert: MKuratorMetricsTargetDown
+          expr: |
+            absent(up{namespace="{{ .Release.Namespace }}", service="{{ include "mkurator.fullname" . }}-metrics"}) == 1
+            or max(up{namespace="{{ .Release.Namespace }}", service="{{ include "mkurator.fullname" . }}-metrics"}) == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: MKurator controller metrics target is down
+            description: Prometheus is not scraping the MKurator metrics Service in {{ .Release.Namespace }}.
+        - alert: MKuratorReconcileErrors
+          expr: |
+            sum(increase(mkurator_reconcile_errors_total[15m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: MKurator reconcile errors detected
+            description: One or more MKurator reconcilers returned errors in the last 15 minutes.
+        - alert: MKuratorMQOperationErrors
+          expr: |
+            sum(increase(mkurator_mq_operations_total{result="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: MKurator mqweb operation errors
+            description: mqweb adapter operations are failing (check QueueManagerConnection credentials and mqweb reachability).
+        - alert: MKuratorOperatorNotReady
+          expr: |
+            max(
+              kube_pod_status_ready{
+                namespace="{{ .Release.Namespace }}",
+                pod=~"{{ include "mkurator.fullname" . }}-controller-manager-.*",
+                condition="true"
+              }
+            ) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: MKurator controller pod is not ready
+            description: |
+              The controller-manager pod in {{ .Release.Namespace }} is not passing its readiness probe (/readyz).
+              When QueueManagerConnections exist but none are Ready, /readyz fails (REL-7) and the Deployment stops routing traffic.
+        - alert: MKuratorQMCPingFailures
+          expr: |
+            sum(increase(mkurator_mq_operations_total{operation="ping",result="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: MKurator QueueManagerConnection ping failures
+            description: mqweb ping operations are failing (check credentials, TLS, and mqweb reachability on QueueManagerConnection resources).
+        - alert: MKuratorQMCReconcileErrors
+          expr: |
+            sum(increase(mkurator_reconcile_errors_total{controller="queuemanagerconnection"}[15m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: MKurator QueueManagerConnection reconcile errors
+            description: The queuemanagerconnection reconciler returned errors in the last 15 minutes (see operator logs and QMC status conditions).
+        - alert: MKuratorAuthMQOperationErrors
+          expr: |
+            sum(increase(mkurator_mq_operations_total{operation=~"set_channel_auth|get_channel_auth|delete_channel_auth|set_authority|get_authority|delete_authority",result="error"}[15m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: MKurator auth mqweb operation errors
+            description: ChannelAuthRule or AuthorityRecord mqweb operations (get/set/delete channel auth or authority) are failing.
+{{- end }}

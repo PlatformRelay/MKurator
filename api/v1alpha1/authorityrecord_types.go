@@ -19,7 +19,7 @@ const (
 )
 
 // AuthorityRecordFinalizer ensures OAM records are removed before the CR is deleted.
-const AuthorityRecordFinalizer = "messaging.kurator.dev/authorityrecord"
+const AuthorityRecordFinalizer = "messaging.mkurator.dev/authorityrecord"
 
 // AuthorityRecordSpec defines a SET AUTHREC rule on a referenced queue manager.
 type AuthorityRecordSpec struct {

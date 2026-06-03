@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Sync Kubebuilder sample CRs into the Helm chart samples tree.
 # Canonical source: config/samples/messaging_v1alpha1_*.yaml
-# Chart output: charts/kurator/samples/resources/ (no metadata.namespace; kustomization sets it)
+# Chart output: charts/mkurator/samples/resources/ (no metadata.namespace; kustomization sets it)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="${ROOT}/config/samples"
-DST="${DEST_DIR:-${ROOT}/charts/kurator/samples/resources}"
+DST="${DEST_DIR:-${ROOT}/charts/mkurator/samples/resources}"
 
 declare -A MAP=(
   [messaging_v1alpha1_queuemanagerconnection.yaml]=queuemanagerconnection.yaml
@@ -55,7 +55,7 @@ KUSTOMIZE_RESOURCES=(
   echo "apiVersion: kustomize.config.k8s.io/v1beta1"
   echo "kind: Kustomization"
   echo ""
-  echo "namespace: kurator-system"
+  echo "namespace: mkurator-system"
   echo ""
   echo "resources:"
   for f in "${KUSTOMIZE_RESOURCES[@]}"; do

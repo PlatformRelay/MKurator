@@ -5,7 +5,7 @@ import (
 )
 
 // TopicFinalizer ensures the MQ topic is deleted before the CR is removed.
-const TopicFinalizer = "messaging.kurator.dev/topic"
+const TopicFinalizer = "messaging.mkurator.dev/topic"
 
 // TopicSpec defines an administrative topic object on a referenced queue manager.
 type TopicSpec struct {

@@ -7,7 +7,7 @@
 
 IBM MQ can be deployed in many ways: native install, containers, Kubernetes
 Operators (e.g. IBM MQ on Kubernetes), cloud managed services. Teams adopting
-Kurator may already run a Queue Manager elsewhere and only want **declarative
+MKurator may already run a Queue Manager elsewhere and only want **declarative
 administration** of queues, topics, and channels.
 
 A common expectation for “MQ operators” is lifecycle management of the queue
@@ -16,7 +16,7 @@ surface with different RBAC, storage, and day-2 operations.
 
 ## Decision
 
-Kurator **manages administrative objects on an existing Queue Manager** that
+MKurator **manages administrative objects on an existing Queue Manager** that
 already exposes the **mqweb Administrative REST API**. It explicitly **does
 not**:
 
@@ -36,7 +36,7 @@ Transport to MQ is HTTPS mqweb only ([ADR-0002](0002-manage-mq-via-mqweb-rest.md
 
 ## Consequences
 
-- Clear positioning: Kurator is a **GitOps/admin CRD layer**, not a QM installer.
+- Clear positioning: MKurator is a **GitOps/admin CRD layer**, not a QM installer.
 - Documentation and samples assume QM exists (kind dev stack provisions QM for
   convenience, but that platform is dev-only — not shipped as product scope).
 - Feature requests for `QueueManager` CRDs, pod templates, or OLM lifecycle

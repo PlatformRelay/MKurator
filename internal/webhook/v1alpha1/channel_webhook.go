@@ -9,12 +9,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/validation"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/validation"
 )
 
 //nolint:lll // kubebuilder webhook marker is a single line
-// +kubebuilder:webhook:path=/validate-messaging-kurator-dev-v1alpha1-channel,mutating=false,failurePolicy=fail,sideEffects=None,groups=messaging.kurator.dev,resources=channels,verbs=create;update,versions=v1alpha1,name=vchannel.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-messaging-mkurator-dev-v1alpha1-channel,mutating=false,failurePolicy=fail,sideEffects=None,groups=messaging.mkurator.dev,resources=channels,verbs=create;update,versions=v1alpha1,name=vchannel.kb.io,admissionReviewVersions=v1
 
 type channelCustomValidator struct {
 	Client client.Reader

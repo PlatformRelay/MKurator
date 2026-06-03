@@ -4,7 +4,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 image="$("${root}/hack/ci/mq-image-ref.sh")"
-cluster="${KIND_CLUSTER:-${CLUSTER_NAME:-kurator}}"
+cluster="${KIND_CLUSTER:-${CLUSTER_NAME:-mkurator}}"
 
 if ! command -v kind >/dev/null 2>&1; then
   echo "kind is required on PATH" >&2

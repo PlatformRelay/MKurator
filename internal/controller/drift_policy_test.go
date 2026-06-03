@@ -11,9 +11,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/mqadmin"
-	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/mqadmin"
+	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
 
 func TestIsObserveOnly(t *testing.T) {
@@ -91,7 +91,7 @@ func TestReconcileMQObjectState_DefaultDefinesOnDrift(t *testing.T) {
 func TestQueueReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -148,7 +148,7 @@ func TestQueueReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 func TestTopicReconciler_ObserveOnlySyncedWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "retail"}
 	s := unitSchemeOrFatal(t)
 
@@ -200,7 +200,7 @@ func TestTopicReconciler_ObserveOnlySyncedWithoutDefine(t *testing.T) {
 func TestChannelReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders-app"}
 	s := unitSchemeOrFatal(t)
 

@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
 echo "===================================="
-echo "Kurator DevContainer setup"
+echo "MKurator DevContainer setup"
 echo "===================================="
 
 if [ "$(id -u)" -ne 0 ]; then

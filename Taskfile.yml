@@ -26,9 +26,9 @@ vars:
   GIT_CLIFF_VERSION: v2.13.1
   GIT_CLIFF_BIN: "{{.BIN_DIR}}/git-cliff"
   MANAGER_BINARY: "{{.BIN_DIR}}/manager"
-  DOCKER_IMAGE: kurator-controller-manager:dev
+  DOCKER_IMAGE: mkurator-controller-manager:dev
   CLUSTER_NAME:
-    sh: echo "${CLUSTER_NAME:-kurator}"
+    sh: echo "${CLUSTER_NAME:-mkurator}"
   KUBECONFIG:
     sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
   KUSTOMIZE:
@@ -135,7 +135,7 @@ tasks:
     desc: Remove operator manifests and CRDs from the cluster (non-blocking; deletes CR instances first)
     cmds:
       - |
-        for ns in kurator-e2e-queues kurator-e2e-topics kurator-e2e-channels kurator-e2e-auth kurator-system; do
+        for ns in mkurator-e2e-queues mkurator-e2e-topics mkurator-e2e-channels mkurator-e2e-auth mkurator-system; do
           kubectl delete queues,topics,channels,channelauthrules,authorityrecords,queuemanagerconnections --all -n "$ns" --ignore-not-found --wait=false || true
         done
       - kubectl delete --ignore-not-found -k config/default --wait=false --timeout=2m
@@ -170,10 +170,10 @@ tasks:
     deps: [helm:sync-crds]
     cmds:
       - |
-        helm upgrade --install kurator ./charts/kurator \
-          --namespace kurator-system \
+        helm upgrade --install mkurator ./charts/mkurator \
+          --namespace mkurator-system \
           --create-namespace \
-          -f ./charts/kurator/samples/values-kind.yaml \
+          -f ./charts/mkurator/samples/values-kind.yaml \
           --set image.repository={{.DOCKER_IMAGE | splitList ":" | first}} \
           --set image.tag={{.DOCKER_IMAGE | splitList ":" | last}} \
           --wait --timeout 5m
@@ -189,10 +189,10 @@ tasks:
           kind load docker-image {{.DOCKER_IMAGE}} --name "{{.CLUSTER_NAME}}"
         fi
       - |
-        helm upgrade --install kurator ./charts/kurator \
-          --namespace kurator-system \
+        helm upgrade --install mkurator ./charts/mkurator \
+          --namespace mkurator-system \
           --create-namespace \
-          -f ./charts/kurator/samples/values-kind.yaml \
+          -f ./charts/mkurator/samples/values-kind.yaml \
           --set image.repository={{.DOCKER_IMAGE | splitList ":" | first}} \
           --set image.tag={{.DOCKER_IMAGE | splitList ":" | last}} \
           --wait --timeout 5m
@@ -202,8 +202,8 @@ tasks:
   deploy:samples:
     desc: Apply sample Secret + all CRs (requires operator CRDs; use after deploy:helm)
     cmds:
-      - kubectl create namespace kurator-system --dry-run=client -o yaml | kubectl apply -f -
-      - kubectl apply --server-side -k charts/kurator/samples/resources/
+      - kubectl create namespace mkurator-system --dry-run=client -o yaml | kubectl apply -f -
+      - kubectl apply --server-side -k charts/mkurator/samples/resources/
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
@@ -217,34 +217,34 @@ tasks:
   undeploy:helm:
     desc: Uninstall Helm release and sample CRs
     cmds:
-      - kubectl delete --ignore-not-found -k charts/kurator/samples/resources/
-      - helm uninstall kurator --namespace kurator-system || true
+      - kubectl delete --ignore-not-found -k charts/mkurator/samples/resources/
+      - helm uninstall mkurator --namespace mkurator-system || true
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
   helm:sync-crds:
-    desc: Copy config/crd/bases into charts/kurator/crds
+    desc: Copy config/crd/bases into charts/mkurator/crds
     cmds:
       - bash hack/helm-sync-crds.sh
 
   samples:sync:
-    desc: Sync config/samples CR YAML into charts/kurator/samples/resources
+    desc: Sync config/samples CR YAML into charts/mkurator/samples/resources
     cmds:
       - bash hack/sync-samples.sh
 
   helm:lint:
-    desc: Lint the publishable Kurator Helm chart and verify admission webhook and RBAC templates
+    desc: Lint the publishable MKurator Helm chart and verify admission webhook and RBAC templates
     cmds:
-      - helm lint ./charts/kurator
+      - helm lint ./charts/mkurator
       - bash hack/helm-verify-admission.sh
       - bash hack/helm-verify-rbac.sh
 
   helm:package:
-    desc: Package charts/kurator to dist/
+    desc: Package charts/mkurator to dist/
     deps: [helm:sync-crds]
     cmds:
       - mkdir -p dist
-      - helm package ./charts/kurator -d dist/
+      - helm package ./charts/mkurator -d dist/
 
   local:up:
     desc: "Local dev: kind cluster + IBM MQ + operator (Helm) + sample CRs"
@@ -258,19 +258,19 @@ tasks:
     desc: "Install operator + sample CRs on an existing local cluster (skip cluster:up)"
     cmds:
       - task: deploy:helm
-      - kubectl rollout restart deployment/kurator-controller-manager -n kurator-system
-      - kubectl rollout status deployment/kurator-controller-manager -n kurator-system --timeout=5m
+      - kubectl rollout restart deployment/mkurator-controller-manager -n mkurator-system
+      - kubectl rollout status deployment/mkurator-controller-manager -n mkurator-system --timeout=5m
       - task: deploy:samples
 
   local:info:
-    desc: Print local cluster URLs, MQ credentials, and Kurator resource status
+    desc: Print local cluster URLs, MQ credentials, and MKurator resource status
     cmds:
       - task: cluster:info
       - |
         echo ""
-        echo "Kurator (namespace kurator-system):"
-        kubectl get deploy,pods -n kurator-system 2>/dev/null || true
-        kubectl get qmc,mq,tp,chl -n kurator-system 2>/dev/null || true
+        echo "MKurator (namespace mkurator-system):"
+        kubectl get deploy,pods -n mkurator-system 2>/dev/null || true
+        kubectl get qmc,mq,tp,chl -n mkurator-system 2>/dev/null || true
         echo ""
         echo "Quick check:"
         echo "  task mq:runmqsc -- \"DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH\""

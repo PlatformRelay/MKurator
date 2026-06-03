@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestIntegration_Topic_CreateGetDelete(t *testing.T) {
@@ -23,7 +23,7 @@ func TestIntegration_Topic_CreateGetDelete(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = c.DeleteTopic(context.Background(), name) })
 
-	topstr := fmt.Sprintf("kurator/it/%d", testNameHash(t.Name())%100000)
+	topstr := fmt.Sprintf("mkurator/it/%d", testNameHash(t.Name())%100000)
 	spec := mqadmin.TopicSpec{
 		Name: name,
 		Attributes: map[string]string{
@@ -69,7 +69,7 @@ func TestIntegration_Topic_UpdateViaReplace(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = c.DeleteTopic(context.Background(), name) })
 
-	topstr := fmt.Sprintf("kurator/it/%d", testNameHash("UPDATE."+t.Name())%100000)
+	topstr := fmt.Sprintf("mkurator/it/%d", testNameHash("UPDATE."+t.Name())%100000)
 
 	define := func(descr string) {
 		t.Helper()
@@ -85,21 +85,21 @@ func TestIntegration_Topic_UpdateViaReplace(t *testing.T) {
 		}
 	}
 
-	define("kurator integration v1")
+	define("mkurator integration v1")
 	state, err := c.GetTopic(ctx, name)
 	if err != nil {
 		t.Fatalf("GetTopic: %v", err)
 	}
-	if state.Attributes["descr"] != "kurator integration v1" {
+	if state.Attributes["descr"] != "mkurator integration v1" {
 		t.Fatalf("descr after first define = %q", state.Attributes["descr"])
 	}
 
-	define("kurator integration v2")
+	define("mkurator integration v2")
 	state, err = c.GetTopic(ctx, name)
 	if err != nil {
 		t.Fatalf("GetTopic after update: %v", err)
 	}
-	if state.Attributes["descr"] != "kurator integration v2" {
+	if state.Attributes["descr"] != "mkurator integration v2" {
 		t.Fatalf("descr after replace = %q", state.Attributes["descr"])
 	}
 }
@@ -152,7 +152,7 @@ func TestIntegration_Channel_CreateGetDelete(t *testing.T) {
 		Type: mqadmin.ChannelTypeSvrconn,
 		Attributes: map[string]string{
 			"trptype": "tcp",
-			"descr":   "kurator integration channel",
+			"descr":   "mkurator integration channel",
 		},
 	}
 	t.Cleanup(func() {
@@ -214,21 +214,21 @@ func TestIntegration_Channel_UpdateViaReplace(t *testing.T) {
 		}
 	}
 
-	define("kurator v1")
+	define("mkurator v1")
 	state, err := c.GetChannel(ctx, base)
 	if err != nil {
 		t.Fatalf("GetChannel: %v", err)
 	}
-	if state.Attributes["descr"] != "kurator v1" {
+	if state.Attributes["descr"] != "mkurator v1" {
 		t.Fatalf("descr after first define = %q", state.Attributes["descr"])
 	}
 
-	define("kurator v2")
+	define("mkurator v2")
 	state, err = c.GetChannel(ctx, base)
 	if err != nil {
 		t.Fatalf("GetChannel after update: %v", err)
 	}
-	if state.Attributes["descr"] != "kurator v2" {
+	if state.Attributes["descr"] != "mkurator v2" {
 		t.Fatalf("descr after replace = %q", state.Attributes["descr"])
 	}
 }

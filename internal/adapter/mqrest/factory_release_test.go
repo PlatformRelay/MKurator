@@ -9,12 +9,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 )
 
 func TestClientFactory_ReleaseConnection(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)
@@ -60,7 +60,7 @@ func TestClientFactory_ReleaseConnection(t *testing.T) {
 
 func TestClientFactory_ForConnectionUsesCache(t *testing.T) {
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := runtime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatal(err)

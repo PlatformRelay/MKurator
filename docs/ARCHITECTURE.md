@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design of **Kurator**: its
+This document describes the design of **MKurator**: its
 components, the custom resources it manages, the reconcile flow, and the local
 development topology. For conventions and tooling see [DEVELOPMENT.md](DEVELOPMENT.md); for the delivery
 plan see [ROADMAP.md](ROADMAP.md). Attribute DEFINE vs drift behaviour:
@@ -124,14 +124,14 @@ finalizers, Events, and error/requeue behaviour are documented in
 | **Graceful shutdown** | `SIGTERM`/`SIGINT`; in-flight work drains within pod grace period. |
 | **Configuration** | Flags/env for probes, metrics, leader election, logging, concurrency — not MQ endpoints. |
 | **Logging** | [LOGGING.md](LOGGING.md), [ADR-0007](adr/0007-structured-logging-logr-slog.md). |
-| **Concurrency** | `MaxConcurrentReconciles` shared across all Kurator controllers. |
+| **Concurrency** | `MaxConcurrentReconciles` shared across all MKurator controllers. |
 
 ### RBAC & least privilege
 
 The operator ships a tightly scoped `ClusterRole` generated from
 `+kubebuilder:rbac` markers:
 
-- Full access to its own API group (`messaging.kurator.dev`): `queues`,
+- Full access to its own API group (`messaging.mkurator.dev`): `queues`,
   `topics`, `channels`, `channelauthrules`, `authorityrecords`,
   `queuemanagerconnections`, and their `/status` and `/finalizers` subresources.
 - `get`/`list`/`watch` on the referenced **`Secrets`** (credentials, CA bundles)
@@ -176,7 +176,7 @@ Describes how to reach a Queue Manager. **Namespaced** (all v1alpha1 CRDs) for
 multi-tenant isolation.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: QueueManagerConnection
 metadata:
   name: qm1
@@ -201,7 +201,7 @@ A queue maintained on a referenced Queue Manager (`QLOCAL`, `QALIAS`, or
 `QREMOTE`).
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 metadata:
   name: orders
@@ -225,7 +225,7 @@ status:
 An administrative topic object (`DEFINE TOPIC`) on a referenced Queue Manager.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Topic
 metadata:
   name: retail-orders
@@ -247,7 +247,7 @@ status:
 A server-connection channel (`CHLTYPE(SVRCONN)`) on a referenced Queue Manager.
 
 ```yaml
-apiVersion: messaging.kurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: orders-app

@@ -1,0 +1,13 @@
+apiVersion: messaging.mkurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: orders-app
+spec:
+  connectionRef:
+    name: qm1
+  channelName: ORDERS.APP
+  type: svrconn
+  attributes:
+    descr: Application server-connection channel
+    trptype: tcp
+    maxmsgl: "4194304"

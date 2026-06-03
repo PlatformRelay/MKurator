@@ -3,7 +3,7 @@
     {
       "name": "DS_PROMETHEUS",
       "label": "Prometheus",
-      "description": "Prometheus data source scraping Kurator /metrics",
+      "description": "Prometheus data source scraping MKurator /metrics",
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
@@ -57,7 +57,7 @@
       }
     ]
   },
-  "description": "Kurator operator reconcile and mqweb metrics. Import via Grafana UI or provisioning. Samples: config/samples/observability/",
+  "description": "MKurator operator reconcile and mqweb metrics. Import via Grafana UI or provisioning. Samples: config/samples/observability/",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -69,7 +69,7 @@
       "targetBlank": true,
       "title": "Observability guide",
       "type": "link",
-      "url": "https://github.com/konih/kurator/blob/main/docs/OBSERVABILITY.md"
+      "url": "https://github.com/konih/mkurator/blob/main/docs/OBSERVABILITY.md"
     }
   ],
   "liveNow": false,
@@ -225,7 +225,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(increase(kurator_reconcile_errors_total{namespace=\"$namespace\"}[15m]))",
+          "expr": "sum(increase(mkurator_reconcile_errors_total{namespace=\"$namespace\"}[15m]))",
           "legendFormat": "errors",
           "range": true,
           "refId": "A"
@@ -292,7 +292,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(increase(kurator_mq_operations_total{namespace=\"$namespace\",result=\"error\"}[15m]))",
+          "expr": "sum(increase(mkurator_mq_operations_total{namespace=\"$namespace\",result=\"error\"}[15m]))",
           "legendFormat": "errors",
           "range": true,
           "refId": "A"
@@ -359,7 +359,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(increase(kurator_mq_operations_total{namespace=\"$namespace\",operation=\"ping\",result=\"error\"}[15m]))",
+          "expr": "sum(increase(mkurator_mq_operations_total{namespace=\"$namespace\",operation=\"ping\",result=\"error\"}[15m]))",
           "legendFormat": "ping errors",
           "range": true,
           "refId": "A"
@@ -452,7 +452,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (controller, result) (rate(kurator_reconcile_total{namespace=\"$namespace\"}[5m]))",
+          "expr": "sum by (controller, result) (rate(mkurator_reconcile_total{namespace=\"$namespace\"}[5m]))",
           "legendFormat": "{{controller}} {{result}}",
           "range": true,
           "refId": "A"
@@ -532,7 +532,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (controller) (rate(kurator_reconcile_errors_total{namespace=\"$namespace\"}[5m]))",
+          "expr": "sum by (controller) (rate(mkurator_reconcile_errors_total{namespace=\"$namespace\"}[5m]))",
           "legendFormat": "{{controller}}",
           "range": true,
           "refId": "A"
@@ -625,7 +625,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (operation, result) (rate(kurator_mq_operations_total{namespace=\"$namespace\"}[5m]))",
+          "expr": "sum by (operation, result) (rate(mkurator_mq_operations_total{namespace=\"$namespace\"}[5m]))",
           "legendFormat": "{{operation}} {{result}}",
           "range": true,
           "refId": "A"
@@ -705,7 +705,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (operation) (rate(kurator_mq_operations_total{namespace=\"$namespace\",result=\"error\",operation=~\"set_channel_auth|get_channel_auth|delete_channel_auth|set_authority|get_authority|delete_authority\"}[5m]))",
+          "expr": "sum by (operation) (rate(mkurator_mq_operations_total{namespace=\"$namespace\",result=\"error\",operation=~\"set_channel_auth|get_channel_auth|delete_channel_auth|set_authority|get_authority|delete_authority\"}[5m]))",
           "legendFormat": "{{operation}}",
           "range": true,
           "refId": "A"
@@ -891,7 +891,7 @@
   "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
-  "tags": ["kurator", "kubernetes", "operator", "ibm-mq"],
+  "tags": ["mkurator", "kubernetes", "operator", "ibm-mq"],
   "templating": {
     "list": [
       {
@@ -916,8 +916,8 @@
       {
         "current": {
           "selected": true,
-          "text": "kurator-system",
-          "value": "kurator-system"
+          "text": "mkurator-system",
+          "value": "mkurator-system"
         },
         "hide": 0,
         "label": "Namespace",
@@ -925,11 +925,11 @@
         "options": [
           {
             "selected": true,
-            "text": "kurator-system",
-            "value": "kurator-system"
+            "text": "mkurator-system",
+            "value": "mkurator-system"
           }
         ],
-        "query": "kurator-system",
+        "query": "mkurator-system",
         "skipUrlSync": false,
         "type": "textbox"
       }
@@ -941,8 +941,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Kurator Operator",
-  "uid": "kurator-operator",
+  "title": "MKurator Operator",
+  "uid": "mkurator-operator",
   "version": 1,
   "weekStart": ""
 }

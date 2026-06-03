@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/konih/kurator/internal/adapter/mqpcf"
-	"github.com/konih/kurator/internal/mqadmin"
+	"github.com/konih/mkurator/internal/adapter/mqpcf"
+	"github.com/konih/mkurator/internal/mqadmin"
 )
 
 func TestClient_ImplementsAdmin(t *testing.T) {

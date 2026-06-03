@@ -15,9 +15,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/mqadmin"
-	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/mqadmin"
+	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
 
 var (
@@ -40,7 +40,7 @@ func unitSchemeOrFatal(t *testing.T) *runtime.Scheme {
 func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -99,7 +99,7 @@ func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 func TestQueueReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -155,7 +155,7 @@ func TestQueueReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 func TestQueueReconciler_AddsFinalizer(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -199,7 +199,7 @@ func TestQueueReconciler_AddsFinalizer(t *testing.T) {
 func TestQueueReconciler_DeletionDeleteFails(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -249,7 +249,7 @@ func TestQueueReconciler_DeletionDeleteFails(t *testing.T) {
 func TestQueueReconciler_Deletion(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -307,7 +307,7 @@ func TestQueueReconciler_Deletion(t *testing.T) {
 func TestQueueReconciler_TransientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -355,7 +355,7 @@ func TestQueueReconciler_TransientError(t *testing.T) {
 func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "qm1"}
 	s := unitSchemeOrFatal(t)
 
@@ -408,7 +408,7 @@ func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 func TestQueueReconciler_UnsupportedType(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -462,7 +462,7 @@ func TestQueueReconciler_UnsupportedType(t *testing.T) {
 func TestQueueReconciler_DefineOnDrift(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 
@@ -510,7 +510,7 @@ func TestQueueReconciler_DefineOnDrift(t *testing.T) {
 func TestQueueManagerConnectionReconciler_TransientPingFailure(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "qm1"}
 	s := unitSchemeOrFatal(t)
 

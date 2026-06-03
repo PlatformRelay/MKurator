@@ -13,15 +13,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
-	"github.com/konih/kurator/internal/mqadmin"
-	mqadmintest "github.com/konih/kurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/mqadmin"
+	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
 
 func TestChannelAuthRuleReconciler_TransientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -68,7 +68,7 @@ func TestChannelAuthRuleReconciler_TransientError(t *testing.T) {
 func TestChannelAuthRuleReconciler_DeleteTerminalError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -121,7 +121,7 @@ func TestChannelAuthRuleReconciler_DeleteTerminalError(t *testing.T) {
 func TestChannelAuthRuleReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -177,7 +177,7 @@ func TestChannelAuthRuleReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 func TestChannelAuthRuleReconciler_AddsFinalizer(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -223,7 +223,7 @@ func TestChannelAuthRuleReconciler_AddsFinalizer(t *testing.T) {
 func TestAuthorityRecordReconciler_TransientError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 
@@ -270,7 +270,7 @@ func TestAuthorityRecordReconciler_TransientError(t *testing.T) {
 func TestAuthorityRecordReconciler_DeleteTerminalError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 
@@ -324,7 +324,7 @@ func TestAuthorityRecordReconciler_DeleteTerminalError(t *testing.T) {
 func TestAuthorityRecordReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 
@@ -381,7 +381,7 @@ func TestAuthorityRecordReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 func TestSetSyncedError_TransientChannelAuthRule(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 	rule := &messagingv1alpha1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1},
@@ -398,7 +398,7 @@ func TestSetSyncedError_TransientChannelAuthRule(t *testing.T) {
 func TestChannelAuthRuleReconciler_NoDriftSkipsSet(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -448,7 +448,7 @@ func TestChannelAuthRuleReconciler_NoDriftSkipsSet(t *testing.T) {
 func TestChannelAuthRuleReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -507,7 +507,7 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 func TestChannelAuthRuleReconciler_SetsDesiredMQSCBlockUser(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-blockuser"}
 	s := unitSchemeOrFatal(t)
 
@@ -564,7 +564,7 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCBlockUser(t *testing.T) {
 func TestChannelAuthRuleReconciler_DriftAppliesSet(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -615,7 +615,7 @@ func TestChannelAuthRuleReconciler_DriftAppliesSet(t *testing.T) {
 func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 
@@ -677,7 +677,7 @@ func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 func TestAuthorityRecordReconciler_NoDriftSkipsSet(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 
@@ -725,7 +725,7 @@ func TestAuthorityRecordReconciler_NoDriftSkipsSet(t *testing.T) {
 func TestAuthorityRecordReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 
@@ -781,7 +781,7 @@ func TestAuthorityRecordReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 func TestAuthorityRecordReconciler_NotFoundCreates(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	ns := "kurator-system"
+	ns := "mkurator-system"
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 
