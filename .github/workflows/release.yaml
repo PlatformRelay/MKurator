@@ -138,7 +138,7 @@ jobs:
 
       - name: Assemble release notes
         env:
-          CLIFF_CHANGELOG: ${{ steps.cliff.outputs.changelog }}
+          CLIFF_CHANGELOG: ${{ steps.cliff.outputs.content }}
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
           IMAGE_REPO: ${{ steps.image.outputs.repository }}
