@@ -301,6 +301,7 @@ tasks:
   ci:e2e:
     desc: "E2E parity with GitHub Actions (cluster:up, MQ wait, test:e2e)"
     env:
+      CGO_ENABLED: "1"
       CERT_MANAGER_INSTALL_SKIP: "true"
       KURATOR_E2E_MQ: "1"
       KIND_CLUSTER: "{{.CLUSTER_NAME}}"

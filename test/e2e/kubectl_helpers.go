@@ -57,3 +57,8 @@ func kubectlWait(condition, resource, name, ns string) error {
 func kubectlDeleteIgnoreNotFound(resource, name, ns string) {
 	_ = exec.Command("kubectl", "delete", resource, name, "-n", ns, "--ignore-not-found").Run()
 }
+
+// kubectlDeleteClusterIgnoreNotFound best-effort deletes a cluster-scoped resource.
+func kubectlDeleteClusterIgnoreNotFound(resource, name string) {
+	_ = exec.Command("kubectl", "delete", resource, name, "--ignore-not-found").Run()
+}

@@ -234,10 +234,9 @@ stringData:
   mqAdminPassword: %s
 `, namespace, envOr("KURATOR_E2E_MQ_PASSWORD", "passw0rd")))).To(Succeed())
 
-			cmd := exec.Command("kubectl", "annotate", "queuemanagerconnection", mqConnectionName, "-n", namespace,
-				fmt.Sprintf("e2e-refresh-ts=%d", time.Now().UnixNano()), "--overwrite")
-			_, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
+			By("recreating QueueManagerConnection so the controller picks up the fixed secret")
+			Expect(kubectlDeleteWait("queuemanagerconnection", mqConnectionName, namespace)).To(Succeed())
+			Expect(kubectlApply(connectionManifest())).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				check := exec.Command("kubectl", "get", "queuemanagerconnection", mqConnectionName, "-n", namespace,
@@ -406,6 +405,8 @@ spec:
 				g.Expect(runErr).NotTo(HaveOccurred())
 				g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
 			}).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			waitForControllerAndWebhookReady()
 
 			carYAML := fmt.Sprintf(`apiVersion: messaging.kurator.dev/v1alpha1
 kind: ChannelAuthRule
