@@ -187,8 +187,7 @@ reference MQSC; e2e fixture
   in auth reconcilers; `status.desiredMQSC` on auth CRs.
 - [x] Release tags **`v0.5.0`** and **`v0.5.1`** with GitHub Releases; git tag
   **`v0.5.2`** exists — publish the GitHub Release only after the [RELEASE.md](RELEASE.md)
-  gate is green on that SHA (tag was cut ahead of stable e2e; see
-  [DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
+  gate is green on that SHA (tag was cut ahead of stable e2e on `main`).
 - [x] **CI ergonomics (Phase 5)** — [`preflight.yaml`](../.github/workflows/preflight.yaml)
   (fail-fast `go mod tidy` + `task verify`), [`nightly.yaml`](../.github/workflows/nightly.yaml)
   (Mon 03:00 UTC full pyramid), [`release-gate.yaml`](../.github/workflows/release-gate.yaml)
@@ -201,7 +200,7 @@ reference MQSC; e2e fixture
 - [ ] **Pipeline green on `main`** — **CI**, **Integration**, and **E2E (kustomize)**
   all succeeded on the commit you will tag (use [release-gate](RELEASE.md#automated-release-gate-workflow)
   or manual `gh run list`). Was incorrectly marked done before **`v0.5.2`**; not
-  evidenced on `main` as of 2026-06-03 ([DELTA_AUDIT](plans/DELTA_AUDIT_2026-06-03.md)).
+  evidenced on `main` as of 2026-06-03.
 - [ ] **`task ci:e2e` green locally** — maintainer verification of full kind + MQ
   stack (Kustomize deploy path); respect `exclusive-test.lock`.
 - [x] Helm **ClusterRole** includes auth CRDs; `hack/helm-verify-rbac.sh` in `task helm:lint`.
