@@ -53,6 +53,7 @@ func e2eDeployMode() string {
 // deployOperatorForE2E installs the operator using Kustomize (default) or Helm when
 // KURATOR_E2E_DEPLOY=helm.
 func deployOperatorForE2E() {
+	e2eStage("DEPLOY OPERATOR — install controller (" + e2eDeployMode() + ")")
 	switch e2eDeployMode() {
 	case "helm":
 		deployOperatorForE2EHelm()

@@ -38,6 +38,7 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	e2eStage("PLATFORM PREP — build/load images, cert-manager")
 	By("building the manager image")
 	cmd := exec.Command("task", "docker:build")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))

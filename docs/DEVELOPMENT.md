@@ -458,6 +458,35 @@ The same **machine lock** as integration applies (`exclusive-test.lock`); do not
 run `task ci:e2e`, `task test:e2e`, and integration tasks in parallel on one host.
 Phase 5 and test-tier follow-ups: [ROADMAP.md](ROADMAP.md#phase-5--user--authority-management).
 
+### Reading e2e output locally
+
+`task test:e2e` runs `hack/ci/run-e2e.sh`, which prints **stage banners** in the
+same style as other CI tasks (`==> <timestamp> …`). Full platform bring-up uses
+`task ci:e2e`, which adds **PLATFORM UP** steps before the Ginkgo suite.
+
+| Marker | Meaning |
+|--------|---------|
+| `==> … PLATFORM UP` | kind + IBM MQ (`ci:e2e` only) |
+| `==> … GINKGO E2E` | Suite runner starting (`test:e2e`) |
+| `==> … PLATFORM PREP` | BeforeSuite: image build/load, cert-manager |
+| `==> … DEPLOY OPERATOR` | Operator install (`task deploy` or Helm) |
+| `==> … MQ SUITE` | IBM MQ scenarios (`KURATOR_E2E_MQ=1`) |
+| `[e2e] SPEC START` / `SPEC PASS` / `SPEC FAIL` | Per-spec boundaries |
+| `[e2e] …` | Progress lines from `e2eBy()` inside specs |
+
+Ginkgo runs with `-ginkgo.vv`, `-ginkgo.show-node-events`, and `-ginkgo.procs=1`
+(serial). In GitHub Actions, `-ginkgo.github-output` is added for workflow annotations.
+
+On spec failure, diagnostics go to **GinkgoWriter** (visible with `-v`). Controller
+logs are **truncated** (`kubectl logs --tail=40`) unless
+`KURATOR_E2E_VERBOSE_LOGS=1` is set for the full structured JSON stream.
+
+```sh
+KURATOR_E2E_MQ=1 task test:e2e                              # suite only (cluster already up)
+KURATOR_E2E_VERBOSE_LOGS=1 KURATOR_E2E_MQ=1 task test:e2e   # full controller logs on failure
+task ci:e2e                                                 # PLATFORM UP + MQ wait + suite
+```
+
 Guidelines:
 
 - Unit + envtest must stay fast and hermetic; mock the `MQAdmin` port, never hit

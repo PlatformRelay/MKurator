@@ -22,23 +22,33 @@ if [[ -f "${KIND_KUBECONFIG}" ]]; then
   export KUBECONFIG="${KIND_KUBECONFIG}"
 fi
 
-ci_step "E2E tests (build image, load kind, deploy operator — output streams below)"
+ci_step "GINKGO E2E — image build, kind load, deploy (platform must already be up; task ci:e2e runs PLATFORM UP first)"
 
 echo "KUBECONFIG=${KUBECONFIG:-<unset>}"
 echo "KIND_CLUSTER=${KIND_CLUSTER:-<unset>}"
 echo "KURATOR_E2E_DEPLOY=${KURATOR_E2E_DEPLOY:-kustomize}"
 echo "KURATOR_E2E_MQ=${KURATOR_E2E_MQ:-<unset>}"
 echo "CERT_MANAGER_INSTALL_SKIP=${CERT_MANAGER_INSTALL_SKIP:-<unset>}"
+echo "KURATOR_E2E_VERBOSE_LOGS=${KURATOR_E2E_VERBOSE_LOGS:-0}"
 echo ""
 
 export CGO_ENABLED="${CGO_ENABLED:-1}"
 
-# -ginkgo.v + -ginkgo.show-node-events: spec output and node events when a spec is stuck
+GINKGO_FLAGS=(
+  -ginkgo.vv
+  -ginkgo.show-node-events
+  -ginkgo.procs=1
+)
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  GINKGO_FLAGS+=(-ginkgo.github-output)
+fi
+
+ci_step "GINKGO SUITE — look for [e2e] SPEC START/PASS lines and ==> stage banners"
+
 # -count=1: do not skip the suite via cached pass
 go test -tags=e2e ./test/e2e/... \
   -race \
   -v \
   -count=1 \
   -timeout=90m \
-  -ginkgo.v \
-  -ginkgo.show-node-events
+  "${GINKGO_FLAGS[@]}"

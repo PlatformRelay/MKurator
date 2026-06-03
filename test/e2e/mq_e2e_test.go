@@ -38,6 +38,13 @@ func e2eLocalQueueSpec() mqadmin.QueueSpec {
 }
 
 var _ = Describe("Post-manager IBM MQ integration", Serial, Label("mq"), func() {
+	BeforeAll(func() {
+		if !mqE2EEnabled() {
+			return
+		}
+		e2eStage("MQ SUITE — IBM MQ reconcile scenarios")
+	})
+
 	BeforeEach(func() {
 		if !mqE2EEnabled() {
 			Skip("IBM MQ e2e disabled; set KURATOR_E2E_MQ=1 and run task cluster:up")

@@ -17,9 +17,9 @@ export KUBECONFIG="${KUBECONFIG:-${ROOT}/hack/kind-cluster/.state/kubeconfig.yam
 
 cd "${ROOT}"
 
-bash hack/ci/step.sh "Phase 1/3 — kind cluster + IBM MQ platform (task cluster:up)"
+bash hack/ci/step.sh "PLATFORM UP — kind cluster + IBM MQ (task cluster:up)"
 task cluster:up
-bash hack/ci/step.sh "Phase 2/3 — wait for mqweb (NodePort / HAProxy)"
+bash hack/ci/step.sh "PLATFORM UP — wait for mqweb (NodePort / HAProxy)"
 bash hack/ci/wait-mqweb.sh
-bash hack/ci/step.sh "Phase 3/3 — Ginkgo e2e suite (image build + deploy)"
+bash hack/ci/step.sh "GINKGO E2E — image build, deploy operator, MQ scenarios"
 task test:e2e
