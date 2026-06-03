@@ -1,0 +1,27 @@
+description: TopicSpec defines an administrative topic object on a referenced queue
+  manager.
+properties:
+  attributes:
+    additionalProperties:
+      type: string
+    description: |-
+      Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
+      Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
+    type: object
+  connectionRef:
+    description: ConnectionRef names a QueueManagerConnection in the same namespace.
+    properties:
+      name:
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  topicName:
+    description: TopicName is the IBM MQ topic object name (e.g. RETAIL.ORDERS).
+    minLength: 1
+    type: string
+required:
+- connectionRef
+- topicName
+type: object

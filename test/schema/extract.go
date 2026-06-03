@@ -19,18 +19,24 @@ type SpecFragmentCase struct {
 // Add a row and golden under test/schema/golden/ to extend coverage.
 var DefaultCases = []SpecFragmentCase{
 	{CRDFile: "messaging.kurator.dev_queues.yaml", GoldenFile: "queue.spec.openapi.yaml"},
+	{CRDFile: "messaging.kurator.dev_topics.yaml", GoldenFile: "topic.spec.openapi.yaml"},
+	{CRDFile: "messaging.kurator.dev_channels.yaml", GoldenFile: "channel.spec.openapi.yaml"},
+	{CRDFile: "messaging.kurator.dev_channelauthrules.yaml", GoldenFile: "channelauthrule.spec.openapi.yaml"},
+	{CRDFile: "messaging.kurator.dev_authorityrecords.yaml", GoldenFile: "authorityrecord.spec.openapi.yaml"},
+	{CRDFile: "messaging.kurator.dev_queuemanagerconnections.yaml", GoldenFile: "queuemanagerconnection.spec.openapi.yaml"},
 }
 
 // ExtractSpecOpenAPIFragment returns the storage-version .spec OpenAPI subtree from a CRD YAML file.
 func ExtractSpecOpenAPIFragment(crdPath string) ([]byte, error) {
+	//nolint:gosec // G304: crdPath is a committed manifest under config/crd/bases.
 	raw, err := os.ReadFile(crdPath)
 	if err != nil {
 		return nil, fmt.Errorf("read crd %q: %w", crdPath, err)
 	}
 
 	var crd apiextensionsv1.CustomResourceDefinition
-	if err := yaml.Unmarshal(raw, &crd); err != nil {
-		return nil, fmt.Errorf("parse crd %q: %w", crdPath, err)
+	if unmarshalErr := yaml.Unmarshal(raw, &crd); unmarshalErr != nil {
+		return nil, fmt.Errorf("parse crd %q: %w", crdPath, unmarshalErr)
 	}
 
 	var storage *apiextensionsv1.CustomResourceValidation

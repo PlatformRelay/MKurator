@@ -1,0 +1,46 @@
+description: AuthorityRecordSpec defines a SET AUTHREC rule on a referenced queue
+  manager.
+properties:
+  authorities:
+    description: Authorities maps to AUTHADD(...) — e.g. GET, PUT, CONNECT.
+    items:
+      type: string
+    minItems: 1
+    type: array
+    x-kubernetes-list-type: set
+  connectionRef:
+    description: ConnectionRef names a QueueManagerConnection in the same namespace.
+    properties:
+      name:
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  group:
+    description: Group maps to GROUP('…'). Mutually exclusive with Principal.
+    type: string
+  objectType:
+    description: ObjectType maps to OBJTYPE(...).
+    enum:
+    - QUEUE
+    - CHANNEL
+    - TOPIC
+    - QMGR
+    - NAMESPAC
+    - PROCESS
+    - NLIST
+    type: string
+  principal:
+    description: Principal maps to PRINCIPAL('…'). Mutually exclusive with Group.
+    type: string
+  profile:
+    description: Profile maps to PROFILE('…') — queue, channel, or other object name.
+    minLength: 1
+    type: string
+required:
+- authorities
+- connectionRef
+- objectType
+- profile
+type: object

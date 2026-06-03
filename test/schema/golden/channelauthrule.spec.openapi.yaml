@@ -1,0 +1,46 @@
+description: ChannelAuthRuleSpec defines a SET CHLAUTH rule on a referenced queue
+  manager.
+properties:
+  address:
+    description: Address maps to ADDRESS(...) for ADDRESSMAP and BLOCKADDR rules.
+    type: string
+  channelName:
+    description: ChannelName is the IBM MQ channel name in SET CHLAUTH('…').
+    minLength: 1
+    type: string
+  checkClient:
+    description: CheckClient maps to CHCKCLNT(...) for ADDRESSMAP rules.
+    type: string
+  connectionRef:
+    description: ConnectionRef names a QueueManagerConnection in the same namespace.
+    properties:
+      name:
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  description:
+    description: Description maps to DESCR(...).
+    type: string
+  ruleType:
+    description: RuleType maps to CHLAUTH TYPE(...).
+    enum:
+    - ADDRESSMAP
+    - BLOCKUSER
+    - USERMAP
+    - SSLPEERMAP
+    - QMGRMAP
+    - BLOCKADDR
+    type: string
+  userList:
+    description: UserList maps to USERLIST(...) for BLOCKUSER rules.
+    type: string
+  userSource:
+    description: UserSource maps to USERSRC(...) for ADDRESSMAP rules.
+    type: string
+required:
+- channelName
+- connectionRef
+- ruleType
+type: object

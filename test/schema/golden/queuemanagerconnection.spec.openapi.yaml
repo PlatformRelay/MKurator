@@ -1,0 +1,48 @@
+description: QueueManagerConnectionSpec defines how to reach an IBM MQ queue manager.
+properties:
+  credentialsSecretRef:
+    description: |-
+      CredentialsSecretRef references a Secret with mqweb credentials.
+      Required keys: username, password (mqAdminPassword is also accepted for password).
+    properties:
+      name:
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  endpoint:
+    description: Endpoint is the mqweb base URL, e.g. https://ibm-mq.ibm-mq.svc:9443
+    pattern: ^https://
+    type: string
+  queueManager:
+    description: QueueManager is the IBM MQ queue manager name (case-sensitive).
+    minLength: 1
+    type: string
+  restPrefix:
+    description: RESTPrefix is the mqweb REST API path prefix. Defaults to /ibmmq/rest/v3.
+    pattern: ^/
+    type: string
+  tls:
+    description: TLS configures HTTPS trust for mqweb.
+    properties:
+      caSecretRef:
+        description: CASecretRef references a Secret containing a CA bundle (key tls.crt
+          or ca.crt).
+        properties:
+          name:
+            minLength: 1
+            type: string
+        required:
+        - name
+        type: object
+      insecureSkipVerify:
+        description: InsecureSkipVerify disables server certificate verification (dev
+          only).
+        type: boolean
+    type: object
+required:
+- credentialsSecretRef
+- endpoint
+- queueManager
+type: object

@@ -1,0 +1,33 @@
+description: ChannelSpec defines a channel to maintain on a referenced queue manager.
+properties:
+  attributes:
+    additionalProperties:
+      type: string
+    description: |-
+      Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
+      Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
+    type: object
+  channelName:
+    description: ChannelName is the IBM MQ channel name (e.g. ORDERS.APP).
+    minLength: 1
+    type: string
+  connectionRef:
+    description: ConnectionRef names a QueueManagerConnection in the same namespace.
+    properties:
+      name:
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  type:
+    default: svrconn
+    description: Type is the channel kind to define. Only svrconn is reconciled in
+      v1alpha1.
+    enum:
+    - svrconn
+    type: string
+required:
+- channelName
+- connectionRef
+type: object
