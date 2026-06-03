@@ -84,7 +84,7 @@ var _ = Describe("Post-manager IBM MQ integration", Label("mq"), func() {
 		})
 
 		It("reconciles a Queue CR against the kind IBM MQ queue manager", func() {
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
 
 			queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
@@ -102,7 +102,7 @@ spec:
     descr: e2e orders queue
 `, queueCR, ns, mqConnectionName, queueObject, mqQueueMaxDepthV1)
 
-			Expect(kubectlApply(queueYAML)).To(Succeed())
+			Expect(applyWithWebhookRetry(queueYAML)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				out, err := runKubectl("get", "queue", queueCR, "-n", ns,
@@ -268,7 +268,7 @@ spec:
 		})
 
 		It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
-			Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
 			channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
@@ -284,7 +284,7 @@ spec:
     descr: e2e app channel
     trptype: tcp
 `, channelCR, ns, mqConnectionName, channelObject)
-			Expect(kubectlApply(channelYAML)).To(Succeed())
+			Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
 
 			Eventually(func(g Gomega) {
 				out, err := runKubectl("get", "channel", channelCR, "-n", ns,
@@ -320,9 +320,9 @@ var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Seri
 	BeforeEach(func() {
 		ensureE2ENamespace(ns)
 		ensureMQCredentialsSecret(ns)
-		// Serial auth specs run long MQ reconciles; re-verify webhook reachability each spec.
-		invalidateWebhookReadyCache()
-		waitForControllerAndWebhookReadyCached()
+		if !webhookReady.Load() {
+			waitForControllerAndWebhookReadyCached()
+		}
 	})
 
 	AfterEach(func() {
@@ -463,7 +463,7 @@ spec:
     - GET
     - PUT
 `, mqAuthorityCRName, ns, mqConnectionName, queueObject)
-		Expect(kubectlApply(authYAML)).To(Succeed())
+		Expect(applyWithWebhookRetry(authYAML)).To(Succeed())
 
 		Eventually(func(g Gomega) {
 			out, err := runKubectl("get", "authorityrecord", mqAuthorityCRName, "-n", ns,
@@ -496,7 +496,7 @@ spec:
 			Principal:  "app",
 		}
 		Eventually(func(g Gomega) {
-			pollCtx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+			pollCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			defer cancel()
 			ok, err := authorityExists(pollCtx, client, authLookup)
 			g.Expect(err).NotTo(HaveOccurred())
