@@ -128,7 +128,7 @@ func waitForKuratorCRDsEstablished() {
 	Eventually(func(g Gomega) {
 		for _, crd := range kuratorE2ECRDs {
 			cmd := exec.Command("kubectl", "get", "crd", crd,
-				"-o", "jsonpath={.status.conditions[?(@.type=='Established')].status}{\\t}{.metadata.deletionTimestamp}")
+				"-o", "jsonpath={.status.conditions[?(@.type=='Established')].status}{\"\\t\"}{.metadata.deletionTimestamp}")
 			out, runErr := utils.Run(cmd)
 			g.Expect(runErr).NotTo(HaveOccurred(), "CRD %s should exist", crd)
 			fields := strings.Split(strings.TrimSpace(out), "\t")
