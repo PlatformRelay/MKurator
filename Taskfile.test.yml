@@ -43,8 +43,19 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        pkgs="$(go list ./... | grep -v /e2e)"
-        go test -race -coverpkg=./internal/... -coverprofile=coverage.out ${pkgs}
+        rm -f coverage.out coverage-summary.txt
+        # Non-internal packages (e.g. test/schema) run without -coverprofile so they do not
+        # append to coverage.out; mixed cache + multi-package cover merge can corrupt the
+        # profile (go tool cover: token too long / malformed import path).
+        other_pkgs="$(go list ./... | grep -v /e2e | grep -v '/internal/' || true)"
+        if [ -n "${other_pkgs}" ]; then
+          go test -race ${other_pkgs}
+        fi
+        go test -race -count=1 -p 1 -coverpkg=./internal/... -coverprofile=coverage.out ./internal/...
+        if [ ! -s coverage.out ] || [ "$(wc -l < coverage.out)" -lt 2 ]; then
+          echo "coverage.out missing or empty after go test ./internal/..."
+          exit 1
+        fi
         go tool cover -func=coverage.out | tee coverage-summary.txt | tail -1
         pct="$(awk '/^total:/ {gsub(/%/,"",$3); print $3}' coverage-summary.txt)"
         min=90
