@@ -5,8 +5,8 @@ This document describes the continuous integration and delivery design for
 (via Task and pre-commit) and in CI**, so "green locally" means "green in CI".
 
 CI runs on **GitHub Actions** per the workflows under `.github/workflows/`
-(`preflight.yaml`, `ci.yaml`, `integration.yaml`, `e2e.yaml`, `release.yaml`,
-`renovate.yaml`).
+(`preflight.yaml`, `ci.yaml`, `integration.yaml`, `e2e.yaml`, `nightly.yaml`,
+`release.yaml`, `renovate.yaml`).
 This doc is the contract they implement. See [ROADMAP.md](ROADMAP.md) for
 delivery context.
 
@@ -52,6 +52,7 @@ what each job runs, not execution order.
 | PR / push to `main` (non-docs paths) | `integration.yaml`: Docker IBM MQ integration tests |
 | PR / push to `main` (non-docs paths) | `e2e.yaml`: kind + IBM MQ e2e |
 | Tag `v*` | `release.yaml`: build + push image, publish install manifests, Trivy scan |
+| Schedule (Mon 03:00 UTC) + `workflow_dispatch` | `nightly.yaml`: full integration + e2e (kustomize + optional Helm); not required for merge |
 | Schedule (weekly, self-hosted) | `renovate.yaml`: dependency update PRs |
 
 **Path filters:** `integration.yaml` and `e2e.yaml` skip when a push or PR
@@ -70,6 +71,12 @@ group with `ci.yaml` or each other.
 | `e2e`, `integration` on **`main`** | `false` | Rapid pushes do not cancel a run already on the cluster; newer runs **queue** until the group is free, so each finished run keeps a visible result. |
 
 `ci.yaml` has no concurrency block (jobs always run in parallel per trigger).
+
+`nightly.yaml` uses a single workflow-scoped group (`nightly-Nightly`) with
+`cancel-in-progress: false` so at most one scheduled or manual nightly run is
+active; jobs run **sequentially** (`integration` → `e2e (kustomize)` →
+`e2e (helm)`) and each step uses `hack/ci/suite-lock.sh` for parity with the
+local `exclusive-test.lock` discipline.
 
 `preflight.yaml` has no concurrency block; it runs in parallel with `ci.yaml` and
 the heavy workflows.
@@ -151,6 +158,10 @@ Dedicated workflow [`.github/workflows/integration.yaml`](../.github/workflows/i
 channel, **CHLAUTH**, and **AUTHREC** operations against live mqweb without kind.
 Local equivalent: `task test:integration:local` or `task ci:integration`.
 
+`hack/ci/run-integration.sh` writes JUnit XML to `artifacts/integration-junit.xml`
+(stdlib `go test -json` via pinned `go-junit-report`). The workflow uploads it as
+an artifact on every run (`if: always()`).
+
 ### `e2e`
 Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml):
 
@@ -163,6 +174,37 @@ Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml)
 Both jobs use `CERT_MANAGER_INSTALL_SKIP=true` (cert-manager from Terraform) and
 `task cluster:down` (always). Local: `task ci:e2e`; kustomize + Helm on one cluster:
 `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
+
+`hack/ci/run-e2e.sh` emits Ginkgo JUnit to `artifacts/e2e-junit.xml`
+(`-ginkgo.junit-report`); each e2e job uploads that file as a workflow artifact
+(`if: always()`). PR job summaries from JUnit are not generated yet.
+
+### `nightly` (scheduled + manual)
+
+Dedicated workflow [`.github/workflows/nightly.yaml`](../.github/workflows/nightly.yaml):
+flake detection and full-suite signal **without** blocking PRs. Not listed in
+branch protection.
+
+| Job | Command / flow | Notes |
+|-----|----------------|-------|
+| `integration` | `bash hack/ci/suite-lock.sh exclusive-test task ci:integration` | Same as `integration.yaml` (Docker MQ up → tests → down) |
+| `e2e (kustomize)` | `suite-lock` → `task cluster:up` → `hack/ci/wait-mqweb.sh` → `task test:e2e` | `KURATOR_E2E_MQ=1`; no `!slow` label filter |
+| `e2e (helm)` | Same platform steps → `task test:e2e:helm` | `KURATOR_E2E_DEPLOY=helm`; skipped on `workflow_dispatch` when `run_helm_e2e` is false; always runs on schedule |
+
+Workflow timeout per job: **120 minutes**. On failure, uploads diagnostics
+(`.state/` kubeconfig artifacts, `kubectl` pod/log dumps, Docker MQ logs for
+integration). Trigger: cron **Monday 03:00 UTC** or `workflow_dispatch`.
+
+Local parity (sequential, one host — respect `exclusive-test.lock`):
+
+```sh
+task ci:integration
+task cluster:up && bash hack/ci/wait-mqweb.sh && KURATOR_E2E_MQ=1 task test:e2e && task cluster:down
+# optional second cluster cycle for Helm:
+task cluster:up && bash hack/ci/wait-mqweb.sh && KURATOR_E2E_DEPLOY=helm task test:e2e:helm && task cluster:down
+```
+
+Or kustomize + Helm on one cluster: `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
 ### `release` (tags only)
 Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and
@@ -324,6 +366,7 @@ above:
 | helm-lint | `task helm:lint` (includes `hack/helm-verify-rbac.sh` for RBAC drift) |
 | integration | `task ci:integration` (or `task test:integration:local`) |
 | e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
+| nightly | `task ci:integration` then e2e steps above (or `KURATOR_CI_E2E_BOTH=1 task ci:e2e` for one-cluster Helm) |
 | release changelog | `task changelog` / `task changelog:write` |
 
 pre-commit runs `gofmt`/`goimports`, `golangci-lint`, and `task verify` so most

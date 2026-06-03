@@ -1,0 +1,228 @@
+name: Nightly
+
+on:
+  schedule:
+    # Weekly full pyramid (Monday 03:00 UTC).
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      run_helm_e2e:
+        description: Run Helm e2e after kustomize (second cluster:up)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  CLUSTER_NAME: kurator
+  KIND_CLUSTER: kurator
+  KUBECONFIG: ${{ github.workspace }}/hack/kind-cluster/.state/kubeconfig.yaml
+  CERT_MANAGER_INSTALL_SKIP: "true"
+  KURATOR_E2E_MQ: "1"
+  # Full suite on nightly (no PR !slow filter).
+  KURATOR_E2E_LABEL_FILTER: ""
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: 3.51.1
+
+      - name: Run integration (CI parity + suite lock)
+        run: bash hack/ci/suite-lock.sh exclusive-test task ci:integration
+        env:
+          CI: "true"
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-integration-failure-${{ github.run_id }}
+          path: |
+            hack/mq-docker/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Capture Docker MQ logs on failure
+        if: failure()
+        run: |
+          docker compose -f hack/mq-docker/docker-compose.yml logs > mq-integration-docker.log 2>&1 || true
+      - name: Upload Docker MQ logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-integration-docker-logs-${{ github.run_id }}
+          path: mq-integration-docker.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  e2e-kustomize:
+    name: e2e (kustomize)
+    needs: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: 3.51.1
+
+      - name: Install platform tools (kind, mkcert, terraform)
+        run: task tools:install
+
+      - name: Expose platform tools on PATH
+        run: |
+          bindir="${{ github.workspace }}/bin"
+          echo "${bindir}" >> "${GITHUB_PATH}"
+          echo "PATH=${bindir}:${PATH}" >> "${GITHUB_ENV}"
+          echo "KIND=${bindir}/kind" >> "${GITHUB_ENV}"
+
+      - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+
+      - name: E2E platform and suite (kustomize, suite lock)
+        run: |
+          set -euo pipefail
+          bash hack/ci/suite-lock.sh exclusive-test bash -c '
+            task cluster:up
+            bash hack/ci/wait-mqweb.sh
+            task test:e2e
+          '
+        env:
+          CI: "true"
+
+      - name: Tear down platform
+        if: always()
+        run: task cluster:down
+        env:
+          CI: "true"
+
+      - name: Capture cluster diagnostics on failure
+        if: failure()
+        run: |
+          diag="nightly-e2e-kustomize-diagnostics.txt"
+          {
+            echo "=== kubectl get pods -A ==="
+            kubectl get pods -A -o wide 2>&1 || true
+            echo "=== kubectl describe pods -n kurator-system ==="
+            kubectl describe pods -n kurator-system 2>&1 || true
+            echo "=== kurator-system logs ==="
+            kubectl logs -n kurator-system -l control-plane=controller-manager --tail=200 2>&1 || true
+          } > "${diag}"
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-e2e-kustomize-failure-${{ github.run_id }}
+          path: |
+            hack/kind-cluster/.state/
+            nightly-e2e-kustomize-diagnostics.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+  e2e-helm:
+    name: e2e (helm)
+    needs: e2e-kustomize
+    if: github.event_name == 'schedule' || github.event.inputs.run_helm_e2e != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+
+      - uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: 3.51.1
+
+      - name: Install platform tools (kind, mkcert, terraform)
+        run: task tools:install
+
+      - name: Expose platform tools on PATH
+        run: |
+          bindir="${{ github.workspace }}/bin"
+          echo "${bindir}" >> "${GITHUB_PATH}"
+          echo "PATH=${bindir}:${PATH}" >> "${GITHUB_ENV}"
+          echo "KIND=${bindir}/kind" >> "${GITHUB_ENV}"
+
+      - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+
+      - name: E2E platform and suite (Helm deploy, suite lock)
+        run: |
+          set -euo pipefail
+          bash hack/ci/suite-lock.sh exclusive-test bash -c '
+            task cluster:up
+            bash hack/ci/wait-mqweb.sh
+            task test:e2e:helm
+          '
+        env:
+          CI: "true"
+          KURATOR_E2E_DEPLOY: helm
+
+      - name: Tear down platform
+        if: always()
+        run: task cluster:down
+        env:
+          CI: "true"
+
+      - name: Capture cluster diagnostics on failure
+        if: failure()
+        run: |
+          diag="nightly-e2e-helm-diagnostics.txt"
+          {
+            echo "=== kubectl get pods -A ==="
+            kubectl get pods -A -o wide 2>&1 || true
+            echo "=== kubectl describe pods -n kurator-system ==="
+            kubectl describe pods -n kurator-system 2>&1 || true
+            echo "=== kurator-system logs ==="
+            kubectl logs -n kurator-system -l control-plane=controller-manager --tail=200 2>&1 || true
+          } > "${diag}"
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-e2e-helm-failure-${{ github.run_id }}
+          path: |
+            hack/kind-cluster/.state/
+            nightly-e2e-helm-diagnostics.txt
+          if-no-files-found: warn
+          retention-days: 14
