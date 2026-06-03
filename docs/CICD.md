@@ -6,9 +6,14 @@ This document describes the continuous integration and delivery design for
 
 CI runs on **GitHub Actions** per the workflows under `.github/workflows/`
 (`preflight.yaml`, `ci.yaml`, `integration.yaml`, `e2e.yaml`, `nightly.yaml`,
-`release.yaml`, `renovate.yaml`).
+`release-gate.yaml`, `release.yaml`, `renovate.yaml`).
 This doc is the contract they implement. See [ROADMAP.md](ROADMAP.md) for
 delivery context.
+
+**Pipeline health:** e2e on `main` was **not consistently green** when tag
+`v0.5.2` was cut (see [DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
+Treat green **E2E (kustomize)** on the exact release SHA as a gate, not an
+assumption from older docs.
 
 ## Principles
 
@@ -52,7 +57,9 @@ what each job runs, not execution order.
 | PR / push to `main` (non-docs paths) | `integration.yaml`: Docker IBM MQ integration tests |
 | PR / push to `main` (non-docs paths) | `e2e.yaml`: kind + IBM MQ e2e |
 | Tag `v*` | `release.yaml`: build + push image, publish install manifests, Trivy scan |
+| `workflow_dispatch` | `release-gate.yaml`: re-run verify/test/integration on a SHA and poll until **CI**, **Integration**, and **E2E (kustomize)** check-runs succeeded on that SHA ([RELEASE.md](RELEASE.md)) |
 | Schedule (Mon 03:00 UTC) + `workflow_dispatch` | `nightly.yaml`: full integration + e2e (kustomize + optional Helm); not required for merge |
+| Schedule (Mon 04:00 UTC) + `workflow_dispatch` | `e2e.yaml` job **`e2e (helm)`** only (standalone Helm deploy path) |
 | Schedule (weekly, self-hosted) | `renovate.yaml`: dependency update PRs |
 
 **Path filters:** `integration.yaml` and `e2e.yaml` skip when a push or PR
@@ -128,9 +135,9 @@ Job timeout: **5 minutes**. Uses [`go-cache`](../.github/actions/go-cache/) (sam
 
 Local equivalent: `go mod tidy && git diff --exit-code go.sum` then `task verify`.
 
-Branch protection may optionally require check name `preflight` (see
-[TEST_AND_CICD_EXPANSION.md](plans/TEST_AND_CICD_EXPANSION.md)); `ci.yaml` still
-runs its own `verify` job for parity until that is tightened.
+Recommend requiring check name **`preflight`** on `main` (fail-fast before
+integration/e2e). `ci.yaml` still runs its own **`verify`** job in parallel for
+parity.
 
 ### `gitleaks`
 Secret scan on PRs and `main` pushes (`gitleaks/gitleaks-action` with full git
@@ -239,6 +246,24 @@ task cluster:up && bash hack/ci/wait-mqweb.sh && KURATOR_E2E_DEPLOY=helm task te
 
 Or kustomize + Helm on one cluster: `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
+### `release-gate` (`workflow_dispatch` only)
+
+Dedicated workflow [`.github/workflows/release-gate.yaml`](../.github/workflows/release-gate.yaml)
+for maintainers **before tagging** (see [RELEASE.md](RELEASE.md#automated-release-gate-workflow)):
+
+| Job | What it does |
+|-----|----------------|
+| `resolve sha` | Target commit (input or latest `main` HEAD) |
+| `verify (release gate)` | `task verify` on that SHA |
+| `test (release gate)` | `task test:run` on that SHA |
+| `integration (release gate)` | Docker MQ `task ci:integration` on that SHA |
+| `wait for external checks` | Polls GitHub check-runs until **`gitleaks`**, **`verify`**, **`lint`**, **`test`**, **`build`**, **`docker-build`**, **`helm-lint`**, **`integration`**, and **`e2e (kustomize)`** succeeded on the same SHA |
+
+E2E is **not** executed inside this workflow (~90 min); the poll step requires an
+existing green **E2E (kustomize)** run whose `headSha` matches the gate SHA. Standalone
+**`e2e (helm)`** is optional for tagging. Uses [`hack/ci/wait-release-gate-checks.sh`](../hack/ci/wait-release-gate-checks.sh).
+Not a branch-protection check.
+
 ### `release` (tags only)
 Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and
 **SLSA provenance** attestations, scans with Trivy, **cosign-signs** the image
@@ -258,9 +283,11 @@ via [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh). Check
 uses `fetch-depth: 0` so tag ranges resolve correctly.
 
 Maintainer steps: [RELEASE.md](RELEASE.md). Before tagging: `task changelog` (preview),
-bump `charts/kurator/Chart.yaml`, `task changelog:write`, commit, then confirm
-**CI, integration, and e2e are green on the exact commit SHA** you will tag
-(release is a supply-chain gate — do not tag ahead of a red pipeline).
+bump `charts/kurator/Chart.yaml`, `task changelog:write`, commit, then run
+**Release gate** (`workflow_dispatch`) or manually confirm **CI**, **Integration**,
+and **E2E (kustomize)** are green on the **exact commit SHA** you will tag (do not
+tag ahead of a red pipeline — `v0.5.2` was tagged without this evidence; see
+[DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
 `git tag vX.Y.Z && git push origin vX.Y.Z`. Rationale: [ADR-0008](adr/0008-changelog-git-cliff.md).
 Supply chain: [ADR-0016](adr/0016-release-supply-chain.md).
 
@@ -269,19 +296,12 @@ Supply chain: [ADR-0016](adr/0016-release-supply-chain.md).
 documented false positives live in `.trivyignore` with a rationale comment.
 Critical/high findings fail the job.
 
-## Caching
+## Caching (legacy note)
 
-Go-heavy jobs in `ci.yaml` and the `integration` workflow restore and save
-`actions/cache` entries keyed on `go.sum`:
-
-| Cache | Path | Jobs |
-|-------|------|------|
-| Go modules + build cache | `~/go/pkg/mod`, `~/.cache/go-build` | preflight, verify, lint, test, build, docker-build, integration |
-| envtest binaries | `~/.local/share/kubebuilder-envtest` | test only |
-
-The envtest cache key includes the pinned K8s version (`1.35.x`, from
-`Taskfile.test.yml`) so a version bump invalidates stale binaries. Docker layer
-caching is not configured (integration/e2e pull IBM MQ images on each run).
+Go module/build and envtest caches are implemented via the composite
+[`go-cache`](../.github/actions/go-cache/) action (see [Workflow caching](#workflow-caching)).
+IBM MQ image reuse uses [`mq-docker-image`](../.github/actions/mq-docker-image/);
+controller **docker-build** in CI does not use BuildKit layer cache (release workflow does).
 
 ## Security & supply chain
 
@@ -339,23 +359,14 @@ on `GITHUB_TOKEN` job permissions.
 
 ## Branch protection
 
-The default branch should require **all** of the following status checks before
-merge (names match `jobs.<id>.name` in the workflow files). No direct pushes to
-`main`.
+Recommended **required status checks** for `main` (names match `jobs.<id>.name` in
+the workflow files). No direct pushes to `main`.
 
-### Required checks (`preflight.yaml` — every PR and `main` push)
+### Require on every PR and `main` push
 
 | Check name | Workflow | What it runs |
 |------------|----------|--------------|
 | `preflight` | Preflight | `go mod tidy` + `task verify` (5 min timeout) |
-
-Optional until branch protection is updated; recommended for fail-fast before
-integration/e2e.
-
-### Required checks (`ci.yaml` — every PR and `main` push)
-
-| Check name | Workflow | What it runs |
-|------------|----------|--------------|
 | `gitleaks` | CI | Secret scan |
 | `verify` | CI | `task verify` (CRDs, RBAC, deepcopy, mocks) |
 | `lint` | CI | `task format:check` then `task lint` |
@@ -364,16 +375,29 @@ integration/e2e.
 | `docker-build` | CI | `task docker:build` |
 | `helm-lint` | CI | `task helm:lint` |
 
-### Required checks (workflows — non-docs paths only)
+### Require when path filters run (non-docs changes)
 
 | Check name | Workflow | What it runs |
 |------------|----------|--------------|
-| `integration` | Integration | Docker IBM MQ + `task test:integration` |
-| `e2e` | E2E | kind + IBM MQ + `task test:e2e` |
+| `integration` | Integration | Docker IBM MQ + `task test:integration` + JUnit artifact |
 
-`integration` and `e2e` are skipped when a PR changes only `**.md`, `docs/**`, or
-`charts/**/README.md` (path filters). Docs-only PRs still need the seven `ci.yaml`
-jobs.
+Skipped when a PR changes only `**.md`, `docs/**`, or `charts/**/README.md`.
+Docs-only PRs need **`preflight`** plus the seven **`ci.yaml`** jobs only.
+
+### E2E — optional on PRs, recommended on `main` when stable
+
+| Check name | PRs | `main` | Notes |
+|------------|-----|--------|-------|
+| `e2e (kustomize)` | **Optional** required check | **Recommended** required check once green | PRs use `(smoke \|\| mq) && !slow`; `main` runs full suite then Helm on same cluster |
+| `e2e (helm)` | Not run | Cron/dispatch/nightly only | Do not require for merge |
+
+Do **not** add **`nightly`** or **Release gate** jobs to branch protection (maintainer
+/ flake signal only). Do not require **`e2e (kustomize)`** on PRs until the team accepts
+~90 min merge latency; still runs on every qualifying PR unless cancelled.
+
+Until e2e is consistently green on `main`, keep **`e2e (kustomize)`** off required
+checks and use [release-gate](RELEASE.md#automated-release-gate-workflow) before tags
+([DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
 
 ### Legacy names to remove
 
@@ -400,6 +424,7 @@ above:
 | integration | `task ci:integration` (or `task test:integration:local`) |
 | e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
 | nightly | `task ci:integration` then e2e steps above (or `KURATOR_CI_E2E_BOTH=1 task ci:e2e` for one-cluster Helm) |
+| release-gate | Actions → **Release gate** → Run workflow on SHA ([RELEASE.md](RELEASE.md)) |
 | release changelog | `task changelog` / `task changelog:write` |
 
 pre-commit runs `gofmt`/`goimports`, `golangci-lint`, and `task verify` so most

@@ -185,12 +185,23 @@ reference MQSC; e2e fixture
   ChannelAuthRule without a matching Channel.
 - [x] **MQAdmin GET + drift** — `GetChannelAuth` / `GetAuthority`; replace-on-diff
   in auth reconcilers; `status.desiredMQSC` on auth CRs.
-- [x] Release tags **`v0.5.0`**, **`v0.5.1`**, and **`v0.5.2`** published on GitHub.
+- [x] Release tags **`v0.5.0`** and **`v0.5.1`** with GitHub Releases; git tag
+  **`v0.5.2`** exists — publish the GitHub Release only after the [RELEASE.md](RELEASE.md)
+  gate is green on that SHA (tag was cut ahead of stable e2e; see
+  [DELTA_AUDIT_2026-06-03.md](plans/DELTA_AUDIT_2026-06-03.md)).
+- [x] **CI ergonomics (Phase 5)** — [`preflight.yaml`](../.github/workflows/preflight.yaml)
+  (fail-fast `go mod tidy` + `task verify`), [`nightly.yaml`](../.github/workflows/nightly.yaml)
+  (Mon 03:00 UTC full pyramid), [`release-gate.yaml`](../.github/workflows/release-gate.yaml)
+  (`workflow_dispatch` on SHA), Phase C PR e2e filter `(smoke || mq) && !slow`,
+  JUnit artifacts (`integration-junit.xml`, `e2e-junit.xml`), composite caches under
+  [`.github/actions/`](../.github/actions/) — see [CICD.md](CICD.md).
 
 **Remaining:**
 
-- [x] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green
-  on `main` before **`v0.5.2`** tag (release gate in [RELEASE.md](RELEASE.md)).
+- [ ] **Pipeline green on `main`** — **CI**, **Integration**, and **E2E (kustomize)**
+  all succeeded on the commit you will tag (use [release-gate](RELEASE.md#automated-release-gate-workflow)
+  or manual `gh run list`). Was incorrectly marked done before **`v0.5.2`**; not
+  evidenced on `main` as of 2026-06-03 ([DELTA_AUDIT](plans/DELTA_AUDIT_2026-06-03.md)).
 - [ ] **`task ci:e2e` green locally** — maintainer verification of full kind + MQ
   stack (Kustomize deploy path); respect `exclusive-test.lock`.
 - [x] Helm **ClusterRole** includes auth CRDs; `hack/helm-verify-rbac.sh` in `task helm:lint`.
@@ -201,7 +212,9 @@ reference MQSC; e2e fixture
   extend API fields, integration, and e2e when needed.
 
 Exit criteria: declarative channel auth and OAM authority records reconciled on
-kind with e2e coverage — **met** for core auth (**`v0.5.2`**); extended CHLAUTH rule types remain optional.
+kind with e2e specs — **met** for core auth **code**; **CI/e2e closure and `v0.5.2`
+GitHub Release** remain open until green runs on the tag SHA; extended CHLAUTH rule
+types remain optional.
 
 ## Repo visibility
 
