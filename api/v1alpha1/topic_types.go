@@ -36,6 +36,12 @@ type TopicStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
+	// DesiredMQSC is a debug/GitOps aid: the DEFINE TOPIC REPLACE line equivalent
+	// to what the operator applies via mqweb. Not authoritative; do not use this
+	// field to drive cluster apply or drift detection.
+	// +optional
+	DesiredMQSC string `json:"desiredMQSC,omitempty"`
+
 	MQObjectStatusFields `json:",inline"`
 }
 
@@ -45,6 +51,7 @@ type TopicStatus struct {
 // +kubebuilder:printcolumn:name="Synced",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].reason`
 // +kubebuilder:printcolumn:name="Topic",type=string,JSONPath=`.spec.topicName`
+// +kubebuilder:printcolumn:name="Desired MQSC",type=string,JSONPath=`.status.desiredMQSC`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Topic maintains an IBM MQ topic object on a referenced queue manager.

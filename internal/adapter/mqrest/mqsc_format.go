@@ -26,7 +26,7 @@ func FormatDefineQueueMQSC(spec mqadmin.QueueSpec) (string, error) {
 
 	keys := make([]string, 0, len(params))
 	for k := range params {
-		if k == "replace" {
+		if k == attrReplace {
 			continue
 		}
 		keys = append(keys, k)
@@ -38,6 +38,55 @@ func FormatDefineQueueMQSC(spec mqadmin.QueueSpec) (string, error) {
 	}
 
 	return strings.Join(parts, " "), nil
+}
+
+// FormatDefineTopicMQSC renders the DEFINE TOPIC ... REPLACE line equivalent to the
+// DEFINE runCommandJSON the mqrest adapter sends.
+func FormatDefineTopicMQSC(spec mqadmin.TopicSpec) (string, error) {
+	params := defineTopicParameters(spec)
+	return formatDefineObjectMQSC("TOPIC", spec.Name, params), nil
+}
+
+// FormatDefineChannelMQSC renders the DEFINE CHANNEL ... REPLACE line equivalent to the
+// DEFINE runCommandJSON the mqrest adapter sends.
+func FormatDefineChannelMQSC(spec mqadmin.ChannelSpec) (string, error) {
+	params := defineChannelParameters(spec)
+	return formatDefineObjectMQSC("CHANNEL", spec.Name, params), nil
+}
+
+// FormatSetChannelAuthMQSC renders the SET CHLAUTH ... ACTION(REPLACE) line the
+// mqrest adapter applies.
+func FormatSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec) (string, error) {
+	return buildSetChannelAuthMQSC(spec, "REPLACE")
+}
+
+// FormatSetAuthorityMQSC renders the SET AUTHREC ... AUTHADD(...) line the mqrest
+// adapter applies.
+func FormatSetAuthorityMQSC(spec mqadmin.AuthoritySpec) (string, error) {
+	return buildSetAuthorityMQSC(spec, false)
+}
+
+func formatDefineObjectMQSC(objectType, name string, params map[string]any) string {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		if k == attrReplace {
+			continue
+		}
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	parts := make([]string, 0, 2+len(keys))
+	parts = append(parts,
+		fmt.Sprintf("DEFINE %s('%s')", objectType, mqscQuote(name)),
+		"REPLACE",
+	)
+
+	for _, key := range keys {
+		parts = append(parts, formatMQSCAttribute(key, params[key]))
+	}
+
+	return strings.Join(parts, " ")
 }
 
 func defineQueueMQSCKeyword(qType mqadmin.QueueType) string {

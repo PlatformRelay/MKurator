@@ -14,6 +14,8 @@ const attrTargq = "targq"
 const attrMaxMsgl = "maxmsgl"
 const attrTopstr = "topstr"
 const attrTopicStr = "topicStr" // mqweb runCommandJSON name for TOPSTR
+const attrReplace = "replace"
+const attrTrptype = "trptype"
 
 // queueDisplayParameters lists attributes safe for runCommandJSON DISPLAY qlocal
 // on IBM MQ 9.4.x. Some keywords (e.g. maxmsglen) are rejected by mqweb with
@@ -58,7 +60,7 @@ var topicDisplayParameters = []string{
 }
 
 var channelDisplayParameters = []string{
-	attrDescr, "trptype", attrSharecnv, attrMaxMsgl, "mcauser", attrMaxInst, attrMaxInstc,
+	attrDescr, attrTrptype, attrSharecnv, attrMaxMsgl, "mcauser", attrMaxInst, attrMaxInstc,
 	"sslciph", "sslcauth",
 }
 
@@ -120,7 +122,7 @@ func defineObjectParameters(
 	attrs map[string]string,
 	numericKeys map[string]struct{},
 ) map[string]any {
-	params := map[string]any{"replace": mqscReplaceYes}
+	params := map[string]any{attrReplace: mqscReplaceYes}
 	for k, v := range attrs {
 		key := strings.ToLower(k)
 		if numericKeys != nil {

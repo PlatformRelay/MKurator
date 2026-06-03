@@ -98,6 +98,12 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	spec := toMQChannelSpec(channel)
+	desiredMQSC, formatErr := mqrest.FormatDefineChannelMQSC(spec)
+	if formatErr != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, formatErr, syncStatusOpts{})
+	}
+	channel.Status.DesiredMQSC = desiredMQSC
+
 	mqExists, driftMsg, err := r.ensureChannel(ctx, admin, spec, isObserveOnly(channel))
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err,

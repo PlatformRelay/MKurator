@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/adapter/mqrest"
 	"github.com/konih/kurator/internal/metrics"
 	"github.com/konih/kurator/internal/mqadmin"
 )
@@ -86,6 +87,12 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	spec := toMQChannelAuthSpec(rule)
+	desiredMQSC, formatErr := mqrest.FormatSetChannelAuthMQSC(spec)
+	if formatErr != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, formatErr, syncStatusOpts{})
+	}
+	rule.Status.DesiredMQSC = desiredMQSC
+
 	mqExists, drifted, err := r.ensureChannelAuth(ctx, admin, spec, rule)
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err,

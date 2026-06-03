@@ -26,6 +26,10 @@ spec:
     - jsonPath: .spec.channelName
       name: Channel
       type: string
+    - jsonPath: .status.desiredMQSC
+      name: Desired MQSC
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -161,6 +165,12 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              desiredMQSC:
+                description: |-
+                  DesiredMQSC is a debug/GitOps aid: the SET CHLAUTH ACTION(REPLACE) line
+                  equivalent to what the operator applies via mqweb. Not authoritative; do not
+                  use this field to drive cluster apply or drift detection.
+                type: string
               lastSyncTime:
                 description: LastSyncTime is set when the object last reconciled successfully.
                 format: date-time

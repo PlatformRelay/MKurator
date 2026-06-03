@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
+	"github.com/konih/kurator/internal/adapter/mqrest"
 	"github.com/konih/kurator/internal/metrics"
 	"github.com/konih/kurator/internal/mqadmin"
 )
@@ -86,6 +87,12 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	spec := toMQAuthoritySpec(auth)
+	desiredMQSC, formatErr := mqrest.FormatSetAuthorityMQSC(spec)
+	if formatErr != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, formatErr, syncStatusOpts{})
+	}
+	auth.Status.DesiredMQSC = desiredMQSC
+
 	mqExists, drifted, err := r.ensureAuthority(ctx, admin, spec, auth)
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err,

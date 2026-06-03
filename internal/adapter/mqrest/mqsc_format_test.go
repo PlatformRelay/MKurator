@@ -70,3 +70,76 @@ func TestFormatDefineQueueMQSC_QuotesObjectName(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestFormatDefineTopicMQSC(t *testing.T) {
+	t.Parallel()
+	got, err := FormatDefineTopicMQSC(mqadmin.TopicSpec{
+		Name: "RETAIL.ORDERS",
+		Attributes: map[string]string{
+			attrTopstr: "retail/orders",
+			"descr":    "orders topic",
+		},
+	})
+	if err != nil {
+		t.Fatalf("FormatDefineTopicMQSC: %v", err)
+	}
+	want := "DEFINE TOPIC('RETAIL.ORDERS') REPLACE DESCR('orders topic') TOPICSTR('retail/orders')"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestFormatDefineChannelMQSC(t *testing.T) {
+	t.Parallel()
+	got, err := FormatDefineChannelMQSC(mqadmin.ChannelSpec{
+		Name: "ORDERS.APP",
+		Type: mqadmin.ChannelTypeSvrconn,
+		Attributes: map[string]string{
+			attrTrptype: "tcp",
+			"descr":     "app channel",
+		},
+	})
+	if err != nil {
+		t.Fatalf("FormatDefineChannelMQSC: %v", err)
+	}
+	want := "DEFINE CHANNEL('ORDERS.APP') REPLACE CHLTYPE('svrconn') DESCR('app channel') TRPTYPE('tcp')"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestFormatSetChannelAuthMQSC(t *testing.T) {
+	t.Parallel()
+	got, err := FormatSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "DEV.APP.SVRCONN.0TLS",
+		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+		Address:     "*",
+		UserSource:  "CHANNEL",
+		CheckClient: "REQUIRED",
+	})
+	if err != nil {
+		t.Fatalf("FormatSetChannelAuthMQSC: %v", err)
+	}
+	want := "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') " +
+		"USERSRC(CHANNEL) CHCKCLNT(REQUIRED) ACTION(REPLACE)"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestFormatSetAuthorityMQSC(t *testing.T) {
+	t.Parallel()
+	got, err := FormatSetAuthorityMQSC(mqadmin.AuthoritySpec{
+		Profile:     "APP.ORDERS",
+		ObjectType:  mqadmin.AuthorityObjectTypeQueue,
+		Principal:   "app",
+		Authorities: []string{"GET", "PUT"},
+	})
+	if err != nil {
+		t.Fatalf("FormatSetAuthorityMQSC: %v", err)
+	}
+	want := "SET AUTHREC PROFILE('APP.ORDERS') OBJTYPE(QUEUE) PRINCIPAL('app') AUTHADD(GET,PUT)"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}

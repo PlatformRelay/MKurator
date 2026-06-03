@@ -84,6 +84,12 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	spec := toMQTopicSpec(topic)
+	desiredMQSC, formatErr := mqrest.FormatDefineTopicMQSC(spec)
+	if formatErr != nil {
+		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, formatErr, syncStatusOpts{})
+	}
+	topic.Status.DesiredMQSC = desiredMQSC
+
 	mqExists, driftMsg, err := r.ensureTopic(ctx, admin, spec, isObserveOnly(topic))
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err,

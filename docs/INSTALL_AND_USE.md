@@ -614,12 +614,17 @@ succeeds but the operator will not overwrite MQ without an explicit fix.
 `Reason=Error` surfaces a classified mqweb/MQSC summary in `status.message` and
 the condition message.
 
-For **Queue** resources, `status.desiredMQSC` is a debug/GitOps aid (not
-authoritative): the `DEFINE QLOCAL|QALIAS|QREMOTE REPLACE` line equivalent to what
-the operator applies via mqweb. Inspect it without applying to the queue manager:
+For **Queue**, **Topic**, **Channel**, **ChannelAuthRule**, and **AuthorityRecord**
+resources, `status.desiredMQSC` is a debug/GitOps aid (not authoritative): the
+MQSC line equivalent to what the operator applies via mqweb (`DEFINE … REPLACE`
+for queues/topics/channels; `SET CHLAUTH … ACTION(REPLACE)` or `SET AUTHREC …
+AUTHADD(…)` for auth CRs). Inspect it without applying to the queue manager:
 
 ```sh
 kubectl get queue orders -n kurator-system \
+  -o jsonpath='{.status.desiredMQSC}{"\n"}'
+
+kubectl get topic retail-orders -n kurator-system \
   -o jsonpath='{.status.desiredMQSC}{"\n"}'
 ```
 

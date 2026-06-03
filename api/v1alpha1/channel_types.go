@@ -50,6 +50,12 @@ type ChannelStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
+	// DesiredMQSC is a debug/GitOps aid: the DEFINE CHANNEL REPLACE line equivalent
+	// to what the operator applies via mqweb. Not authoritative; do not use this
+	// field to drive cluster apply or drift detection.
+	// +optional
+	DesiredMQSC string `json:"desiredMQSC,omitempty"`
+
 	MQObjectStatusFields `json:",inline"`
 }
 
@@ -59,6 +65,7 @@ type ChannelStatus struct {
 // +kubebuilder:printcolumn:name="Synced",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].reason`
 // +kubebuilder:printcolumn:name="Channel",type=string,JSONPath=`.spec.channelName`
+// +kubebuilder:printcolumn:name="Desired MQSC",type=string,JSONPath=`.status.desiredMQSC`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Channel maintains an IBM MQ channel on a referenced queue manager.
