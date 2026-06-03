@@ -48,8 +48,8 @@ local clone directory may differ from the module/repo name (for example
 | Tier | Scope |
 |------|-------|
 | Unit + envtest | Reconcilers and adapter (mocked MQ); validating admission; Queue, Topic, Channel, auth CRs, QMC |
-| Docker integration | Queue, Topic, Channel, CHLAUTH, AUTHREC against live mqweb |
-| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, Channel, ChannelAuthRule, AuthorityRecord CR reconcile + delete on live `QM1` |
+| Docker integration | Queue, Topic, Channel, AUTHREC against live mqweb; CHLAUTH **`ADDRESSMAP`** (GET, replace, delete) and **`BLOCKUSER`** (GET) |
+| kind e2e (`KURATOR_E2E_MQ=1`) | Queue, Topic, Channel, AuthorityRecord reconcile + delete; CHLAUTH **`ADDRESSMAP`** and **`BLOCKUSER`** `ChannelAuthRule` reconcile + delete on live `QM1` |
 
 Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 

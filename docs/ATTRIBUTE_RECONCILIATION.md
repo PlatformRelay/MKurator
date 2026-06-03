@@ -26,9 +26,11 @@ See [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) for MQSC semantics.
 | `Channel` | `CHANNEL` | `svrconn` only (default) |
 | `QueueManagerConnection` | (connectivity, not MQSC) | n/a |
 
-Planned: additional CHLAUTH rule types and AUTHREC drift (Phase 5 follow-ups).
-Shipped: `SET AUTHREC` / `SET CHLAUTH` via `AuthorityRecord` and `ChannelAuthRule`
-(replace-on-reconcile; no DISPLAY drift matrix yet).
+Shipped: `SET AUTHREC` via `AuthorityRecord` and `SET CHLAUTH` via
+`ChannelAuthRule`. Auth reconcilers compare desired `spec` to mqweb **GET**
+(`DISPLAY CHLAUTH` / `DISPLAY AUTHREC`) and apply **replace-on-diff** (not the
+DISPLAY attribute matrices below). Extended CHLAUTH rule types (`USERMAP`,
+`SSLPEERMAP`, …) remain roadmap — see [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
 ## Attribute coverage by object
 
@@ -95,7 +97,7 @@ Shipped: `SET AUTHREC` / `SET CHLAUTH` via `AuthorityRecord` and `ChannelAuthRul
 | Connection auth | `AUTHINFO`, `ALTER QMGR CONNAUTH` | Platform |
 
 **Shipped (Phase 5):** OAM via `AuthorityRecord` (`SET AUTHREC`); channel auth via
-`ChannelAuthRule` (`SET CHLAUTH`). No DISPLAY-based drift detection for auth yet.
+`ChannelAuthRule` (`SET CHLAUTH`). Drift uses GET/replace (see [Observe-only](#observe-only-drift-policy)), not DISPLAY attribute matrices.
 
 | MQ surface | CRD | MQSC |
 |------------|-----|------|

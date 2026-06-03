@@ -16,7 +16,8 @@ and usage guide.
 | `queue-remote.yaml` | `Queue` (remote) |
 | `topic.yaml` | `Topic` |
 | `channel.yaml` | `Channel` |
-| `channelauthrule.yaml` | `ChannelAuthRule` |
+| `channelauthrule.yaml` | `ChannelAuthRule` (`ADDRESSMAP`) |
+| `channelauthrule-blockuser.yaml` | `ChannelAuthRule` (`BLOCKUSER`, optional) |
 | `authorityrecord.yaml` | `AuthorityRecord` |
 
 **Preferred apply:** `task deploy:samples` (creates `kurator-system` if needed, then

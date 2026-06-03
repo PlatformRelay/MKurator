@@ -248,7 +248,7 @@ required checks to `lint` and `test` — those jobs now run the same `task` targ
 | test | `task test:run` then `task vuln:check` |
 | build | `task build` |
 | docker-build | `task docker:build` |
-| helm-lint | `task helm:lint` |
+| helm-lint | `task helm:lint` (includes `hack/helm-verify-rbac.sh` for RBAC drift) |
 | integration | `task ci:integration` (or `task test:integration:local`) |
 | e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
 | release changelog | `task changelog` / `task changelog:write` |

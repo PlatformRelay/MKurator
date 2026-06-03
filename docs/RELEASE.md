@@ -33,7 +33,15 @@ for fixes only. Breaking commits use `!` in the subject (see
 
 ## Pre-release checklist
 
-Run from the repository root on an up-to-date `main`:
+Record the commit you will tag (after the prepare commit, if any):
+
+```sh
+git checkout main && git pull
+RELEASE_SHA="$(git rev-parse HEAD)"
+echo "Tagging: ${RELEASE_SHA}"
+```
+
+Run from the repository root on that commit:
 
 ```sh
 task verify
@@ -41,19 +49,43 @@ task lint
 task test:run
 ```
 
-Optional but recommended before a significant release:
+Before publishing a release tag, also run (or confirm green on GitHub for
+`${RELEASE_SHA}`):
 
 ```sh
-task ci:integration    # Docker MQ + mqweb
-task ci:e2e          # kind + IBM MQ (slow)
-govulncheck ./...    # or task vuln:check
+task ci:integration    # Docker MQ + mqweb — workflow integration.yaml
+task ci:e2e            # kind + IBM MQ — workflow e2e.yaml (slow)
+task vuln:check        # same as CI test job
+```
+
+### CI gate on the exact SHA
+
+Do **not** tag until all three workflow runs succeeded on **`${RELEASE_SHA}`**
+(the commit at `HEAD` when you create the tag), not merely “latest green on
+`main`” from an older push.
+
+| Workflow | File | What it proves |
+|----------|------|----------------|
+| **CI** | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) | `verify`, `lint`, `test` (+ Codecov upload), `build`, `docker-build`, `helm-lint` |
+| **Integration** | [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml) | Live mqweb: queues, topics, channels, CHLAUTH, AUTHREC |
+| **E2E** | [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml) | Operator on kind + IBM MQ (Kustomize deploy) |
+
+On GitHub: **Actions** → select the workflow → open the latest run on `main` →
+confirm the commit SHA matches `${RELEASE_SHA}` (copy from `git rev-parse` or
+the run header). With the GitHub CLI:
+
+```sh
+gh run list --workflow ci.yaml --branch main --limit 5
+gh run list --workflow integration.yaml --branch main --limit 5
+gh run list --workflow e2e.yaml --branch main --limit 5
+# Inspect a run: gh run view <run-id> --json headSha,conclusion,status
 ```
 
 Ensure:
 
-- [ ] All intended PRs are merged; `main` is green in GitHub Actions.
-- [ ] **CI (`ci.yaml`), integration, and e2e workflows passed on the exact commit
-  SHA** you will tag — not an earlier green run on `main`.
+- [ ] All intended PRs are merged; `main` is at `${RELEASE_SHA}`.
+- [ ] **CI**, **Integration**, and **E2E** workflows show **success** for
+  `${RELEASE_SHA}` (re-run workflows on that commit if needed before tagging).
 - [ ] Commits since the last tag follow [Conventional Commits + gitmoji](CONTRIBUTING.md#commit-message-format).
 - [ ] No accidental secrets in the tree (`task secrets:scan` if unsure).
 - [ ] If CRDs/webhooks/RBAC changed: `task manifests` and `task verify` already clean.
@@ -183,7 +215,7 @@ cosign verify \
 4. Smoke install from release YAML (see [INSTALL_AND_USE.md](INSTALL_AND_USE.md)):
 
 ```sh
-VERSION=0.5.1   # replace with the tag you just published
+VERSION=0.5.2   # replace with the tag you just published
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install-crds.yaml"
 curl -sLO "https://github.com/konih/kurator/releases/download/v${VERSION}/install.yaml"
 kubectl apply -f install-crds.yaml

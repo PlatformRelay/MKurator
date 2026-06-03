@@ -42,9 +42,10 @@ The operator translates desired state into MQSC via `mqweb`, reports **condition
 on each resource, and removes MQ objects when you delete a CR (finalizers).
 
 **v1alpha1 scope:** queue `spec.type` supports `local` (default), `alias`, and
-`remote`. `ChannelAuthRule` ships with `ADDRESSMAP` rules; other `ruleType`
-values are accepted by the API and validated at MQ apply time. Attribute drift
-behaviour is documented in [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
+`remote`. `ChannelAuthRule` samples cover `ADDRESSMAP` and `BLOCKUSER`; other
+`ruleType` values are accepted by the API and validated at MQ apply time.
+Auth drift uses GET/replace (not queue/topic/channel DISPLAY matrices) — see
+[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
 
@@ -349,6 +350,11 @@ safely on IBM MQ 9.4.x (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATI
 - **Define-only** — applied on create/update, but not read back (e.g. `maxmsglen` on
   queues, `sslciph` on channels). Manual MQ edits to these keys are not detected.
 
+**Auth CRs (`ChannelAuthRule`, `AuthorityRecord`):** reconcilers **GET** the rule
+from mqweb and **SET … REPLACE** when `spec` differs (default). Annotation
+`messaging.kurator.dev/drift-policy=observe-only` reports drift without applying.
+Details: [ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy).
+
 ---
 
 ## Resource reference
@@ -459,10 +465,11 @@ Manual MQ edits: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md#manua
 |-------|----------|-------------|
 | `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
 | `spec.channelName` | yes | Channel name in `SET CHLAUTH('…')` |
-| `spec.ruleType` | yes | CHLAUTH `TYPE` — `ADDRESSMAP` in samples; others per IBM MQ |
-| `spec.address` | yes* | `ADDRESS` — required when `ruleType` is `ADDRESSMAP` |
-| `spec.userSource` | no | `USERSRC` (e.g. `CHANNEL`) |
-| `spec.checkClient` | no | `CHCKCLNT` (e.g. `REQUIRED`) |
+| `spec.ruleType` | yes | CHLAUTH `TYPE` — `ADDRESSMAP` and `BLOCKUSER` in samples; others per IBM MQ |
+| `spec.address` | yes* | `ADDRESS` — required for `ADDRESSMAP` and `BLOCKADDR` |
+| `spec.userList` | yes* | `USERLIST` — required for `BLOCKUSER` |
+| `spec.userSource` | no | `USERSRC` (e.g. `CHANNEL`) for `ADDRESSMAP` |
+| `spec.checkClient` | no | `CHCKCLNT` (e.g. `REQUIRED`) for `ADDRESSMAP` |
 | `spec.description` | no | `DESCR` |
 
 **Status:** same `Synced` condition semantics as `Queue`.
@@ -493,6 +500,7 @@ kind platform.
 | [`config/samples/messaging_v1alpha1_topic.yaml`](../config/samples/messaging_v1alpha1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
 | [`config/samples/messaging_v1alpha1_channel.yaml`](../config/samples/messaging_v1alpha1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
 | [`config/samples/messaging_v1alpha1_channelauthrule.yaml`](../config/samples/messaging_v1alpha1_channelauthrule.yaml) | Sample `ADDRESSMAP` CHLAUTH for gitops channel |
+| [`config/samples/messaging_v1alpha1_channelauthrule_blockuser.yaml`](../config/samples/messaging_v1alpha1_channelauthrule_blockuser.yaml) | Optional `BLOCKUSER` CHLAUTH on the same channel |
 | [`config/samples/messaging_v1alpha1_authorityrecord.yaml`](../config/samples/messaging_v1alpha1_authorityrecord.yaml) | Sample OAM grant on `APP.ORDERS` |
 | [`charts/kurator/samples/resources/`](../charts/kurator/samples/resources/) | Same samples for Helm workflows |
 | [`config/samples/README.md`](../config/samples/README.md) | Field-by-field annotations |

@@ -60,15 +60,25 @@ The `DEFINE CHANNEL` portion is covered by the shipped `Channel` CRD. The
 
 **Reconcile:** `SET CHLAUTH(...) ACTION(REPLACE)`; **delete:** `SET CHLAUTH(...) ACTION(REMOVE)`.
 
-Additional rule types in the OpenAPI enum (not yet covered by samples/e2e):
+**Samples and CI today:** `ADDRESSMAP` (config/Helm samples, kind e2e, Docker
+integration GET/replace) and `BLOCKUSER` (blockuser sample, kind e2e, Docker
+integration GET). See [README.md#what-ci-proves](../README.md#what-ci-proves).
 
-| `ruleType` | Typical use |
-|------------|-------------|
-| `BLOCKUSER` | `USERLIST` — deny privileged IDs |
-| `USERMAP` | Map `CLNTUSER` to `MCAUSER` |
-| `SSLPEERMAP` | Map TLS DN |
-| `QMGRMAP` | Map remote QM name |
-| `BLOCKADDR` | Block IPs at listener |
+Additional rule types in the OpenAPI enum (schema + admission only until API/MQ
+fields land):
+
+| `ruleType` | Typical use | Kurator today |
+|------------|-------------|---------------|
+| `BLOCKUSER` | `USERLIST` — deny privileged IDs | Shipped — `spec.userList`; samples + tests |
+| `USERMAP` | Map `CLNTUSER` to `MCAUSER` | **Deferred** — no `clientUser` / `mcaUser` on CRD or `mqrest` builder |
+| `SSLPEERMAP` | Map TLS DN | **Deferred** — no `sslPeer` field |
+| `QMGRMAP` | Map remote QM name | **Deferred** — no `qmgrName` field |
+| `BLOCKADDR` | Block IPs at listener | `spec.address` only; no sample/integration yet |
+
+Do not add unit/integration tests that assert MQSC for `USERMAP` (or other deferred
+types) until [`ChannelAuthRuleSpec`](../api/v1alpha1/channelauthrule_types.go) and
+[`buildSetChannelAuthMQSC`](../internal/adapter/mqrest/auth.go) expose the MQSC
+keywords. Admission accepts the enum; MQ validates unknown combinations at apply time.
 
 ### `AuthorityRecord` (OAM — `SET AUTHREC`)
 
@@ -96,8 +106,11 @@ Adapter implementation: [`internal/adapter/mqrest/auth.go`](../internal/adapter/
 via `RunMQSC` / `runCommand`.
 
 **GET paths (shipped):** `GetChannelAuth` and `GetAuthority` run `DISPLAY CHLAUTH` /
-`DISPLAY AUTHREC` for observed state (foundation for drift detection). Reconcilers
-still use replace-on-apply; drift-aware auth reconcile is a follow-up.
+`DISPLAY AUTHREC`. Reconcilers **replace-on-diff** when observed state differs from
+`spec` (unless `messaging.kurator.dev/drift-policy=observe-only`). Parsed CHLAUTH
+fields today: `address`, `userlist`, `usersrc`, `chckclnt`, `descr` — not
+`clntuser` / `mcauser` / `sslpeer`. See
+[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy).
 
 ## What we are not copying from IBM samples
 
