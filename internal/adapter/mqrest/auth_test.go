@@ -77,6 +77,35 @@ func TestBuildSetChannelAuthMQSCBlockUser(t *testing.T) {
 	}
 }
 
+func TestBuildSetChannelAuthMQSCDeferredRuleTypes(t *testing.T) {
+	// Schema allows USERMAP/SSLPEERMAP/QMGRMAP; CRD fields for MQSC keywords are deferred
+	// (see docs/PHASE5_AUTH_SKETCH.md). Goldens assert ruleType-only SET CHLAUTH shape.
+	cases := []struct {
+		name     string
+		ruleType mqadmin.ChannelAuthRuleType
+		wantType string
+	}{
+		{"USERMAP", mqadmin.ChannelAuthRuleTypeUserMap, "USERMAP"},
+		{"SSLPEERMAP", mqadmin.ChannelAuthRuleTypeSSLPeerMap, "SSLPEERMAP"},
+		{"QMGRMAP", mqadmin.ChannelAuthRuleTypeQMGRMap, "QMGRMAP"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+				ChannelName: "APP.CH",
+				RuleType:    tc.ruleType,
+			}, "REPLACE")
+			if err != nil {
+				t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+			}
+			want := "SET CHLAUTH('APP.CH') TYPE(" + tc.wantType + ") ACTION(REPLACE)"
+			if cmd != want {
+				t.Fatalf("got %q, want %q", cmd, want)
+			}
+		})
+	}
+}
+
 func TestBuildSetChannelAuthMQSCRemove(t *testing.T) {
 	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
 		ChannelName: "DEV.APP.SVRCONN.0TLS",
@@ -123,6 +152,39 @@ func TestBuildSetAuthorityMQSCRemove(t *testing.T) {
 	want := "SET AUTHREC PROFILE('APP.ORDERS') OBJTYPE(QUEUE) GROUP('apps') AUTHRMV(ALL)"
 	if cmd != want {
 		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
+func TestBuildSetAuthorityMQSCObjectTypes(t *testing.T) {
+	cases := []struct {
+		name       string
+		objectType mqadmin.AuthorityObjectType
+		wantObj    string
+	}{
+		{"CHANNEL", mqadmin.AuthorityObjectTypeChannel, "CHANNEL"},
+		{"TOPIC", mqadmin.AuthorityObjectTypeTopic, "TOPIC"},
+		{"QMGR", mqadmin.AuthorityObjectTypeQMGR, "QMGR"},
+		{"NAMESPAC", mqadmin.AuthorityObjectTypeNamespace, "NAMESPAC"},
+		{"PROCESS", mqadmin.AuthorityObjectTypeProcess, "PROCESS"},
+		{"NLIST", mqadmin.AuthorityObjectTypeNList, "NLIST"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd, err := buildSetAuthorityMQSC(mqadmin.AuthoritySpec{
+				Profile:     "APP.PROFILE",
+				ObjectType:  tc.objectType,
+				Principal:   "app",
+				Authorities: []string{"CONNECT"},
+			}, false)
+			if err != nil {
+				t.Fatalf("buildSetAuthorityMQSC: %v", err)
+			}
+			want := "SET AUTHREC PROFILE('APP.PROFILE') OBJTYPE(" + tc.wantObj +
+				") PRINCIPAL('app') AUTHADD(CONNECT)"
+			if cmd != want {
+				t.Fatalf("got %q, want %q", cmd, want)
+			}
+		})
 	}
 }
 
