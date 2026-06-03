@@ -34,7 +34,7 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 - [x] Unit tests (`auth_test.go`, `client_test.go`, `mqsc_params_test.go`)
 - [x] Docker integration tests (`test/integration/mq/auth_integration_test.go`)
 - [x] Wire GET paths into auth reconcilers for drift-aware reconcile (replace-on-diff)
-- [x] Extend e2e helpers to use adapter GET instead of raw `RunMQSC` DISPLAY
+- [ ] Extend e2e helpers to use adapter GET instead of raw `RunMQSC` DISPLAY
 
 ## Release mechanics
 
