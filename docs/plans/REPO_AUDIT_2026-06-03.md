@@ -63,7 +63,7 @@ Manual review: **no cycles**; **one documented layer breach** (controller → mq
 | `test/schema/extract.go` | Six CRD `DefaultCases`, gosec nolint, govet shadow on unmarshal |
 | `test/schema/golden/*.yaml` | OpenAPI spec fragments for all v1alpha1 CRDs |
 | `internal/controller/events_envtest_test.go` | lll: split long GVK guard line |
-| `Taskfile.test.yml` | Split `test:run` coverage: non-internal pkgs without `-coverprofile`; `./internal/...` with `-p 1` to avoid corrupt merged profiles |
+| `Taskfile.test.yml` | (on `main` before audit commit) Split `test:run` coverage: non-internal pkgs without `-coverprofile`; `./internal/...` with `-p 1` |
 
 ---
 
