@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	namespace         = "kurator-system"
 	namespaceQueues   = "kurator-e2e-queues"
 	namespaceTopics   = "kurator-e2e-topics"
 	namespaceChannels = "kurator-e2e-channels"

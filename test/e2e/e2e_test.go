@@ -18,9 +18,6 @@ import (
 	"github.com/konih/kurator/test/utils"
 )
 
-// namespace where the project is deployed in
-const namespace = "kurator-system"
-
 // serviceAccountName created for the project
 const serviceAccountName = "kurator-controller-manager"
 

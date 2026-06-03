@@ -217,7 +217,8 @@ spec:
     topstr: e2e/retail/orders
     descr: e2e retail topic
 `, topicCR, ns, mqConnectionName, topicObject)
-			Expect(applyWithWebhookRetry(topicYAML)).To(Succeed())
+			Expect(applyWithWebhookRetry(topicYAML)).To(Succeed(),
+				"Topic apply should succeed once CRDs are Established and the webhook is reachable")
 
 			Eventually(func(g Gomega) {
 				cmd := exec.Command("kubectl", "get", "topic", topicCR, "-n", ns,
