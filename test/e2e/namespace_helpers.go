@@ -82,13 +82,3 @@ func ensureMQCredentialsSecret(ns string) {
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to apply mq-credentials in %s", ns)
 }
-
-func cleanupE2EResources() {
-	undeployOperatorForE2E()
-
-	namespaces := append([]string{namespace}, mqE2ENamespaces...)
-	for _, ns := range namespaces {
-		cmd := exec.Command("kubectl", "delete", "ns", ns, "--ignore-not-found", "--wait=false")
-		_, _ = utils.Run(cmd)
-	}
-}

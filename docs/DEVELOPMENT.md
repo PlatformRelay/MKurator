@@ -170,7 +170,11 @@ scaffold targets (`make test-e2e`, `make run`, …) or tooling that expects Make
 (`task docker:build`), then installs CRDs and the operator via `task install:crds` +
 `task deploy:operator` (Kustomize, default) or `task deploy:helm:operator` when
 `KURATOR_E2E_DEPLOY=helm` — no second image build during deploy
-(`test/e2e/deploy_helpers.go`). `AfterSuite` undeploys and removes test namespaces.
+(`test/e2e/deploy_helpers.go`). All Ginkgo processes then wait for every Kurator CRD
+to reach `Established` and for `messaging.kurator.dev` kinds to appear in API
+discovery before any spec runs (avoids parallel-node `no matches for kind` races).
+`AfterSuite` undeploys CRDs and removes test namespaces — a killed run may leave
+the cluster without CRDs; the next `task test:e2e` reinstalls them in BeforeSuite.
 
 **E2e Helm admission path (deferred-e2e-helm):** validating webhook negative apply
 specs in `test/e2e/e2e_test.go` exercise the same resource names whether the operator
@@ -499,6 +503,7 @@ logs are **truncated** (`kubectl logs --tail=40`) unless
 `KURATOR_E2E_VERBOSE_LOGS=1` is set for the full structured JSON stream.
 
 ```sh
+task cluster:up                                             # kind + IBM MQ (required before test:e2e)
 KURATOR_E2E_MQ=1 task test:e2e                              # suite only (cluster already up)
 KURATOR_E2E_NODES=3 KURATOR_E2E_MQ=1 task test:e2e        # parallel MQ lanes (default nodes)
 KURATOR_E2E_NODES=1 KURATOR_E2E_MQ=1 task test:e2e        # fully serial Ginkgo
@@ -506,6 +511,17 @@ KURATOR_E2E_VERBOSE_LOGS=1 KURATOR_E2E_MQ=1 task test:e2e   # full controller lo
 task ci:e2e                                                 # PLATFORM UP + MQ wait + suite
 KURATOR_CI_E2E_BOTH=1 task ci:e2e                           # same cluster: kustomize then Helm
 ```
+
+If a prior e2e run was killed, remove a stale suite lock when the holder PID is gone:
+`rm -f hack/kind-cluster/.state/locks/exclusive-test.lock`. Confirm CRDs after BeforeSuite:
+`kubectl --kubeconfig=hack/kind-cluster/.state/kubeconfig.yaml get crd queuemanagerconnections.messaging.kurator.dev`.
+
+AfterSuite teardown deletes all Kurator CRs in e2e namespaces **before** removing the operator
+and CRDs (`--wait=false`), strips operator finalizers if the controller is already gone, and
+times out after five minutes so a stuck `kubectl delete` cannot hang the suite forever.
+For local iteration without removing CRDs, set `KURATOR_E2E_SKIP_CRD_UNDEPLOY=1`. If teardown
+still blocks on a terminating CR, patch finalizers then re-run delete, e.g.
+`kubectl patch queue <name> -n kurator-e2e-queues --type=merge -p '{"metadata":{"finalizers":null}}'`.
 
 Guidelines:
 
