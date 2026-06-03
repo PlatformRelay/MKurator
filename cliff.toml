@@ -40,6 +40,8 @@ body = """
 {% endfor %}
 """
 trim = true
+# Committed changelog at repo root (task changelog:write uses -o CHANGELOG.md).
+output = "CHANGELOG.md"
 
 [git]
 conventional_commits = true

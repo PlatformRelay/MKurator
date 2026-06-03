@@ -192,7 +192,9 @@ The [release workflow](https://github.com/konih/kurator/actions/workflows/releas
 
 Release notes are assembled by
 [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh) (git-cliff
-section + [`.github/release-notes-install.md`](../.github/release-notes-install.md)).
+section from `git-cliff-action` output **`content`**, not the `changelog` path +
+[`.github/release-notes-install.md`](../.github/release-notes-install.md)).
+Committed history lives in repo-root [`CHANGELOG.md`](../CHANGELOG.md).
 
 Local dry-run of install manifests (without pushing):
 
