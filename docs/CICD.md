@@ -161,6 +161,7 @@ caching is not configured (integration/e2e pull IBM MQ images on each run).
 | Image vulns | Trivy scan on release image |
 | Dependency freshness | **Renovate** weekly workflow (`renovate.yaml`) |
 | Pinned actions | GitHub Actions referenced by commit SHA |
+| Node 24 runtime | Third-party actions bumped to Node 24 releases where available; `arduino/setup-task@v2.0.0` (no Node 24 tag yet) uses workflow `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` in `ci.yaml`, `integration.yaml`, and `e2e.yaml` |
 | Minimal permissions | `permissions:` block per workflow; default read-only |
 | Reproducible build | CGO-free, pinned toolchain, committed `go.sum` |
 | Nonroot runtime | distroless nonroot base, read-only FS, dropped caps |

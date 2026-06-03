@@ -27,6 +27,8 @@ env:
   KUBECONFIG: ${{ github.workspace }}/hack/kind-cluster/.state/kubeconfig.yaml
   CERT_MANAGER_INSTALL_SKIP: "true"
   KURATOR_E2E_MQ: "1"
+  # arduino/setup-task@v2.0.0 still declares node20; no Node 24 release yet.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   e2e:
@@ -59,7 +61,7 @@ jobs:
           "${bindir}/mkcert" -version
           "${bindir}/terraform" version
 
-      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
 
       - name: Bring up kind + IBM MQ platform
         run: task cluster:up

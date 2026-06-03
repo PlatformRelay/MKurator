@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+# arduino/setup-task@v2.0.0 still declares node20; no Node 24 release yet.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   gitleaks:
     name: gitleaks
@@ -17,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -199,7 +203,7 @@ jobs:
       - uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
         with:
           version: 3.51.1
-      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+      - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
       - name: Lint Helm chart
         run: task helm:lint
         env:
