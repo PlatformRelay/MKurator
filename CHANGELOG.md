@@ -9,6 +9,14 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+### Bug Fixes
+
+- **e2e:** Drop deprecated ginkgo.progress flag [5e996a9](https://github.com/konih/kurator/commit/5e996a9529d230dd58bfe10528c6784277e33746)
+
+- **mqrest:** Treat empty AUTHREC authorities as not found [d63058e](https://github.com/konih/kurator/commit/d63058e89b7478b9c36b90beb7b821a084344924)
+
+## [0.5.1](https://github.com/konih/kurator/compare/v0.5.0..v0.5.1) - 2026-06-03
+
 ### Features
 
 - **status:** Expose desiredMQSC on Topic, Channel, auth CRs [9527885](https://github.com/konih/kurator/commit/95278853f4f5497280430421514750f9179541a2)
