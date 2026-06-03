@@ -117,9 +117,13 @@ Terraform) → `task cluster:down` (always). Local equivalent: `task ci:e2e`.
 ### `release` (tags only)
 Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and
 **SLSA provenance** attestations, scans with Trivy, **cosign-signs** the image
-digest (keyless OIDC), generates an SPDX SBOM (`dist/sbom.spdx.json`), then
-publishes Kustomize/Helm install manifests on the GitHub Release. Runs only on
-`v*.*.*` tags (or `workflow_dispatch` for testing).
+digest (keyless OIDC), generates an SPDX SBOM (`dist/sbom.spdx.json`), packages
+release assets via [`hack/release-assets.sh`](../hack/release-assets.sh)
+(Kustomize manifests, Helm `.tgz`, checksums), **pushes the Helm chart to GHCR
+OCI** (`helm push` → `oci://ghcr.io/<owner>/kurator:<version>`; reuses the
+existing GHCR login — no extra token step), then publishes the same install
+artifacts on the GitHub Release. Runs only on `v*.*.*` tags (or
+`workflow_dispatch` for testing).
 
 **Changelog:** [git-cliff](https://git-cliff.org/) (`cliff.toml`) generates the
 release-notes section from Conventional Commits since the previous tag
@@ -168,6 +172,7 @@ caching is not configured (integration/e2e pull IBM MQ images on each run).
 | Release SBOM | BuildKit attestation on push + SPDX file on GitHub Release |
 | Image signing | cosign keyless (`sigstore/cosign-installer`) on image digest |
 | SLSA provenance | `provenance: mode=max` on `docker/build-push-action` |
+| Helm chart (OCI) | `helm push` to `oci://ghcr.io/<owner>/kurator` on tag (GHCR package) |
 
 Further supply-chain hardening (OpenSSF Scorecard, SLSA Level 3 builders) remains
 optional; see [ADR-0005](adr/0005-keep-tooling-lean.md).

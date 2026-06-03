@@ -117,18 +117,13 @@ jobs:
       - name: Build release assets
         run: bash hack/release-assets.sh "${{ steps.version.outputs.version }}" "${{ steps.image.outputs.repository }}"
 
-      - name: Log in to Helm registry (GHCR)
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "${{ env.REGISTRY }}" \
-            --username "${{ github.repository_owner }}" \
-            --password-stdin
-
       - id: chart
         run: |
           OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
           echo "oci=oci://${{ env.REGISTRY }}/${OWNER}" >> "${GITHUB_OUTPUT}"
 
-      - name: Publish Helm chart to GHCR
+      # Reuses GHCR credentials from docker/login-action (~/.docker/config.json).
+      - name: Publish Helm chart to GHCR (OCI)
         run: |
           helm push "dist/kurator-${{ steps.version.outputs.version }}.tgz" "${{ steps.chart.outputs.oci }}"
 

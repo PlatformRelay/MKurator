@@ -23,7 +23,7 @@ On each **`v*.*.*` tag** (and `workflow_dispatch` for rebuild tests), the
 | **SPDX SBOM file** | `anchore/sbom-action` → `dist/sbom.spdx.json` attached to GitHub Release |
 | **Signing** | **cosign keyless** (OIDC via GitHub Actions) on the image digest |
 | **Install artifacts** | `hack/release-assets.sh` — Kustomize manifest, CRD bundle, Helm `.tgz`, checksums |
-| **Helm OCI** | Chart pushed to GHCR OCI registry |
+| **Helm OCI** | `helm push` of packaged chart to `oci://ghcr.io/<owner>/kurator:<version>` (reuses GHCR login) |
 | **Release notes** | git-cliff ([ADR-0008](0008-changelog-git-cliff.md)) + install template |
 
 Permissions are scoped: `contents: write`, `packages: write`, `id-token: write`
