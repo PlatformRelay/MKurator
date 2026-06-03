@@ -24,25 +24,28 @@ delivery context.
 ```mermaid
 flowchart LR
   pr["Pull request / push to main"] --> gitleaks
-  gitleaks --> verify
-  verify["verify (codegen/manifests/mocks fresh)"] --> lint
-  lint --> format["format (gofmt/goimports/golines)"]
-  format --> test["test (unit + envtest, -race, coverage)"]
-  test --> build["build (CGO-free static binary)"]
-  build --> docker["docker-build (controller image)"]
-  build --> vuln["govulncheck"]
+  pr --> verify
+  pr --> lint
+  pr --> test
+  pr --> build
+  pr --> docker["docker-build"]
   pr --> helmlint["helm-lint"]
+  lint["lint (format:check + golangci-lint)"]
+  test["test (unit + envtest, govulncheck, coverage)"]
   pr --> integration["integration (Docker IBM MQ)"]
   pr --> e2e["e2e (kind + IBM MQ)"]
   tag["Tag v*"] --> release["release: image + manifests"]
   release --> scan["image scan (Trivy)"]
 ```
 
+All `ci.yaml` jobs run **in parallel** on each PR and `main` push; the diagram lists
+what each job runs, not execution order.
+
 ## Triggers
 
 | Event | Runs |
 |-------|------|
-| PR / push to `main` | `ci.yaml`: gitleaks, verify, lint, format, test, build, docker-build, govulncheck, helm-lint |
+| PR / push to `main` | `ci.yaml`: gitleaks, verify, lint, test, build, docker-build, helm-lint (seven parallel jobs) |
 | PR / push to `main` (non-docs paths) | `integration.yaml`: Docker IBM MQ integration tests |
 | PR / push to `main` (non-docs paths) | `e2e.yaml`: kind + IBM MQ e2e |
 | Tag `v*` | `release.yaml`: build + push image, publish install manifests, Trivy scan |
@@ -64,18 +67,23 @@ Regenerates CRDs, RBAC, deepcopy, and **mockery mocks** and fails on any diff
 never drift.
 
 ### `lint`
-`task lint` — `golangci-lint run ./...`.
+Runs in order within the job (same runner, no extra wall-clock job):
 
-### `format`
-`task format:check` — fails when `gofmt`, `goimports`, or `golines` would change
-any file. Locally, `task format` auto-fixes; pre-commit runs the same formatters.
+1. `task format:check` — fails when `gofmt`, `goimports`, or `golines` would change
+   any file. Locally, `task format` auto-fixes; pre-commit runs the same formatters.
+2. `task lint` — `golangci-lint run ./...`.
 
 ### `test`
-`task test:run` — Ginkgo unit + envtest with the race detector and a coverage
-profile (`coverage.out`). envtest control-plane binaries come from
-`setup-envtest` (pinned K8s API version in `Taskfile.test.yml`). CI uploads
-`coverage.out` as a workflow artifact, prints a **job summary** (`go tool cover
--func`), and publishes to [Codecov](https://codecov.io/gh/konih/kurator)
+Runs in order within the job:
+
+1. `task test:run` — Ginkgo unit + envtest with the race detector and a coverage
+   profile (`coverage.out`). envtest control-plane binaries come from
+   `setup-envtest` (pinned K8s API version in `Taskfile.test.yml`).
+2. `task vuln:check` (`govulncheck ./...`) after tests pass. There is no separate
+   scheduled govulncheck workflow (Renovate runs weekly).
+
+CI then uploads `coverage.out` as a workflow artifact, prints a **job summary**
+(`go tool cover -func`), and publishes to [Codecov](https://codecov.io/gh/konih/kurator)
 (`codecov.yml`) via `codecov/codecov-action` using the repository secret
 `CODECOV_TOKEN`. A regression is investigated, not ignored.
 
@@ -87,10 +95,6 @@ profile (`coverage.out`). envtest control-plane binaries come from
 the runner (`Dockerfile`; same Go toolchain and build flags as release). Verifies
 the image builds on every PR and `main` push; **no registry push** (push, scan,
 and signing run only in `release.yaml` on tags).
-
-### `govulncheck`
-`task vuln:check` (`govulncheck ./...`) on PRs and `main` pushes. There is no
-separate scheduled govulncheck workflow (Renovate runs weekly).
 
 ### `helm-lint`
 `task helm:lint` — `helm lint ./charts/kurator` on the publishable Helm chart.
@@ -141,7 +145,7 @@ Go-heavy jobs in `ci.yaml` and the `integration` workflow restore and save
 
 | Cache | Path | Jobs |
 |-------|------|------|
-| Go modules + build cache | `~/go/pkg/mod`, `~/.cache/go-build` | verify, lint, format, test, build, docker-build, govulncheck, integration |
+| Go modules + build cache | `~/go/pkg/mod`, `~/.cache/go-build` | verify, lint, test, build, docker-build, integration |
 | envtest binaries | `~/.local/share/kubebuilder-envtest` | test only |
 
 The envtest cache key includes the pinned K8s version (`1.35.x`, from
@@ -153,7 +157,7 @@ caching is not configured (integration/e2e pull IBM MQ images on each run).
 | Control | Mechanism |
 |---------|-----------|
 | Secret scan | gitleaks (pre-commit + CI) |
-| Dependency vulns | `govulncheck` on PR / `main` push |
+| Dependency vulns | `govulncheck` on PR / `main` push (in `test` job) |
 | Image vulns | Trivy scan on release image |
 | Dependency freshness | **Renovate** weekly workflow (`renovate.yaml`) |
 | Pinned actions | GitHub Actions referenced by commit SHA |
@@ -206,18 +210,19 @@ The default branch requires CI jobs to pass before merge. Exact required checks
 depend on GitHub branch protection settings; `e2e` and `integration` run on every
 non-docs PR today. No direct pushes to the default branch.
 
+If branch protection still lists removed job names (`format`, `govulncheck`), update
+required checks to `lint` and `test` — those jobs now run the same `task` targets.
+
 ## Local equivalents
 
 | CI job | Local command |
 |--------|---------------|
 | gitleaks | `task secrets:scan` |
 | verify | `task verify` |
-| lint | `task lint` |
-| format | `task format` / `task format:check` |
-| test | `task test:run` |
+| lint | `task format:check` then `task lint` |
+| test | `task test:run` then `task vuln:check` |
 | build | `task build` |
 | docker-build | `task docker:build` |
-| govulncheck | `task vuln:check` |
 | helm-lint | `task helm:lint` |
 | integration | `task ci:integration` (or `task test:integration:local`) |
 | e2e | `task ci:e2e` (or `task cluster:up && KURATOR_E2E_MQ=1 task test:e2e`) |
