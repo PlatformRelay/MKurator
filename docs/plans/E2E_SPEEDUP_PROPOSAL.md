@@ -1,6 +1,6 @@
 # E2E speedup proposal
 
-**Status:** Design / analysis only (no implementation in this change).  
+**Status:** Phases A–C implemented (2026-06-03). Image cache partially started in CI actions; see Phase C item 5.  
 **Date:** 2026-06-03  
 **Scope:** `test/e2e/`, `.github/workflows/e2e.yaml`, `hack/ci/*`, `task ci:e2e`.
 
@@ -216,22 +216,21 @@ Even at **~1 min** per successful call, **8 BeforeEach × 1 min ≈ 8 min** of m
 
 **Estimated impact:** MQ portion **~28 min → ~10–14 min**; full suite **~25 min** on existing cluster (excl. platform).
 
-### Phase C — CI and pyramid restructuring
+### Phase C — CI and pyramid restructuring ✅
 
 **Goal:** PR signal in **<25 min** platform+suite; deeper coverage without 90m creep.
 
-1. **PR `e2e.yaml`:** kustomize job only; **Helm on `workflow_dispatch` + weekly cron** (or after release).
+1. **PR `e2e.yaml`:** kustomize job only; **Helm on `workflow_dispatch` + weekly cron** — done.
 
-2. **`main`:** optional **single job** — `cluster:up` once, then `KURATOR_E2E_DEPLOY=kustomize task test:e2e` and `KURATOR_E2E_DEPLOY=helm task test:e2e` sequential on same kubeconfig (saves second platform spin).
+2. **`main`:** **single `e2e` job** — kustomize suite then `task test:e2e:helm` on same cluster — done.
 
-3. **Tier redistribution** ([ADR-0011](../adr/0011-layered-testing-strategy.md)):  
+3. **Tier redistribution** ([ADR-0011](../adr/0011-layered-testing-strategy.md)) — done:  
    - **Integration:** alias/remote queue, replace semantics, CHLAUTH/AUTHREC edge cases.  
-   - **E2e:** one happy-path per CR kind + delete + one webhook denial + optional QMC smoke.
+   - **E2e trimmed:** removed queue attribute-update and BLOCKUSER CHLAUTH specs. Kept: local queue/topic/channel/ADDRESSMAP CHLAUTH/AUTHREC happy paths + delete, fixture smoke, slow QMC rotation, Manager smoke + webhook denials.
 
-4. **Optional label filter in CI:**  
-   `go test ... -ginkgo.label-filter="mq && !slow"` for PR; full suite on `main` / cron.
+4. **Label filter in CI:** PR `(smoke || mq) && !slow`; full suite on `main` (kustomize + helm steps) and cron/dispatch helm job.
 
-5. **Cache IBM MQ image** on runner (action or pre-pull) — platform **−3–8 min** (operational, not Ginkgo).
+5. **Cache IBM MQ image** — **in progress** (`.github/actions/mq-docker-image`, `cluster-up-with-mq-image.sh`). Remaining for cache agent: digest-pin parity with `hack/kind-cluster`, kind node image load cache, document savings.
 
 **Estimated impact:** PR job **~59 min → ~22–35 min**; `main` with Helm **~80 min → ~45–55 min** (one platform).
 
@@ -322,8 +321,7 @@ Assume **90 min** job budget and **stable green** baseline.
 
 ---
 
-## Out of scope (this proposal)
+## Out of scope (remaining)
 
-- Implementing parallelism or CI changes.  
-- Fixing current red e2e (metrics readiness, Helm deploy) — prerequisite for measuring savings.  
-- Running `task ci:e2e` for this document (lock held by `agent-local-e2e` per coordination file).
+- Finishing IBM MQ / kind image cache on CI runners (Phase C item 5).  
+- Fixing intermittent red e2e (metrics readiness, Helm deploy).

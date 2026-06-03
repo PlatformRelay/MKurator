@@ -81,6 +81,36 @@ local `exclusive-test.lock` discipline.
 `preflight.yaml` has no concurrency block; it runs in parallel with `ci.yaml` and
 the heavy workflows.
 
+## Workflow caching
+
+Reusable composite actions under [`.github/actions/`](../.github/actions/) keep
+cache keys consistent across workflows. All use pinned `actions/cache@v5.0.5` and
+`actions/setup-go@v6.4.0` SHAs (same as `ci.yaml`). We do **not** enable
+`setup-go` `cache: true` in addition to the manual module/build cache — that would
+duplicate `~/go/pkg/mod` restores.
+
+| Action | Cache key (primary) | Paths | Used in |
+|--------|---------------------|-------|---------|
+| [`go-cache`](../.github/actions/go-cache/) | `${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}` | `~/.cache/go-build`, `~/go/pkg/mod`; optional envtest: `~/.local/share/kubebuilder-envtest` keyed by `go.mod`+`go.sum` | `ci`, `preflight`, `integration`, `e2e`, `nightly` |
+| [`tools-bin`](../.github/actions/tools-bin/) | `${{ runner.os }}-tools-${{ hashFiles('Taskfile.yml', 'hack/install-external-tool.sh') }}` | `bin/kind`, `bin/mkcert`, `bin/terraform` | `e2e`, `nightly` (e2e jobs) |
+| [`mq-docker-image`](../.github/actions/mq-docker-image/) | `${{ runner.os }}-ibm-mq-${{ hashFiles('hack/mq-docker/docker-compose.yml', 'hack/kind-cluster/terraform/variables.tf') }}` | `/tmp/ibm-mq-image.tar` (`docker save`/`load` of `icr.io/ibm-messaging/mq:…`) | `integration`, `e2e`, `nightly` |
+| [`helm-cache`](../.github/actions/helm-cache/) | `${{ runner.os }}-helm-${{ hashFiles('hack/kind-cluster/terraform/variables.tf') }}` | `~/.cache/helm` | `e2e`, `nightly` (e2e jobs) |
+
+Image reference for MQ caching is resolved by [`hack/ci/mq-image-ref.sh`](../hack/ci/mq-image-ref.sh)
+(must match `hack/mq-docker/docker-compose.yml`). E2e platform bring-up uses
+[`hack/ci/cluster-up-with-mq-image.sh`](../hack/ci/cluster-up-with-mq-image.sh):
+`kind:up` → `kind load docker-image` → TLS → Terraform (avoids re-pulling MQ inside
+kind when the host image is warm).
+
+**Estimated savings (warm cache, typical `ubuntu-latest`):** Go module/build
+**~1–3 min** per job; platform tools download **~30–90 s**; IBM MQ image pull
+**~3–8 min** on integration/e2e platform steps ([E2E_SPEEDUP_PROPOSAL.md](plans/E2E_SPEEDUP_PROPOSAL.md)
+Phase C §5); Helm chart cache **~30 s–2 min** on first Terraform apply.
+
+`release.yaml` continues to use BuildKit GHA cache for controller image builds
+(not the composites above). `charts/kurator` has no `helm dependency update` step
+in CI — nothing to cache beyond the Terraform MQ chart fetch.
+
 ## Jobs
 
 ### `preflight` (`preflight.yaml`)
@@ -94,7 +124,7 @@ cluster time.
 | go mod tidy | `go mod tidy` then `git diff --exit-code go.sum` | Fails when Renovate or local edits leave `go.sum` out of sync |
 | verify | `task verify` | Same as `ci.yaml` `verify` — CRDs, RBAC, deepcopy, mocks |
 
-Job timeout: **5 minutes**. Uses the same Go module cache key as `ci.yaml` verify.
+Job timeout: **5 minutes**. Uses [`go-cache`](../.github/actions/go-cache/) (same keys as `ci.yaml`).
 
 Local equivalent: `go mod tidy && git diff --exit-code go.sum` then `task verify`.
 
@@ -153,7 +183,7 @@ Runs in parallel with other `ci.yaml` jobs; no cluster or MQ required.
 
 ### `integration`
 Dedicated workflow [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml):
-`task mq:integration:up` → `task mq:integration:wait` → `task test:integration`
+[`mq-docker-image`](../.github/actions/mq-docker-image/) → `task mq:integration:up` → `task mq:integration:wait` → `task test:integration`
 → `task mq:integration:down` (always). Exercises `mqadmin.Admin` queue, topic,
 channel, **CHLAUTH**, and **AUTHREC** operations against live mqweb without kind.
 Local equivalent: `task test:integration:local` or `task ci:integration`.
@@ -167,11 +197,14 @@ Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml)
 
 - **`e2e (kustomize)`** — every qualifying PR and `main` push: platform up →
   `task test:e2e` with `KURATOR_E2E_MQ=1`, parallel Ginkgo (`KURATOR_E2E_NODES=3`),
-  and PR label filter `!slow` (skips metrics and QMC rotation specs).
-- **`e2e (helm)`** — `workflow_dispatch` and weekly cron only (not PRs): same
+  and PR label filter `(smoke || mq) && !slow` (manager smoke + MQ happy paths;
+  skips metrics and QMC rotation). On **`main` push**, the same job then runs
+  `task test:e2e:helm` on the existing cluster (no second `cluster:up`).
+- **`e2e (helm)`** — `workflow_dispatch` and weekly cron only (not PRs): dedicated
   platform, then `task test:e2e:helm` (`KURATOR_E2E_DEPLOY=helm`).
 
-Both jobs use `CERT_MANAGER_INSTALL_SKIP=true` (cert-manager from Terraform) and
+Both jobs use workflow caches (Go, platform tools, IBM MQ image, Helm) per
+[Workflow caching](#workflow-caching), `CERT_MANAGER_INSTALL_SKIP=true` (cert-manager from Terraform) and
 `task cluster:down` (always). Local: `task ci:e2e`; kustomize + Helm on one cluster:
 `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
@@ -188,7 +221,7 @@ branch protection.
 | Job | Command / flow | Notes |
 |-----|----------------|-------|
 | `integration` | `bash hack/ci/suite-lock.sh exclusive-test task ci:integration` | Same as `integration.yaml` (Docker MQ up → tests → down) |
-| `e2e (kustomize)` | `suite-lock` → `task cluster:up` → `hack/ci/wait-mqweb.sh` → `task test:e2e` | `KURATOR_E2E_MQ=1`; no `!slow` label filter |
+| `e2e (kustomize)` | `suite-lock` → `hack/ci/cluster-up-with-mq-image.sh` → `hack/ci/wait-mqweb.sh` → `task test:e2e` | `KURATOR_E2E_MQ=1`; no `!slow` label filter |
 | `e2e (helm)` | Same platform steps → `task test:e2e:helm` | `KURATOR_E2E_DEPLOY=helm`; skipped on `workflow_dispatch` when `run_helm_e2e` is false; always runs on schedule |
 
 Workflow timeout per job: **120 minutes**. On failure, uploads diagnostics

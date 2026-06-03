@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=hack/ci/step.sh
 source "${ROOT}/hack/ci/step.sh"
+# shellcheck source=hack/ci/test-artifacts.sh
+source "${ROOT}/hack/ci/test-artifacts.sh"
 # shellcheck source=hack/ci/suite-lock.sh
 source "${ROOT}/hack/ci/suite-lock.sh"
 
@@ -23,6 +25,8 @@ if [[ -f "${KIND_KUBECONFIG}" ]]; then
 fi
 
 GINKGO_NODES="${KURATOR_E2E_NODES:-3}"
+ARTIFACTS_DIR="$(test_artifacts_dir "${ROOT}")"
+E2E_JUNIT="${ARTIFACTS_DIR}/e2e-junit.xml"
 
 ci_step "GINKGO E2E — image build, kind load, deploy (platform must already be up; task ci:e2e runs PLATFORM UP first)"
 
@@ -34,30 +38,31 @@ echo "KURATOR_E2E_NODES=${GINKGO_NODES}"
 echo "KURATOR_E2E_LABEL_FILTER=${KURATOR_E2E_LABEL_FILTER:-<unset>}"
 echo "CERT_MANAGER_INSTALL_SKIP=${CERT_MANAGER_INSTALL_SKIP:-<unset>}"
 echo "KURATOR_E2E_VERBOSE_LOGS=${KURATOR_E2E_VERBOSE_LOGS:-0}"
+echo "E2E_JUNIT=${E2E_JUNIT}"
 echo ""
-echo "Note: go test uses -race (CGO_ENABLED=1). With parallel nodes, use fewer KURATOR_E2E_NODES on small hosts if flaky."
+echo "Note: ginkgo run uses --race (CGO_ENABLED=1). With parallel nodes, use fewer KURATOR_E2E_NODES on small hosts if flaky."
 echo ""
 
 export CGO_ENABLED="${CGO_ENABLED:-1}"
 
 GINKGO_FLAGS=(
-  -ginkgo.vv
-  -ginkgo.show-node-events
-  -ginkgo.procs="${GINKGO_NODES}"
+  --procs="${GINKGO_NODES}"
+  --race
+  --timeout=90m
+  --tags=e2e
+  -vv
+  --show-node-events
+  --junit-report=e2e-junit.xml
+  --output-dir="${ARTIFACTS_DIR}"
 )
 if [[ -n "${KURATOR_E2E_LABEL_FILTER:-}" ]]; then
-  GINKGO_FLAGS+=(-ginkgo.label-filter="${KURATOR_E2E_LABEL_FILTER}")
+  GINKGO_FLAGS+=(--label-filter="${KURATOR_E2E_LABEL_FILTER}")
 fi
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  GINKGO_FLAGS+=(-ginkgo.github-output)
+  GINKGO_FLAGS+=(--github-output)
 fi
 
 ci_step "GINKGO SUITE — look for [e2e] SPEC START/PASS lines and ==> stage banners"
 
-# -count=1: do not skip the suite via cached pass
-go test -tags=e2e ./test/e2e/... \
-  -race \
-  -v \
-  -count=1 \
-  -timeout=90m \
-  "${GINKGO_FLAGS[@]}"
+# Ginkgo v2.29+: --procs must be set via the ginkgo CLI, not go test -ginkgo.procs.
+go tool ginkgo run "${GINKGO_FLAGS[@]}" ./test/e2e/...

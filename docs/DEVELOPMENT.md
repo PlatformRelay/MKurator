@@ -407,8 +407,9 @@ Commands and env vars below.
 Fast contract tests for queue, topic, channel, CHLAUTH, and AUTHREC operations
 via mqweb — no Kubernetes or operator required. Covers CRUD, replace-on-update,
 delete (including idempotent delete), and not-found paths for auth as well as
-queue/topic/channel. **Alias and remote queues** are exercised here only (e2e
-uses local queues). Uses `//go:build integration` in
+queue/topic/channel. **Alias, remote queues, replace-on-update, and CHLAUTH/AUTHREC
+edge cases** live here (ADR-0011); kind e2e keeps one happy-path reconcile + delete
+per CR kind plus admission smoke. Uses `//go:build integration` in
 [`test/integration/mq/`](../test/integration/mq/).
 
 **Machine lock:** e2e and integration share Docker MQ, kind, kubeconfig, and
@@ -479,7 +480,8 @@ Ginkgo runs with `-ginkgo.vv`, `-ginkgo.show-node-events`, and `-ginkgo.procs` (
 **3** via `KURATOR_E2E_NODES`). MQ specs use per-family namespaces (`kurator-e2e-queues`,
 `kurator-e2e-topics`, `kurator-e2e-channels`, `kurator-e2e-auth`) and unique MQ object
 prefixes per process (`E2E.N1.…`). CHLAUTH specs run in a **serial** `mq-auth-serial` lane.
-PR CI sets `KURATOR_E2E_LABEL_FILTER='!slow'` (skips metrics and QMC rotation). Override
+PR CI sets `KURATOR_E2E_LABEL_FILTER='(smoke || mq) && !slow'` (manager smoke + MQ
+paths; skips metrics and QMC rotation). Override
 locally, e.g. `KURATOR_E2E_NODES=1 KURATOR_E2E_LABEL_FILTER= task test:e2e` for a full
 serial run. `-race` stays enabled (`CGO_ENABLED=1`); reduce nodes on small hosts if flaky.
 In GitHub Actions, `-ginkgo.github-output` is added for workflow annotations.
