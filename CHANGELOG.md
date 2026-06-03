@@ -9,24 +9,15 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
-### Bug Fixes
-
-- **auth:** Unblock ChannelAuthRule delete and e2e waits [4c82f9b](https://github.com/konih/kurator/commit/4c82f9bc579014b530b032b8634ae207002a57b3)
-
-
 ### Features
 
-- **auth:** Drift-aware GET reconcile for auth CRs [aedd4e6](https://github.com/konih/kurator/commit/aedd4e6f64b75d481bf7798444d9db5d54bf7eeb)
-
-- **operator:** Gate readyz on QMC connectivity [30eafce](https://github.com/konih/kurator/commit/30eafce5f91e3df3d4c6e578ed9b8c290ed7bf64)
-
-- **controller:** Observe-only drift policy and Phase 4 DISPLAY [46a864e](https://github.com/konih/kurator/commit/46a864e866190f183d33ae3292b28d83c47afb47)
-
-- **validation:** ChannelAuthRule channel referential checks [1783db7](https://github.com/konih/kurator/commit/1783db789aff87cc13ec1dd29b6ada0481de129c)
+- **status:** Expose desiredMQSC on Topic, Channel, auth CRs [9527885](https://github.com/konih/kurator/commit/95278853f4f5497280430421514750f9179541a2)
 
 ## [0.5.0](https://github.com/konih/kurator/compare/v0.4.0..v0.5.0) - 2026-06-03
 
 ### Bug Fixes
+
+- **auth:** Unblock ChannelAuthRule delete and e2e waits [4c82f9b](https://github.com/konih/kurator/commit/4c82f9bc579014b530b032b8634ae207002a57b3)
 
 - **ci:** Skip generated files in format:check diff [3932cb1](https://github.com/konih/kurator/commit/3932cb1e788bebf7146b97d936ec72a473d53e40)
 
@@ -56,6 +47,14 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 
 ### Features
+
+- **auth:** Drift-aware GET reconcile for auth CRs [aedd4e6](https://github.com/konih/kurator/commit/aedd4e6f64b75d481bf7798444d9db5d54bf7eeb)
+
+- **operator:** Gate readyz on QMC connectivity [30eafce](https://github.com/konih/kurator/commit/30eafce5f91e3df3d4c6e578ed9b8c290ed7bf64)
+
+- **controller:** Observe-only drift policy and Phase 4 DISPLAY [46a864e](https://github.com/konih/kurator/commit/46a864e866190f183d33ae3292b28d83c47afb47)
+
+- **validation:** ChannelAuthRule channel referential checks [1783db7](https://github.com/konih/kurator/commit/1783db789aff87cc13ec1dd29b6ada0481de129c)
 
 - **validation:** Tighten MQ object name checks [29b0d3d](https://github.com/konih/kurator/commit/29b0d3db2c2d6b82bbc1f2f1c1b6661d0ebdba46)
 

@@ -34,7 +34,7 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 - [x] Unit tests (`auth_test.go`, `client_test.go`, `mqsc_params_test.go`)
 - [x] Docker integration tests (`test/integration/mq/auth_integration_test.go`)
 - [x] Wire GET paths into auth reconcilers for drift-aware reconcile (replace-on-diff)
-- [ ] Extend e2e helpers to use adapter GET instead of raw `RunMQSC` DISPLAY
+- [x] Extend e2e helpers to use adapter GET instead of raw `RunMQSC` DISPLAY
 
 ## Release mechanics
 
@@ -42,7 +42,8 @@ issue `DISPLAY CHLAUTH` / `DISPLAY AUTHREC` MQSC via `runCommand`.
 - [x] `task changelog:write` and commit `CHANGELOG.md`
 - [x] `git tag v0.5.0` · `gh release create` · `git push origin main` · `git push origin v0.5.0`
 - [x] **Tag moved to Phase 5 wave HEAD** — v0.5.0 retargeted from `3932cb1` (early cut) to include drift/readyz/auth GET/CAR delete/e2e fixes (milestone continuity; not 0.5.1)
-- [ ] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green on the tag push
+- [x] **v0.5.1 patch** — HEAD past retagged v0.5.0 (`8c80420`); fix-forward per RELEASE.md (desiredMQSC + post-tag hardening); do not re-move v0.5.0
+- [ ] Confirm GitHub Actions **CI**, **Integration**, and **E2E** workflows green on the v0.5.1 tag push
 
 ## CI hardening (nice-to-have, post-0.5.0)
 
