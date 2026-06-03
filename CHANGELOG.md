@@ -11,6 +11,27 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ### Bug Fixes
 
+- **auth:** Parse DISPLAY text and correct SET AUTHREC MQSC [5fb3bae](https://github.com/konih/kurator/commit/5fb3baeca75414faafd13b05c0b158ca9d9386b5)
+
+- **samples:** Unify deploy:samples for kind [2ebca43](https://github.com/konih/kurator/commit/2ebca431fa8edc9232f4e8f706bea5e99d563c6f)
+
+- **e2e:** Deploy operator via task deploy [3475006](https://github.com/konih/kurator/commit/3475006440542f2b1e05e7ff019b6aeee8d8605b)
+
+
+### Features
+
+- **validation:** Tighten MQ object name checks [29b0d3d](https://github.com/konih/kurator/commit/29b0d3db2c2d6b82bbc1f2f1c1b6661d0ebdba46)
+
+- **controller:** Status UX and reconcile concurrency [9ee2cc1](https://github.com/konih/kurator/commit/9ee2cc1291a26e934d7b0f91ce4640f96a197bcf)
+
+- **webhook:** Require opt-in for insecure QMC TLS [e27adf5](https://github.com/konih/kurator/commit/e27adf5dafaa254ea9ab49aa7f8b95154a91fe05)
+
+- **queue:** Expose status.desiredMQSC for GitOps debug [4bb84b5](https://github.com/konih/kurator/commit/4bb84b53f1dc6049c2958b9a48992c0fed564459)
+
+## [0.5.0](https://github.com/konih/kurator/compare/v0.4.0..v0.5.0) - 2026-06-02
+
+### Bug Fixes
+
 - **task:** Propagate KURATOR_E2E_MQ into test:e2e task env [eaa4300](https://github.com/konih/kurator/commit/eaa4300a0a6c89d35e6a11c5214d83745583c55a)
 
 - **e2e:** Race-safe subprocess output and webhook assertion [46e9cde](https://github.com/konih/kurator/commit/46e9cdef52f041bac8236b42b3dff6a94d122c59)
