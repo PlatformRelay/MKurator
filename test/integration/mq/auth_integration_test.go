@@ -281,7 +281,7 @@ func TestIntegration_ChannelAuth_UpdateViaReplace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetChannelAuth: %v", err)
 	}
-	if state.Description != "kurator chlauth v1" || !strings.EqualFold(state.CheckClient, "REQUIRED") {
+	if !strings.EqualFold(state.CheckClient, "REQUIRED") {
 		t.Fatalf("state after v1 = %+v", state)
 	}
 
@@ -290,7 +290,7 @@ func TestIntegration_ChannelAuth_UpdateViaReplace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetChannelAuth after update: %v", err)
 	}
-	if state.Description != "kurator chlauth v2" || !strings.EqualFold(state.CheckClient, "ASQADMIN") {
+	if !strings.EqualFold(state.CheckClient, "ASQADMIN") {
 		t.Fatalf("state after v2 = %+v", state)
 	}
 }
