@@ -101,3 +101,13 @@ tasks:
     desc: Start Docker MQ, wait for mqweb, run integration tests (container left running)
     cmds:
       - bash hack/ci/run-integration-local.sh
+
+  schema:
+    desc: CRD OpenAPI spec fragment contract tests (no cluster; also run by task verify)
+    cmds:
+      - go test ./test/schema/ -count=1
+
+  schema:update:
+    desc: Regenerate test/schema/golden from config/crd/bases
+    cmds:
+      - UPDATE_GOLDEN=1 go test ./test/schema/ -run TestCRDSpecOpenAPIFragments -count=1

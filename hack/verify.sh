@@ -83,4 +83,7 @@ if ! diff -ru "${samples_scratch}" charts/kurator/samples/resources; then
   exit 1
 fi
 
+echo "verify: CRD OpenAPI spec fragments..."
+go test ./test/schema/ -count=1
+
 echo "verify: ok"
