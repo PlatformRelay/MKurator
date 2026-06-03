@@ -214,10 +214,11 @@ tasks:
       - bash hack/sync-samples.sh
 
   helm:lint:
-    desc: Lint the publishable Kurator Helm chart and verify admission webhook templates
+    desc: Lint the publishable Kurator Helm chart and verify admission webhook and RBAC templates
     cmds:
       - helm lint ./charts/kurator
       - bash hack/helm-verify-admission.sh
+      - bash hack/helm-verify-rbac.sh
 
   helm:package:
     desc: Package charts/kurator to dist/
