@@ -73,6 +73,7 @@ var _ = Describe("Post-manager IBM MQ integration", Label("mq"), func() {
 
 		BeforeEach(func() {
 			ns = namespaceQueues
+			ensureE2ENamespace(ns)
 			prefix = mqObjectPrefix()
 			queueObject = mqQueueObjectName(prefix)
 			queueCR = mqCRName("e2e-orders", prefix)
@@ -132,6 +133,7 @@ spec:
 		// Queue attribute replace semantics: test/integration/mq (TestIntegration_Queue_UpdateViaReplace).
 
 		It("recovers QueueManagerConnection readiness after secret rotation", Label("slow"), func() {
+			ensureE2ENamespace(ns)
 			By("creating intentionally invalid MQ credentials")
 			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
 kind: Secret
@@ -188,6 +190,7 @@ stringData:
 
 		BeforeEach(func() {
 			ns = namespaceTopics
+			ensureE2ENamespace(ns)
 			prefix = mqObjectPrefix()
 			topicObject = mqTopicObjectName(prefix)
 			topicCR = mqCRName("e2e-retail-orders", prefix)
@@ -254,6 +257,7 @@ spec:
 
 		BeforeEach(func() {
 			ns = namespaceChannels
+			ensureE2ENamespace(ns)
 			prefix = mqObjectPrefix()
 			channelObject = mqChannelObjectName(prefix)
 			channelCR = mqCRName("e2e-orders-app", prefix)

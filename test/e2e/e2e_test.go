@@ -266,7 +266,7 @@ spec:
 				g.Expect(metricsOutput).NotTo(BeEmpty())
 				g.Expect(metricsOutput).To(ContainSubstring("< HTTP/1.1 200 OK"))
 			}
-			Eventually(verifyMetricsAvailable, 2*time.Minute).Should(Succeed())
+			Eventually(verifyMetricsAvailable, 5*time.Minute).Should(Succeed())
 		})
 	})
 })

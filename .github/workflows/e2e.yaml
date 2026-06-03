@@ -31,6 +31,8 @@ env:
   KUBECONFIG: ${{ github.workspace }}/hack/kind-cluster/.state/kubeconfig.yaml
   CERT_MANAGER_INSTALL_SKIP: "true"
   KURATOR_E2E_MQ: "1"
+  # Serial Ginkgo on CI avoids cross-process races on shared namespaces/webhook readiness.
+  KURATOR_E2E_NODES: "1"
   # PR: manager smoke + MQ paths; skip slow (metrics, QMC rotation). Full suite on main/dispatch/cron kustomize.
   KURATOR_E2E_LABEL_FILTER: ${{ github.event_name == 'pull_request' && '(smoke || mq) && !slow' || '' }}
   # arduino/setup-task@v2.0.0 still declares node20; no Node 24 release yet.

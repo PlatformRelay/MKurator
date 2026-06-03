@@ -252,6 +252,12 @@ func applyChannelAuthPrereqFixtureOnce() {
 // waitForControllerAndWebhookReady blocks until cert-manager has issued the webhook
 // TLS secret, the controller-manager is rolled out, and the webhook Service has endpoints.
 func waitForControllerAndWebhookReady() {
+	By("ensuring manager namespace exists before webhook readiness checks")
+	Eventually(func(g Gomega) {
+		_, err := runKubectl("get", "ns", namespace)
+		g.Expect(err).NotTo(HaveOccurred(), "manager namespace %s should exist", namespace)
+	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "certificate", "mkurator-serving-cert", "-n", namespace,
 			"-o", "jsonpath={.status.conditions[?(@.type=='Ready')].status}")
