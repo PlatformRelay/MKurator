@@ -107,6 +107,11 @@ func deployOperatorForE2EKustomize() {
 	_, err := utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
 
+	By("removing stale controller-manager deployment before apply")
+	cmd = exec.Command("kubectl", "delete", "deployment", "kurator-controller-manager", "-n", namespace,
+		"--ignore-not-found", "--wait=true", "--timeout=120s")
+	_, _ = utils.Run(cmd)
+
 	By("deploying the controller-manager (task deploy:operator)")
 	cmd = exec.Command("task", "deploy:operator")
 	cmd.Env = taskEnv()
@@ -190,10 +195,12 @@ func waitForControllerAndWebhookReady() {
 		g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert should exist")
 	}).WithTimeout(3 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 
-	cmd := exec.Command("kubectl", "rollout", "status", "deployment/kurator-controller-manager",
-		"-n", namespace, "--timeout=5m")
-	_, err := utils.Run(cmd)
-	Expect(err).NotTo(HaveOccurred(), "controller-manager rollout should complete")
+	Eventually(func(g Gomega) {
+		cmd := exec.Command("kubectl", "rollout", "status", "deployment/kurator-controller-manager",
+			"-n", namespace, "--timeout=2m")
+		_, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred(), "controller-manager rollout should complete")
+	}).WithTimeout(8 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 	Eventually(func(g Gomega) {
 		cmd := exec.Command("kubectl", "get", "pods", "-n", namespace,

@@ -37,9 +37,9 @@ func TestE2E(t *testing.T) {
 	RunSpecs(t, "e2e suite")
 }
 
-// SynchronizedBeforeSuite: process 1 builds/loads images and installs cert-manager once.
+// SynchronizedBeforeSuite: process 1 builds/loads images, cert-manager, and deploys the operator once.
 var _ = SynchronizedBeforeSuite(func() []byte {
-	e2eStage("PLATFORM PREP — build/load images, cert-manager (process 1)")
+	e2eStage("PLATFORM PREP — build/load images, cert-manager, deploy (process 1)")
 	By("building the manager image")
 	cmd := exec.Command("task", "docker:build")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
@@ -62,18 +62,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to load curl image into Kind")
 
 	setupCertManager()
-	return nil
-}, func(_ []byte) {
-	configureKubectlKubeRC()
-})
-
-// SynchronizedBeforeSuite: process 1 deploys the operator once; all processes then proceed.
-var _ = SynchronizedBeforeSuite(func() []byte {
 	ensureManagerNamespaceAndDeploy()
 	applyChannelAuthPrereqFixtureOnce()
 	return nil
 }, func(_ []byte) {
-	// Per-process: nothing extra; operator is cluster-scoped.
+	configureKubectlKubeRC()
 })
 
 var _ = AfterSuite(func() {
