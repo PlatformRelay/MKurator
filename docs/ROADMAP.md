@@ -116,7 +116,7 @@ Exit criteria: envtest + adapter tests + live queue on kind — **met**.
   `.trivyignore`) on `v*.*.*` tags (NFR OPS-1/OPS-2, SEC-4/SEC-6).
 - [x] Release supply chain — OCI SBOM + SLSA provenance (`docker/build-push-action`),
   SPDX SBOM on GitHub Releases (`anchore/sbom-action`), cosign keyless signing
-  (`sigstore/cosign-installer`).
+  (`sigstore/cosign-installer`), Helm chart OCI push to GHCR (`helm push`).
 
 **Also delivered in Phase 3:**
 
@@ -195,8 +195,9 @@ reference MQSC; e2e fixture
   stack (Kustomize deploy path).
 - [ ] Additional CHLAUTH rule types (`BLOCKUSER`, `USERMAP`, …) — schema present;
   extend samples, integration, and e2e when needed.
-- [ ] Optional: integration coverage for a second CHLAUTH rule type or AUTHREC
-  object type beyond `ADDRESSMAP` / `QUEUE`.
+- [x] Optional: integration coverage for a second CHLAUTH rule type or AUTHREC
+  object type beyond `ADDRESSMAP` / `QUEUE` — `BLOCKUSER` in Docker integration
+  ([`test/integration/mq/auth_integration_test.go`](../test/integration/mq/auth_integration_test.go)).
 
 Exit criteria: declarative channel auth and OAM authority records reconciled on
 kind with e2e coverage — **partial** (core auth shipped and tagged; CI proof on
@@ -222,10 +223,11 @@ tag and extended rule types pending).
 - Optional PCF adapter behind the existing `MQAdmin` port for environments
   without `mqweb`.
 - Metrics/dashboards and richer status reporting.
-- Documentation site and OCI Helm chart registry (release today attaches `.tgz`
-  to GitHub Releases; GHCR chart push is optional follow-up).
+- Documentation site (Helm chart is published to GHCR OCI on release tags; `.tgz`
+  remains attached to GitHub Releases).
 - Commit generated `docs/schemas/mqweb-swagger.json` per target MQ version.
 - **Admission (optional):** envtest assertion for unknown-attribute warnings;
-  e2e suite variant with Helm deploy instead of Kustomize.
+  **e2e Helm deploy path wired** (`KURATOR_E2E_DEPLOY=helm`, `task test:e2e:helm`) —
+  pending first green local run and optional CI matrix job.
 - **Runtime cleanup:** migrate off deprecated `GetEventRecorderFor` when
   controller-runtime guidance is stable.
