@@ -8,7 +8,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 	"github.com/konih/kurator/internal/mqadmin"
@@ -18,6 +18,8 @@ const (
 	EventReasonConnectionNotFound = "ConnectionNotFound"
 	EventReasonSecretNotFound     = "SecretNotFound"
 	EventReasonDeleted            = "Deleted"
+
+	eventActionReconcile = "Reconcile"
 )
 
 func classifyReconcileError(err error) (reason, message string) {
@@ -47,19 +49,19 @@ func classifyReconcileError(err error) (reason, message string) {
 	return messagingv1alpha1.ReasonError, message
 }
 
-func recordReconcileWarning(recorder record.EventRecorder, obj runtime.Object, err error) {
+func recordReconcileWarning(recorder events.EventRecorder, obj runtime.Object, err error) {
 	if recorder == nil || err == nil || errors.Is(err, mqadmin.ErrTransient) {
 		return
 	}
 	reason, message := classifyReconcileError(err)
-	recorder.Eventf(obj, corev1.EventTypeWarning, reason, "%s", message)
+	recorder.Eventf(obj, nil, corev1.EventTypeWarning, reason, eventActionReconcile, "%s", message)
 }
 
-func recordNormalEvent(recorder record.EventRecorder, obj runtime.Object, reason, message string) {
+func recordNormalEvent(recorder events.EventRecorder, obj runtime.Object, reason, message string) {
 	if recorder == nil {
 		return
 	}
-	recorder.Eventf(obj, corev1.EventTypeNormal, reason, "%s", message)
+	recorder.Eventf(obj, nil, corev1.EventTypeNormal, reason, eventActionReconcile, "%s", message)
 }
 
 func conditionChanged(

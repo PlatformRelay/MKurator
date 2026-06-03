@@ -10,7 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
 	"github.com/konih/kurator/internal/mqadmin"
@@ -126,7 +126,7 @@ func TestRecordReconcileWarning_NilRecorder(t *testing.T) {
 
 func TestRecordReconcileWarning_SkipsTransient(t *testing.T) {
 	t.Parallel()
-	recorder := record.NewFakeRecorder(1)
+	recorder := events.NewFakeRecorder(1)
 	recordReconcileWarning(recorder, &messagingv1alpha1.Queue{}, &mqadmin.TransientError{Message: "timeout"})
 	select {
 	case ev := <-recorder.Events:
@@ -137,7 +137,7 @@ func TestRecordReconcileWarning_SkipsTransient(t *testing.T) {
 
 func TestRecordReconcileWarning_EmitsWarning(t *testing.T) {
 	t.Parallel()
-	recorder := record.NewFakeRecorder(2)
+	recorder := events.NewFakeRecorder(2)
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "default"},
 	}
@@ -164,7 +164,7 @@ func TestRecordReconcileWarning_EmitsWarning(t *testing.T) {
 
 func TestRecordNormalEvent(t *testing.T) {
 	t.Parallel()
-	recorder := record.NewFakeRecorder(1)
+	recorder := events.NewFakeRecorder(1)
 	q := &messagingv1alpha1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "default"},
 	}

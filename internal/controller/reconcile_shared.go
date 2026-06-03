@@ -9,7 +9,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +37,7 @@ func resolveConnection(
 func waitForConnectionReady(
 	ctx context.Context,
 	status client.StatusWriter,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	conn *messagingv1alpha1.QueueManagerConnection,
 	generation int64,
@@ -70,7 +70,7 @@ func syncedConditions(obj client.Object) []metav1.Condition {
 }
 
 func emitSyncedTransitionEvent(
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	newStatus metav1.ConditionStatus,
 	newReason, message string,
@@ -84,7 +84,7 @@ func emitSyncedTransitionEvent(
 func patchSyncedProgressing(
 	ctx context.Context,
 	status client.StatusWriter,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,
@@ -125,7 +125,7 @@ func patchSyncedProgressing(
 func setSyncedError(
 	ctx context.Context,
 	status client.StatusWriter,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	generation int64,
 	err error,
@@ -188,7 +188,7 @@ func setSyncedError(
 func patchSyncedAvailable(
 	ctx context.Context,
 	status client.StatusWriter,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,
@@ -237,7 +237,7 @@ func patchSyncedAvailable(
 func patchSyncedDeleting(
 	ctx context.Context,
 	status client.StatusWriter,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,

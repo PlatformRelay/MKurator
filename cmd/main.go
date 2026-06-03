@@ -212,8 +212,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	mqFactory := mqrest.NewClientFactory(mgr.GetClient())
-	//nolint:staticcheck // record.EventRecorder until controllers use events API
-	eventRecorder := mgr.GetEventRecorderFor("kurator-controller-manager")
+	eventRecorder := mgr.GetEventRecorder("kurator-controller-manager")
 	if err := (&controller.QueueManagerConnectionReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),

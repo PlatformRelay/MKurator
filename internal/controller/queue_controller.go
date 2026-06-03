@@ -7,7 +7,7 @@ import (
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -24,7 +24,7 @@ type QueueReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	MQFactory mqadmin.Factory
-	Recorder  record.EventRecorder
+	Recorder  events.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=messaging.kurator.dev,resources=queues,verbs=get;list;watch;create;update;patch;delete

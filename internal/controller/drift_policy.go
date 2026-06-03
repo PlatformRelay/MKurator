@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/konih/kurator/api/v1alpha1"
@@ -51,7 +51,7 @@ func reconcileMQObjectState(
 func patchSyncedDrift(
 	ctx context.Context,
 	status client.StatusWriter,
-	recorder record.EventRecorder,
+	recorder events.EventRecorder,
 	obj client.Object,
 	generation int64,
 	message string,
