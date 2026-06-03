@@ -199,7 +199,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(func(g Gomega) {
-			err := k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, &messagingv1alpha1.AuthorityRecord{})
+			err := k8sClient.Get(
+				ctx,
+				types.NamespacedName{Namespace: ns, Name: key},
+				&messagingv1alpha1.AuthorityRecord{},
+			)
 			g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		}).Should(Succeed())
 	})
