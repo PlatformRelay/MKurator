@@ -99,7 +99,11 @@ func (c *Client) GetAuthority(ctx context.Context, spec mqadmin.AuthoritySpec) (
 	if err != nil {
 		return nil, err
 	}
-	return authorityStateFromAttributes(spec, resp), nil
+	state := authorityStateFromAttributes(spec, resp)
+	if len(state.Authorities) == 0 {
+		return nil, &mqadmin.NotFoundError{Object: spec.Profile}
+	}
+	return state, nil
 }
 
 func (c *Client) runDisplayMQSC(ctx context.Context, command, object string) (map[string]string, error) {
