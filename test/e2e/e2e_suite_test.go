@@ -67,6 +67,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return nil
 }, func(_ []byte) {
 	configureKubectlKubeRC()
+	// Every parallel Ginkgo process must wait for CRD discovery before applying CRs.
+	waitForKuratorCRDsEstablished()
 })
 
 var _ = AfterSuite(func() {

@@ -42,7 +42,12 @@ func isWebhookConnectionRefused(err error) bool {
 		strings.Contains(msg, "failed calling webhook")
 }
 
-// applyWithWebhookRetry applies a manifest, retrying when the API server cannot reach the webhook.
+// isTransientKubectlApplyError reports webhook, CRD discovery, or terminating CRD races.
+func isTransientKubectlApplyError(err error) bool {
+	return isWebhookConnectionRefused(err) || isCRDDiscoveryNotReady(err)
+}
+
+// applyWithWebhookRetry applies a manifest, retrying transient webhook and CRD discovery errors.
 func applyWithWebhookRetry(manifest string) error {
 	deadline := time.Now().Add(webhookApplyRetryTimeout)
 	var lastErr error
@@ -51,7 +56,7 @@ func applyWithWebhookRetry(manifest string) error {
 		if lastErr == nil {
 			return nil
 		}
-		if !isWebhookConnectionRefused(lastErr) {
+		if !isTransientKubectlApplyError(lastErr) {
 			return lastErr
 		}
 		time.Sleep(webhookApplyRetryInterval)

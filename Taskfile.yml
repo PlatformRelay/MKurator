@@ -132,10 +132,14 @@ tasks:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
   undeploy:operator:
-    desc: Remove operator manifests and CRDs from the cluster
+    desc: Remove operator manifests and CRDs from the cluster (non-blocking; deletes CR instances first)
     cmds:
-      - kubectl delete --ignore-not-found -k config/default
-      - kubectl delete --ignore-not-found -f config/crd/bases
+      - |
+        for ns in kurator-e2e-queues kurator-e2e-topics kurator-e2e-channels kurator-e2e-auth kurator-system; do
+          kubectl delete queues,topics,channels,channelauthrules,authorityrecords,queuemanagerconnections --all -n "$ns" --ignore-not-found --wait=false || true
+        done
+      - kubectl delete --ignore-not-found -k config/default --wait=false --timeout=2m
+      - kubectl delete --ignore-not-found -f config/crd/bases --wait=false --timeout=2m
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -19,6 +20,16 @@ import (
 )
 
 var webhookReady atomic.Bool
+
+// kuratorE2ECRDs lists CRDs installed by task install:crds / helm:sync-crds.
+var kuratorE2ECRDs = []string{
+	"queuemanagerconnections.messaging.kurator.dev",
+	"queues.messaging.kurator.dev",
+	"topics.messaging.kurator.dev",
+	"channels.messaging.kurator.dev",
+	"channelauthrules.messaging.kurator.dev",
+	"authorityrecords.messaging.kurator.dev",
+}
 
 func invalidateWebhookReadyCache() {
 	webhookReady.Store(false)
@@ -78,25 +89,67 @@ func ensureManagerNamespaceAndDeploy() {
 }
 
 // undeployOperatorForE2E removes the operator install matching the deploy mode used in the suite.
+// cleanupE2EResources calls deleteAllE2ECustomResources first; this repeats the CR pass so a
+// direct undeploy path still drops instances before CRD delete (operator may already be gone).
 func undeployOperatorForE2E() {
+	deleteAllE2ECustomResources()
 	switch e2eDeployMode() {
 	case "helm":
 		By("uninstalling the controller-manager Helm release")
 		cmd := exec.Command("task", "undeploy:helm")
+		cmd.Env = taskEnv()
 		_, _ = utils.Run(cmd)
+		undeployKuratorCRDsNoWait()
 	default:
-		By("undeploying the controller-manager and CRDs")
-		cmd := exec.Command("task", "undeploy:operator")
-		_, _ = utils.Run(cmd)
+		undeployKustomizeOperatorNoWait()
+		undeployKuratorCRDsNoWait()
 	}
 }
 
 func taskEnv() []string {
 	env := append(os.Environ(), fmt.Sprintf("DOCKER_IMAGE=%s", managerImage))
-	if kc := os.Getenv("KUBECONFIG"); kc != "" {
+	kc := os.Getenv("KUBECONFIG")
+	if kc == "" {
+		if projectDir, err := utils.GetProjectDir(); err == nil {
+			kc = filepath.Join(projectDir, "hack", "kind-cluster", ".state", "kubeconfig.yaml")
+		}
+	}
+	if kc != "" {
 		env = append(env, "KUBECONFIG="+kc)
 	}
 	return env
+}
+
+// waitForKuratorCRDsEstablished blocks until all Kurator CRDs are Established, not
+// terminating, and messaging.kurator.dev kinds are visible in API discovery. Call on
+// every Ginkgo process after SynchronizedBeforeSuite process 1 deploys CRDs.
+func waitForKuratorCRDsEstablished() {
+	By("waiting for Kurator CRDs to be Established and discoverable")
+	Eventually(func(g Gomega) {
+		for _, crd := range kuratorE2ECRDs {
+			cmd := exec.Command("kubectl", "get", "crd", crd,
+				"-o", "jsonpath={.status.conditions[?(@.type=='Established')].status}{\\t}{.metadata.deletionTimestamp}")
+			out, runErr := utils.Run(cmd)
+			g.Expect(runErr).NotTo(HaveOccurred(), "CRD %s should exist", crd)
+			fields := strings.Split(strings.TrimSpace(out), "\t")
+			g.Expect(fields).NotTo(BeEmpty())
+			g.Expect(fields[0]).To(Equal("True"), "CRD %s should be Established", crd)
+			if len(fields) > 1 {
+				g.Expect(fields[1]).To(BeEmpty(), "CRD %s should not be terminating", crd)
+			}
+		}
+		cmd := exec.Command("kubectl", "api-resources", "--api-group=messaging.kurator.dev",
+			"-o", "name")
+		out, runErr := utils.Run(cmd)
+		g.Expect(runErr).NotTo(HaveOccurred(), "messaging.kurator.dev API group should be discoverable")
+		for _, kind := range []string{
+			"queuemanagerconnections", "queues", "topics", "channels",
+			"channelauthrules", "authorityrecords",
+		} {
+			g.Expect(out).To(ContainSubstring(kind),
+				"%s kind should appear in API discovery", kind)
+		}
+	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
 
 // deployOperatorForE2EKustomize applies CRDs and operator manifests without rebuilding the image.
@@ -118,11 +171,7 @@ func deployOperatorForE2EKustomize() {
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
 
-	Eventually(func(g Gomega) {
-		check := exec.Command("kubectl", "get", "crd", "queuemanagerconnections.messaging.kurator.dev")
-		_, runErr := utils.Run(check)
-		g.Expect(runErr).NotTo(HaveOccurred(), "QueueManagerConnection CRD should be registered")
-	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+	waitForKuratorCRDsEstablished()
 
 	waitForControllerAndWebhookReady()
 	webhookReady.Store(true)
@@ -152,11 +201,7 @@ func deployOperatorForE2EHelm() {
 	_, err = utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
-	Eventually(func(g Gomega) {
-		check := exec.Command("kubectl", "get", "crd", "queuemanagerconnections.messaging.kurator.dev")
-		_, runErr := utils.Run(check)
-		g.Expect(runErr).NotTo(HaveOccurred(), "QueueManagerConnection CRD should be registered")
-	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+	waitForKuratorCRDsEstablished()
 
 	waitForControllerAndWebhookReady()
 	webhookReady.Store(true)
@@ -262,5 +307,19 @@ spec:
 	if isWebhookConnectionRefused(err) {
 		return err
 	}
+	if isCRDDiscoveryNotReady(err) {
+		return err
+	}
 	return nil
+}
+
+// isCRDDiscoveryNotReady reports API errors while CRDs are still registering or terminating.
+func isCRDDiscoveryNotReady(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "no matches for kind") ||
+		strings.Contains(msg, "could not find the requested resource") ||
+		strings.Contains(msg, "custom resource definition is terminating")
 }
