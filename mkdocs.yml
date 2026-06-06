@@ -69,6 +69,16 @@ nav:
       - Roadmap: ROADMAP.md
       - NFRs: NON_FUNCTIONAL_REQUIREMENTS.md
       - Developer guide: DEVELOPER_GUIDE.md
+  - Security:
+      - Assurance case: ASSURANCE-CASE.md
+      - Security review: SECURITY-REVIEW.md
+      - SCA remediation policy: security/sca-remediation-policy.md
+  - Contributing:
+      - Governance: development/governance.md
+      - Engineering guidelines: development/guidelines.md
+      - Coding standards: development/coding-standards.md
+      - Testing strategy: development/testing.md
+      - Tooling setup: development/tooling-setup.md
 
 markdown_extensions:
   - admonition

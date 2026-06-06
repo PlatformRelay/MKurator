@@ -22,12 +22,14 @@ On each **`v*.*.*` tag** (and `workflow_dispatch` for rebuild tests), the
 | **OCI attestations** | BuildKit `sbom: true` and `provenance: mode=max` on push |
 | **SPDX SBOM file** | `anchore/sbom-action` → `dist/sbom.spdx.json` attached to GitHub Release |
 | **Signing** | **cosign keyless** (OIDC via GitHub Actions) on the image digest |
+| **Release asset signing** | **cosign sign-blob** on install manifests, Helm tgz, SBOM, checksums (`*.sigstore.json`) |
+| **SLSA attestations** | `actions/attest` on image (provenance + SBOM) and release checksums → `release-provenance.intoto.jsonl` |
+| **Helm OCI** | `helm push` + **cosign sign** on chart digest |
 | **Install artifacts** | `hack/release-assets.sh` — Kustomize manifest, CRD bundle, Helm `.tgz`, checksums |
-| **Helm OCI** | `helm push` of packaged chart to `oci://ghcr.io/<owner>/mkurator:<version>` (reuses GHCR login) |
 | **Release notes** | git-cliff ([ADR-0008](0008-changelog-git-cliff.md)) + install template |
 
-Permissions are scoped: `contents: write`, `packages: write`, `id-token: write`
-for signing only on the release job.
+Permissions are scoped: `contents: write`, `packages: write`, `id-token: write`,
+`attestations: write`, `artifact-metadata: write` for signing and attestations on the release job.
 
 We do **not** use KMS-backed cosign, SLSA Level 3 dedicated builders, or generated
 `LICENSES` allowlists in this phase.

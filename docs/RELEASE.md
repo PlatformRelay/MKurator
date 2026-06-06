@@ -228,7 +228,7 @@ workflow_dispatch after fixing generation on the tagged commit.
 
 1. Open [GitHub Releases](https://github.com/konih/mkurator/releases) — notes, attachments, tag.
 2. Pull the image: `docker pull ghcr.io/konih/mkurator:0.3.0`
-3. Optional cosign verify (substitute digest from GHCR):
+3. Optional cosign verify on the container image (substitute digest from GHCR):
 
 ```sh
 cosign verify \
@@ -237,7 +237,19 @@ cosign verify \
   ghcr.io/konih/mkurator@sha256:<digest>
 ```
 
-4. Smoke install from release YAML (see [INSTALL_AND_USE.md](INSTALL_AND_USE.md)):
+4. Optional verify signed release assets (Sigstore bundle):
+
+```sh
+VERSION=0.6.0   # replace with the tag you published
+curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/checksums.txt"
+curl -sLO "https://github.com/konih/mkurator/releases/download/v${VERSION}/checksums.txt.sigstore.json"
+cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-oidc-issuer \
+  https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/konih/mkurator/.+' \
+  --checksum checksums.txt
+```
+
+5. Smoke install from release YAML (see [INSTALL_AND_USE.md](INSTALL_AND_USE.md)):
 
 ```sh
 VERSION=0.5.2   # replace with the tag you just published

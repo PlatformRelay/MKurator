@@ -29,7 +29,9 @@
 | 🛠️ | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | CRD codegen, reconciler/MQAdmin test matrix, mocks |
 | 🛠️ | [GO_MODULE.md](GO_MODULE.md) | Module layout, import layers, `go-arch-lint` |
 | 🛠️ | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager, health/readiness, metrics, graceful shutdown |
-| 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guidelines, Conventional Commits, gitmoji |
+| 🛠️ | [development/](development/) | Engineering standards (guidelines, coding, testing) |
+| 🔒 | [ASSURANCE-CASE.md](ASSURANCE-CASE.md) | Security claims and trust boundaries |
+| 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Commit format (Conventional Commits + gitmoji) |
 | 🛠️ | [RELEASE.md](RELEASE.md) | Maintainer guide: tag, changelog, publish a version |
 | 🛠️ | [../hack/kind-cluster/README.md](../hack/kind-cluster/README.md) | kind + Terraform + IBM MQ platform only |
 | 🛠️ | [IBM_MQ_101.md](IBM_MQ_101.md) | MQ console, `runmqsc`, verify MKurator on kind |

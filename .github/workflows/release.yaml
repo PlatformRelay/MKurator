@@ -26,6 +26,8 @@ jobs:
       contents: write
       packages: write
       id-token: write # cosign keyless signing (OIDC)
+      attestations: write
+      artifact-metadata: write
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -103,6 +105,13 @@ jobs:
           cosign sign --yes \
             "${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}"
 
+      - name: Attest container image (SLSA provenance)
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.2.0
+        with:
+          subject-name: ${{ steps.image.outputs.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
       - name: Prepare dist directory
         run: mkdir -p dist
 
@@ -114,8 +123,28 @@ jobs:
           registry-username: ${{ github.repository_owner }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Attest container image (SBOM)
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.2.0
+        with:
+          subject-name: ${{ steps.image.outputs.repository }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: dist/sbom.spdx.json
+          push-to-registry: true
+
       - name: Build release assets
         run: bash hack/release-assets.sh "${{ steps.version.outputs.version }}" "${{ steps.image.outputs.repository }}"
+
+      - name: Sign GitHub Release assets
+        run: bash hack/sign-release-assets.sh dist
+
+      - name: Attest GitHub Release assets (SLSA provenance)
+        id: attest-release
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.2.0
+        with:
+          subject-checksums: dist/checksums.txt
+
+      - name: Export release provenance bundle
+        run: cp "${{ steps.attest-release.outputs.bundle-path }}" dist/release-provenance.intoto.jsonl
 
       - id: chart
         run: |
@@ -123,9 +152,21 @@ jobs:
           echo "oci=oci://${{ env.REGISTRY }}/${OWNER}" >> "${GITHUB_OUTPUT}"
 
       # Reuses GHCR credentials from docker/login-action (~/.docker/config.json).
-      - name: Publish Helm chart to GHCR (OCI)
+      - name: Publish and sign Helm chart (OCI)
         run: |
-          helm push "dist/mkurator-${{ steps.version.outputs.version }}.tgz" "${{ steps.chart.outputs.oci }}"
+          set -euo pipefail
+          CHART_PKG="dist/mkurator-${{ steps.version.outputs.version }}.tgz"
+          PUSH_OUT="$(helm push "${CHART_PKG}" "${{ steps.chart.outputs.oci }}" 2>&1)"
+          echo "$PUSH_OUT"
+          DIGEST="$(echo "$PUSH_OUT" | awk '/Digest:/{print $2; exit}')"
+          if [[ -z "${DIGEST}" ]]; then
+            echo "failed to extract chart digest from helm push output" >&2
+            exit 1
+          fi
+          OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          CHART_REF="${{ env.REGISTRY }}/${OWNER}/${{ env.IMAGE_NAME }}@${DIGEST}"
+          echo "Signing ${CHART_REF}"
+          cosign sign --yes "${CHART_REF}"
 
       - name: Generate changelog
         id: cliff
@@ -163,3 +204,5 @@ jobs:
             dist/mkurator-${{ steps.version.outputs.version }}.tgz
             dist/sbom.spdx.json
             dist/checksums.txt
+            dist/release-provenance.intoto.jsonl
+            dist/*.sigstore.json
