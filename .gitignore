@@ -50,6 +50,8 @@ crash.*.log
 # Build output
 bin/
 dist/
+site/
+.venv-docs/
 .task/
 
 # Local Renovate working clone (hack/renovate-docker.sh)

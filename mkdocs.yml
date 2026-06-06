@@ -1,0 +1,97 @@
+site_name: MKurator
+site_description: Kubernetes operator for declarative IBM MQ administration
+site_url: https://konih.github.io/MKurator/
+repo_url: https://github.com/konih/mkurator
+repo_name: konih/mkurator
+copyright: Copyright &copy; 2026 Konrad Heimel
+
+theme:
+  name: material
+  logo: images/mkurator-logo.png
+  favicon: images/mkurator-logo.png
+  palette:
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.path
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Overview:
+      - Home: index.md
+  - Getting Started:
+      - Quick start: QUICKSTART.md
+      - Install and use: INSTALL_AND_USE.md
+      - Upgrade: UPGRADE.md
+      - Development setup: DEVELOPMENT.md
+  - Operator Manual:
+      - Observability: OBSERVABILITY.md
+      - Logging: LOGGING.md
+      - Release guide: RELEASE.md
+  - Examples:
+      - Overview: examples/README.md
+      - Queue and connection: examples/queue-and-connection.md
+      - Channel authentication: examples/channel-authentication.md
+      - Upgrade walkthrough: examples/upgrade-walkthrough.md
+  - Architecture:
+      - Architecture: ARCHITECTURE.md
+      - Attribute reconciliation: ATTRIBUTE_RECONCILIATION.md
+      - Operator runtime: OPERATOR_RUNTIME.md
+      - Go module layout: GO_MODULE.md
+  - Reference:
+      - Custom resources: crds/README.md
+      - Architecture decision records: adr/README.md
+  - Project:
+      - Commit conventions: CONTRIBUTING.md
+      - CI/CD: CICD.md
+      - Roadmap: ROADMAP.md
+      - NFRs: NON_FUNCTIONAL_REQUIREMENTS.md
+      - Developer guide: DEVELOPER_GUIDE.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - toc:
+      permalink: true
+
+docs_dir: docs
+site_dir: site
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/konih/mkurator

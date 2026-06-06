@@ -1,0 +1,40 @@
+/* MKurator docs — IBM MQ operator palette */
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #326ce5;
+  --md-primary-fg-color--light: #5b8aed;
+  --md-primary-fg-color--dark: #2859c7;
+  --md-accent-fg-color: #0f62fe;
+  --md-accent-fg-color--transparent: rgba(15, 98, 254, 0.1);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #326ce5;
+  --md-primary-fg-color--light: #5b8aed;
+  --md-primary-fg-color--dark: #2859c7;
+  --md-accent-fg-color: #4589ff;
+  --md-accent-fg-color--transparent: rgba(69, 137, 255, 0.1);
+  --md-default-bg-color: #161616;
+  --md-default-bg-color--light: #1c1c1c;
+  --md-default-bg-color--lighter: #262626;
+  --md-default-bg-color--lightest: #393939;
+}
+
+[data-md-color-scheme="default"] .md-header {
+  border-bottom: 1px solid rgba(50, 108, 229, 0.18);
+}
+
+.mkurator-hero {
+  text-align: center;
+  margin: 0 auto 2rem;
+  max-width: 52rem;
+}
+
+.mkurator-hero-logo {
+  max-width: 200px;
+  margin: 1rem auto;
+}
+
+.mkurator-badges {
+  margin: 1rem 0;
+}
