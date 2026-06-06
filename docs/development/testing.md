@@ -2,7 +2,7 @@
 
 Test pyramid, coverage floors, and CI merge gates. Detailed tier commands:
 [DEVELOPMENT.md](../DEVELOPMENT.md#test-tiers). Authoritative ADR:
-[ADR-0011](../adr/0011-layered-testing-strategy.md); merge-gate details in [CICD.md](../CICD.md).
+[ADR-0011](../adr/0011-layered-testing-strategy.md); merge-gate matrix in [ADR-0020](../adr/0020-merge-gate-matrix.md).
 
 ## L0–L5 pyramid
 

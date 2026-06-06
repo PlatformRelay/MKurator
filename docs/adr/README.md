@@ -45,3 +45,4 @@ supersedes the old one rather than editing history.
 | [0017](0017-pcf-adapter-behind-mqadmin.md) | PCF adapter behind the MQAdmin port | Proposed |
 | [0018](0018-project-rename-mkurator.md) | Rename project Kurator → MKurator | Accepted |
 | [0019](0019-oss-maturity-posture.md) | OSS maturity posture (docs site, governance, supply chain) | Accepted |
+| [0020](0020-merge-gate-matrix.md) | CI merge-gate matrix (L0–L5 ↔ workflows) | Accepted |

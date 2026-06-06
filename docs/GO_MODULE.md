@@ -87,8 +87,8 @@ flowchart TB
 ### Layer rules (intended)
 
 These rules match how the code is written today and what `task lint` / review
-expect. [AGENTS.md](../AGENTS.md) also references `task arch:lint` (go-arch-lint)
-when that check is enabled in your tree.
+expect. Run `task arch:lint` (go-arch-lint) via `task lint` — config at
+[`hack/tooling/go-arch-lint.yml`](../hack/tooling/go-arch-lint.yml).
 
 | Layer | May import | Must not import |
 |-------|------------|-----------------|

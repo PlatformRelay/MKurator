@@ -25,6 +25,9 @@ vars:
   # renovate: datasource=github-releases depName=orhun/git-cliff
   GIT_CLIFF_VERSION: v2.13.1
   GIT_CLIFF_BIN: "{{.BIN_DIR}}/git-cliff"
+  GO_ARCH_LINT_CONFIG: hack/tooling/go-arch-lint.yml
+  # renovate: datasource=github-releases depName=fe3dback/go-arch-lint
+  GO_ARCH_LINT_VERSION: v1.15.0
   MANAGER_BINARY: "{{.BIN_DIR}}/manager"
   DOCKER_IMAGE: mkurator-controller-manager:dev
   CLUSTER_NAME:
@@ -63,10 +66,16 @@ tasks:
       - go tool golangci-lint run --fix ./...
 
   lint:
-    desc: Run golangci-lint v2
+    desc: Run golangci-lint v2 and go-arch-lint
     deps: [install]
     cmds:
       - go tool golangci-lint run ./...
+      - task: arch:lint
+
+  arch:lint:
+    desc: Enforce internal/ package dependency graph (go-arch-lint)
+    cmds:
+      - go run -mod=mod github.com/fe3dback/go-arch-lint@{{.GO_ARCH_LINT_VERSION}} check --arch-file {{.GO_ARCH_LINT_CONFIG}}
 
   lint:markdown:
     desc: Lint Markdown docs with markdownlint-cli2
@@ -107,6 +116,11 @@ tasks:
     desc: Scan git history for hardcoded secrets (gitleaks)
     cmds:
       - gitleaks detect --source . --verbose
+
+  scrub:
+    desc: Fail if staged files contain forbidden employer or legacy-project strings
+    cmds:
+      - bash hack/scrub.sh
 
   vuln:check:
     desc: Run govulncheck against code and dependencies

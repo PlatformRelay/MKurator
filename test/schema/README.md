@@ -3,14 +3,24 @@
 Golden **spec** OpenAPI fragments extracted from `config/crd/bases/*.yaml` catch
 kubebuilder marker drift without kind or e2e.
 
-## Smoke + extend pattern
+## Enforced kinds
+
+All **six** v1alpha1 messaging kinds have checked-in goldens (see `DefaultCases` in `extract.go`):
+
+| CRD file | Golden |
+| --- | --- |
+| `messaging.mkurator.dev_queues.yaml` | `queue.spec.openapi.yaml` |
+| `messaging.mkurator.dev_topics.yaml` | `topic.spec.openapi.yaml` |
+| `messaging.mkurator.dev_channels.yaml` | `channel.spec.openapi.yaml` |
+| `messaging.mkurator.dev_channelauthrules.yaml` | `channelauthrule.spec.openapi.yaml` |
+| `messaging.mkurator.dev_authorityrecords.yaml` | `authorityrecord.spec.openapi.yaml` |
+| `messaging.mkurator.dev_queuemanagerconnections.yaml` | `queuemanagerconnection.spec.openapi.yaml` |
+
+## Extend pattern
 
 1. Add a row to `DefaultCases` in `extract.go` (CRD filename + golden filename).
 2. Regenerate the golden: `task test:schema:update`
 3. Commit `test/schema/golden/<kind>.spec.openapi.yaml`
-
-Today only **Queue** is enforced; other kinds (`Topic`, `Channel`, `QueueManagerConnection`,
-`ChannelAuthRule`, `AuthorityRecord`) follow the same steps when you need contract lock-in.
 
 ## Commands
 
@@ -20,5 +30,7 @@ Today only **Queue** is enforced; other kinds (`Topic`, `Channel`, `QueueManager
 | `task test:schema:update` | Rewrite goldens from current CRDs |
 | `task verify` | Includes schema check after controller-gen diff |
 
-`kubectl explain` goldens (Option B) are not implemented here; envtest CRD install is
+Sample YAML contract tests live in [`test/samples/`](../samples/) (decode + admission validation).
+
+`kubectl explain` goldens are not implemented here; envtest CRD install is
 unnecessary because fragments are derived directly from committed CRD YAML.

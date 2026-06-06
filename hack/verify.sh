@@ -86,4 +86,7 @@ fi
 echo "verify: CRD OpenAPI spec fragments..."
 go test ./test/schema/ -count=1
 
+echo "verify: sample YAML contract tests..."
+go test ./test/samples/ -count=1
+
 echo "verify: ok"

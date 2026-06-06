@@ -270,9 +270,8 @@ via `hack/ci/suite-lock.sh` — only one suite at a time per host.
 | `task tools:check` | Verify dev tools by tier A/B/C (`TOOLS_TIER` env) |
 | `task tools:install` | Download CI-pinned kind/mkcert/task/terraform into `bin/` |
 | `task format` | Auto-fix formatting/lint issues |
-| `task lint` | Run golangci-lint (incl. depguard) and go-arch-lint layer checks |
+| `task lint` | Run golangci-lint (depguard, gomodguard) and `task arch:lint` |
 | `task arch:lint` | Check internal package layers (go-arch-lint) |
-| `task arch:graph` | Regenerate `docs/diagrams/internal-deps.svg` |
 | `task manifests` | Generate CRDs + RBAC via controller-gen |
 | `task generate` | Generate deepcopy + mocks |
 | `task verify` | Fail if generated artifacts (manifests/deepcopy/mocks) are stale |
