@@ -10,6 +10,7 @@ linters:
   default: none
   enable:
     - copyloopvar
+    - depguard
     - dupl
     - errcheck
     - ginkgolinter
@@ -26,7 +27,31 @@ linters:
     - staticcheck
     - unconvert
     - unparam
+    - gomodguard
   settings:
+    depguard:
+      rules:
+        mkurator_main:
+          list-mode: lax
+          files:
+            - $all
+            - "!$test"
+          allow:
+            - $gostd
+          deny:
+            - pkg: io/ioutil
+              desc: "use io/os (Go 1.16+)"
+            - pkg: github.com/sirupsen/logrus
+              desc: "use log/slog / controller-runtime/log"
+            - pkg: github.com/pkg/errors
+              desc: "use stdlib errors + fmt.Errorf %w"
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/sirupsen/logrus:
+              reason: "use log/slog / controller-runtime/log"
+          - github.com/pkg/errors:
+              reason: "use stdlib errors + fmt.Errorf %w"
     dupl:
       threshold: 150
     ginkgolinter:

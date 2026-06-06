@@ -1,0 +1,67 @@
+version: 3
+workdir: .
+exclude:
+  - cmd/**
+  - hack/**
+  - test/**
+  - charts/**
+  - config/**
+  - bin/**
+  - dist/**
+  - references/**
+  - agent-context/**
+  - .renovate/**
+allow:
+  depOnAnyVendor: true
+
+components:
+  api:
+    in: api/**
+  mqadmin:
+    in: internal/mqadmin/**
+  mqrest:
+    in: internal/adapter/mqrest/**
+  mqpcf:
+    in: internal/adapter/mqpcf/**
+  controller:
+    in: internal/controller/**
+  webhook:
+    in: internal/webhook/**
+  validation:
+    in: internal/validation/**
+  mocks:
+    in: test/mocks/**
+  shared:
+    in:
+      - internal/metrics/**
+      - internal/health/**
+      - internal/logging/**
+
+commonComponents:
+  - api
+  - shared
+  - mqadmin
+
+deps:
+  mqrest:
+    mayDependOn:
+      - mqrest
+      - mqadmin
+      - shared
+  mqpcf:
+    mayDependOn:
+      - mqpcf
+      - mqadmin
+  controller:
+    mayDependOn:
+      - mqrest
+      - mqpcf
+      - mqadmin
+      - shared
+      - mocks
+  validation:
+    mayDependOn:
+      - mqadmin
+  webhook:
+    mayDependOn:
+      - validation
