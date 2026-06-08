@@ -7,7 +7,8 @@
 [![CI](https://github.com/konih/mkurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/ci.yaml)
 [![Preflight](https://github.com/konih/mkurator/actions/workflows/preflight.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/preflight.yaml)
 [![E2E](https://github.com/konih/mkurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/e2e.yaml)
-[![Docs](https://github.com/konih/mkurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/docs.yaml)
+[![Documentation](https://img.shields.io/badge/documentation-GitHub%20Pages-2ea44f?logo=readthedocs&logoColor=white)](https://konih.github.io/MKurator/)
+[![Docs CI](https://github.com/konih/mkurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/docs.yaml)
 [![CodeQL](https://github.com/konih/mkurator/actions/workflows/codeql.yaml/badge.svg)](https://github.com/konih/mkurator/actions/workflows/codeql.yaml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/konih/mkurator/badge)](https://securityscorecards.dev/viewer/?uri=github.com/konih/mkurator)
 [![License: MIT](https://img.shields.io/github/license/konih/mkurator)](https://github.com/konih/mkurator/blob/main/LICENSE)
@@ -21,6 +22,9 @@
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
 more later.
+
+**Full documentation:** [konih.github.io/MKurator](https://konih.github.io/MKurator/) — install
+guides, examples, ADRs, and engineering standards.
 
 > Status: **Phase 5 (auth) shipped on `main`** — `ChannelAuthRule` and
 > `AuthorityRecord` reconcile via mqweb MQSC, with Docker integration and kind e2e
