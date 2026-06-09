@@ -126,7 +126,7 @@ func (r *QueueManagerConnectionReconciler) fail(
 	msg := err.Error()
 	var requeue ctrl.Result
 	if errors.Is(err, mqadmin.ErrTransient) {
-		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
+		requeue = ctrl.Result{RequeueAfter: TransientRequeueInterval()}
 	}
 	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
 		metav1.ConditionFalse, reason, msg, gen)

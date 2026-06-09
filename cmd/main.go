@@ -56,6 +56,8 @@ func main() {
 	var maxConcurrentReconciles int
 	var driftResyncLower time.Duration
 	var driftResyncUpper time.Duration
+	var connectionWaitInterval time.Duration
+	var transientRequeueInterval time.Duration
 	var tlsOpts []func(*tls.Config)
 	if v := os.Getenv("KURATOR_MAX_CONCURRENT_RECONCILES"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -91,10 +93,16 @@ func main() {
 		"Minimum jittered RequeueAfter for successfully synced workload CRs.")
 	flag.DurationVar(&driftResyncUpper, "drift-resync-max", 10*time.Minute,
 		"Maximum jittered RequeueAfter for successfully synced workload CRs.")
+	flag.DurationVar(&connectionWaitInterval, "connection-wait-interval", 15*time.Second,
+		"RequeueAfter while waiting for a QueueManagerConnection to become Ready.")
+	flag.DurationVar(&transientRequeueInterval, "transient-requeue-interval", 30*time.Second,
+		"RequeueAfter after transient MQ or connection errors.")
 	flag.Parse()
 
 	controller.SetMaxConcurrentReconciles(maxConcurrentReconciles)
 	controller.SetDriftResyncInterval(driftResyncLower, driftResyncUpper)
+	controller.SetConnectionWaitInterval(connectionWaitInterval)
+	controller.SetTransientRequeueInterval(transientRequeueInterval)
 
 	logCfg, err := logging.Load(logging.Options{
 		ConfigPath: logConfigPath,

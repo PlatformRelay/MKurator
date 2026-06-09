@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +52,7 @@ func waitForConnectionReady(
 	if err := patchSyncedProgressing(ctx, status, recorder, obj, generation, msg); err != nil {
 		return ctrl.Result{}, true, err
 	}
-	return ctrl.Result{RequeueAfter: 15 * time.Second}, true, nil
+	return ctrl.Result{RequeueAfter: ConnectionWaitInterval()}, true, nil
 }
 
 func syncedConditions(obj client.Object) []metav1.Condition {
@@ -140,7 +139,7 @@ func setSyncedError(
 	reason, message := classifyReconcileError(err)
 	requeue := ctrl.Result{}
 	if errors.Is(err, mqadmin.ErrTransient) {
-		requeue = ctrl.Result{RequeueAfter: 30 * time.Second}
+		requeue = ctrl.Result{RequeueAfter: TransientRequeueInterval()}
 	}
 
 	switch o := obj.(type) {
@@ -336,9 +335,9 @@ func deletionAwaitingConnection(
 ) (ctrl.Result, error) {
 	msg := fmt.Sprintf("Deletion waiting for connection: %v", err)
 	if patchErr := patchSyncedProgressing(ctx, status, recorder, obj, generation, msg); patchErr != nil {
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, patchErr
+		return ctrl.Result{RequeueAfter: ConnectionWaitInterval()}, patchErr
 	}
-	return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: ConnectionWaitInterval()}, nil
 }
 
 func orphanFinalizeWorkload(
