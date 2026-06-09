@@ -9,6 +9,27 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.7.1](https://github.com/konih/mkurator/compare/v0.7.0..v0.7.1) - 2026-06-10
+
+### Bug Fixes
+
+- **mqrest:** Identity-keyed cache with replace-on-rotation [1989569](https://github.com/konih/mkurator/commit/19895698138e350c33d50764e299556ff662554e)
+
+- **validation:** Harden CHLAUTH/AUTHREC MQSC fields [4287366](https://github.com/konih/mkurator/commit/42873661be8f87f8fe23a36a0745277d77e7abf0)
+
+- **controller:** Deletion before connection chain (ADR-0022) [2b99bb5](https://github.com/konih/mkurator/commit/2b99bb59016ab166c4cf1caa4a19df87d2f337f2)
+
+- **controller:** Reliability fixes for wave 1 (#7-10) [04bd3df](https://github.com/konih/mkurator/commit/04bd3dfbf9cabea751938008adc6d421d31642ba)
+
+- **controller:** Release without Secret; stop QMC hot loop [e36e372](https://github.com/konih/mkurator/commit/e36e372b30afd176fa61e02e15a3d0687e57aa5a)
+
+- **ci:** Stop release tags from failing GitHub Pages deploy [a789652](https://github.com/konih/mkurator/commit/a789652481efa2c06dcc79c5a9bfc02710d4535c)
+
+
+### Features
+
+- **controller:** Periodic jittered drift resync [606705b](https://github.com/konih/mkurator/commit/606705b679eb68fddbca62575f8ddd7fec6afc45)
+
 ## [0.7.0](https://github.com/konih/mkurator/compare/v0.6.0..v0.7.0) - 2026-06-06
 
 ### Added
