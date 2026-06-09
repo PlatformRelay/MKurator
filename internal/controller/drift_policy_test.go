@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -247,5 +248,79 @@ func TestChannelReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	reason := conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)
 	if reason != messagingv1alpha1.ReasonDriftDetected {
 		t.Fatalf("reason = %q", reason)
+	}
+}
+
+func TestQueueReconciler_PeriodicResyncDetectsDrift(t *testing.T) {
+	t.Parallel()
+	t.Cleanup(func() {
+		SetDriftResyncInterval(defaultDriftResyncLower, defaultDriftResyncUpper)
+	})
+	SetDriftResyncInterval(7*time.Minute, 7*time.Minute)
+
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orders",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+		},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+			Type:          messagingv1alpha1.QueueTypeLocal,
+			Attributes:    map[string]string{"maxdepth": "5000"},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(q, conn).
+		WithObjects(conn, q).
+		Build()
+
+	queueSpec := mqadmin.QueueSpec{
+		Name:       "APP.ORDERS",
+		Type:       mqadmin.QueueTypeLocal,
+		Attributes: map[string]string{"maxdepth": "5000"},
+	}
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetQueue(mock.Anything, queueSpec).Return(&mqadmin.QueueState{
+		Attributes: map[string]string{"maxdepth": "5000"},
+	}, nil).Once()
+	mockAdmin.EXPECT().GetQueue(mock.Anything, queueSpec).Return(&mqadmin.QueueState{
+		Attributes: map[string]string{"maxdepth": "1000"},
+	}, nil).Once()
+	mockAdmin.EXPECT().DefineQueue(mock.Anything, queueSpec).Return(nil).Once()
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &QueueReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+
+	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("first reconcile: %v", err)
+	}
+	assertDriftResyncRequeue(t, result)
+
+	result, err = rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil {
+		t.Fatalf("resync reconcile: %v", err)
+	}
+	assertDriftResyncRequeue(t, result)
+
+	updated := &messagingv1alpha1.Queue{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
+		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 }

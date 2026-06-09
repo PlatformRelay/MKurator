@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -53,6 +54,8 @@ func main() {
 	var logLevel string
 	var logFormat string
 	var maxConcurrentReconciles int
+	var driftResyncLower time.Duration
+	var driftResyncUpper time.Duration
 	var tlsOpts []func(*tls.Config)
 	if v := os.Getenv("KURATOR_MAX_CONCURRENT_RECONCILES"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -84,9 +87,14 @@ func main() {
 		"Log format: json or text (overrides env and file).")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", maxConcurrentReconciles,
 		"Max concurrent reconcile workers per controller (also KURATOR_MAX_CONCURRENT_RECONCILES).")
+	flag.DurationVar(&driftResyncLower, "drift-resync-min", 5*time.Minute,
+		"Minimum jittered RequeueAfter for successfully synced workload CRs.")
+	flag.DurationVar(&driftResyncUpper, "drift-resync-max", 10*time.Minute,
+		"Maximum jittered RequeueAfter for successfully synced workload CRs.")
 	flag.Parse()
 
 	controller.SetMaxConcurrentReconciles(maxConcurrentReconciles)
+	controller.SetDriftResyncInterval(driftResyncLower, driftResyncUpper)
 
 	logCfg, err := logging.Load(logging.Options{
 		ConfigPath: logConfigPath,

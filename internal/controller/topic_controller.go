@@ -103,13 +103,14 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
 	if driftMsg != "" {
+		metrics.RecordDriftDetected(metrics.ControllerTopic)
 		opts := syncStatusOpts{mqObjectExists: boolPtr(mqExists)}
 		if patchErr := patchSyncedDrift(
 			ctx, r.Status(), r.Recorder, topic, topic.Generation, driftMsg, opts,
 		); patchErr != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", patchErr)
 		}
-		return ctrl.Result{}, nil
+		return workloadDriftResyncResult(), nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, topic, topic.Generation,
@@ -117,7 +118,7 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Topic synced", "topic", topic.Spec.TopicName)
-	return ctrl.Result{}, nil
+	return workloadDriftResyncResult(), nil
 }
 
 func (r *TopicReconciler) ensureTopic(

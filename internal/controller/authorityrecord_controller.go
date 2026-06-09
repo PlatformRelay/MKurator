@@ -107,12 +107,13 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	}
 	if drifted {
 		msg := "AUTHREC on IBM MQ differs from spec (observe-only; not applying)"
+		metrics.RecordDriftDetected(metrics.ControllerAuthorityRecord)
 		if err := patchSyncedDrift(ctx, r.Status(), r.Recorder, auth, auth.Generation, msg,
 			syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 		}
 		logger.Info("AuthorityRecord drift detected (observe-only)", "profile", auth.Spec.Profile)
-		return ctrl.Result{}, nil
+		return workloadDriftResyncResult(), nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, auth, auth.Generation,
@@ -120,7 +121,7 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("AuthorityRecord synced", "profile", auth.Spec.Profile, "type", auth.Spec.ObjectType)
-	return ctrl.Result{}, nil
+	return workloadDriftResyncResult(), nil
 }
 
 func (r *AuthorityRecordReconciler) ensureAuthority(

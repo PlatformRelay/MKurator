@@ -9,6 +9,10 @@ import (
 const (
 	ResultSuccess = "success"
 	ResultError   = "error"
+
+	labelController = "controller"
+	labelResult     = "result"
+	labelOperation  = "operation"
 )
 
 // Controller names used as the controller label value.
@@ -48,7 +52,7 @@ var (
 			Name: "mkurator_reconcile_total",
 			Help: "Total reconciliations by controller and result.",
 		},
-		[]string{"controller", "result"},
+		[]string{labelController, labelResult},
 	)
 
 	ReconcileErrors = prometheus.NewCounterVec(
@@ -56,7 +60,7 @@ var (
 			Name: "mkurator_reconcile_errors_total",
 			Help: "Total reconcile passes that returned an error to the manager.",
 		},
-		[]string{"controller"},
+		[]string{labelController},
 	)
 
 	MQOperationsTotal = prometheus.NewCounterVec(
@@ -64,7 +68,15 @@ var (
 			Name: "mkurator_mq_operations_total",
 			Help: "Total mqweb operations by operation and result.",
 		},
-		[]string{"operation", "result"},
+		[]string{labelOperation, labelResult},
+	)
+
+	DriftDetectedTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "mkurator_drift_detected_total",
+			Help: "Total workload reconciles that detected attribute drift on IBM MQ.",
+		},
+		[]string{labelController},
 	)
 )
 
@@ -73,6 +85,7 @@ func init() {
 		ReconcileTotal,
 		ReconcileErrors,
 		MQOperationsTotal,
+		DriftDetectedTotal,
 	)
 }
 
@@ -93,4 +106,9 @@ func RecordMQOperation(operation string, err error) {
 		result = ResultError
 	}
 	MQOperationsTotal.WithLabelValues(operation, result).Inc()
+}
+
+// RecordDriftDetected increments drift detection counters for a workload controller.
+func RecordDriftDetected(controller string) {
+	DriftDetectedTotal.WithLabelValues(controller).Inc()
 }

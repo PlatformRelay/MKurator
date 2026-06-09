@@ -82,9 +82,7 @@ func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	if result != (ctrl.Result{}) {
-		t.Fatalf("result = %+v", result)
-	}
+	assertDriftResyncRequeue(t, result)
 
 	updated := &messagingv1alpha1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {

@@ -117,13 +117,14 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
 	if driftMsg != "" {
+		metrics.RecordDriftDetected(metrics.ControllerChannel)
 		opts := syncStatusOpts{mqObjectExists: boolPtr(mqExists)}
 		if patchErr := patchSyncedDrift(
 			ctx, r.Status(), r.Recorder, channel, channel.Generation, driftMsg, opts,
 		); patchErr != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", patchErr)
 		}
-		return ctrl.Result{}, nil
+		return workloadDriftResyncResult(), nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, channel, channel.Generation,
@@ -131,7 +132,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Channel synced", "channel", channel.Spec.ChannelName, "type", spec.Type)
-	return ctrl.Result{}, nil
+	return workloadDriftResyncResult(), nil
 }
 
 func (r *ChannelReconciler) ensureChannel(

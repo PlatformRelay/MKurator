@@ -25,6 +25,16 @@ func TestRecordReconcile(t *testing.T) {
 	}
 }
 
+func TestRecordDriftDetected(t *testing.T) {
+	t.Parallel()
+	before := counterValue(t, DriftDetectedTotal, ControllerQueue)
+	RecordDriftDetected(ControllerQueue)
+	after := counterValue(t, DriftDetectedTotal, ControllerQueue)
+	if after != before+1 {
+		t.Fatalf("drift count: before=%v after=%v", before, after)
+	}
+}
+
 func TestRecordMQOperation(t *testing.T) {
 	t.Parallel()
 	before := counterValue(t, MQOperationsTotal, MQOpPing, ResultSuccess)

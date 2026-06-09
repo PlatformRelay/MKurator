@@ -110,11 +110,12 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		)
 	}
 	if driftMsg != "" {
+		metrics.RecordDriftDetected(metrics.ControllerQueue)
 		opts := syncStatusOpts{mqObjectExists: boolPtr(mqExists)}
 		if patchErr := patchSyncedDrift(ctx, r.Status(), r.Recorder, q, q.Generation, driftMsg, opts); patchErr != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", patchErr)
 		}
-		return ctrl.Result{}, nil
+		return workloadDriftResyncResult(), nil
 	}
 
 	if err := patchSyncedAvailable(ctx, r.Status(), r.Recorder, q, q.Generation, "Queue matches spec",
@@ -122,7 +123,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 	}
 	logger.Info("Queue synced", "queue", q.Spec.QueueName)
-	return ctrl.Result{}, nil
+	return workloadDriftResyncResult(), nil
 }
 
 func (r *QueueReconciler) ensureQueue(

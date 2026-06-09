@@ -9,7 +9,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
@@ -84,7 +83,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal(ctrl.Result{}))
+		expectDriftResyncRequeue(result)
 
 		updated := &messagingv1alpha1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())

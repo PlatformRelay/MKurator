@@ -78,9 +78,7 @@ func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	if result != (ctrl.Result{}) {
-		t.Fatalf("result = %+v", result)
-	}
+	assertDriftResyncRequeue(t, result)
 
 	updated := &messagingv1alpha1.Topic{}
 	if err := cl.Get(ctx, key, updated); err != nil {
@@ -212,9 +210,7 @@ func TestChannelReconciler_SyncedWithoutDefine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	if result != (ctrl.Result{}) {
-		t.Fatalf("result = %+v", result)
-	}
+	assertDriftResyncRequeue(t, result)
 
 	updated := &messagingv1alpha1.Channel{}
 	if err := cl.Get(ctx, key, updated); err != nil {

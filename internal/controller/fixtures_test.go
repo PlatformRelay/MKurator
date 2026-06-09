@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
@@ -19,6 +21,19 @@ const (
 	testMaxDepth     = "5000"
 	testAttrMaxDepth = "maxdepth"
 )
+
+func expectDriftResyncRequeue(result ctrl.Result) {
+	Expect(result.RequeueAfter).To(BeNumerically(">=", DriftResyncLower()))
+	Expect(result.RequeueAfter).To(BeNumerically("<=", DriftResyncUpper()))
+}
+
+func withFixedDriftResyncInterval(d time.Duration) func() {
+	prevLower, prevUpper := DriftResyncLower(), DriftResyncUpper()
+	SetDriftResyncInterval(d, d)
+	return func() {
+		SetDriftResyncInterval(prevLower, prevUpper)
+	}
+}
 
 func cleanupNamespace(ctx context.Context, ns string) {
 	deleteAllOf(ctx, &messagingv1alpha1.QueueList{}, ns)
