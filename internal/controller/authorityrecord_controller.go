@@ -139,7 +139,10 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 	spec mqadmin.AuthoritySpec,
 	auth *messagingv1alpha1.AuthorityRecord,
 ) (bool, bool, error) {
-	observed, err := admin.GetAuthority(ctx, spec)
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	observed, err := admin.GetAuthority(mqCtx, spec)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
 		return false, false, err
 	}
@@ -159,7 +162,7 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 		if observed != nil && isObserveOnly(auth) {
 			return true, true, nil
 		}
-		if err := admin.SetAuthority(ctx, spec); err != nil {
+		if err := admin.SetAuthority(mqCtx, spec); err != nil {
 			return exists, false, err
 		}
 		return true, false, nil
@@ -167,6 +170,7 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 	return true, false, nil
 }
 
+//nolint:dupl // per-kind deletion handlers share MQ timeout wiring
 func (r *AuthorityRecordReconciler) handleDeletion(
 	ctx context.Context,
 	auth *messagingv1alpha1.AuthorityRecord,
@@ -178,7 +182,10 @@ func (r *AuthorityRecordReconciler) handleDeletion(
 	}
 
 	spec := toMQAuthoritySpec(auth)
-	if err := admin.DeleteAuthority(ctx, spec); err != nil {
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	if err := admin.DeleteAuthority(mqCtx, spec); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
 	}
 

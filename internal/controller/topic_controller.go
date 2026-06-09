@@ -137,7 +137,10 @@ func (r *TopicReconciler) ensureTopic(
 	spec mqadmin.TopicSpec,
 	observeOnly bool,
 ) (bool, string, error) {
-	observed, err := admin.GetTopic(ctx, spec.Name)
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	observed, err := admin.GetTopic(mqCtx, spec.Name)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
 		return false, "", err
 	}
@@ -155,7 +158,7 @@ func (r *TopicReconciler) ensureTopic(
 		spec.Attributes,
 		mqrest.TopicDriftCheckKeys(),
 		fmt.Sprintf("topic %q", spec.Name),
-		func() error { return admin.DefineTopic(ctx, spec) },
+		func() error { return admin.DefineTopic(mqCtx, spec) },
 	)
 }
 
@@ -177,7 +180,10 @@ func (r *TopicReconciler) handleDeletion(
 		return ctrl.Result{}, err
 	}
 
-	if err := admin.DeleteTopic(ctx, topic.Spec.TopicName); err != nil {
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	if err := admin.DeleteTopic(mqCtx, topic.Spec.TopicName); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err, syncStatusOpts{})
 	}
 

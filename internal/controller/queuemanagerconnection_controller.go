@@ -93,7 +93,9 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 	if err != nil {
 		return r.fail(ctx, conn, gen, err)
 	}
-	if err := admin.Ping(ctx); err != nil {
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+	if err := admin.Ping(mqCtx); err != nil {
 		return r.fail(ctx, conn, gen, err)
 	}
 

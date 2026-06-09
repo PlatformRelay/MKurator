@@ -151,7 +151,10 @@ func (r *ChannelReconciler) ensureChannel(
 	spec mqadmin.ChannelSpec,
 	observeOnly bool,
 ) (bool, string, error) {
-	observed, err := admin.GetChannel(ctx, spec)
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	observed, err := admin.GetChannel(mqCtx, spec)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
 		return false, "", err
 	}
@@ -169,7 +172,7 @@ func (r *ChannelReconciler) ensureChannel(
 		spec.Attributes,
 		mqrest.ChannelDriftCheckKeys(),
 		fmt.Sprintf("channel %q", spec.Name),
-		func() error { return admin.DefineChannel(ctx, spec) },
+		func() error { return admin.DefineChannel(mqCtx, spec) },
 	)
 }
 
@@ -181,6 +184,7 @@ func channelNeedsUpdate(desired mqadmin.ChannelSpec, observed *mqadmin.ChannelSt
 	)
 }
 
+//nolint:dupl // per-kind deletion handlers share MQ timeout wiring
 func (r *ChannelReconciler) handleDeletion(
 	ctx context.Context,
 	channel *messagingv1alpha1.Channel,
@@ -192,7 +196,10 @@ func (r *ChannelReconciler) handleDeletion(
 	}
 
 	spec := toMQChannelSpec(channel)
-	if err := admin.DeleteChannel(ctx, spec); err != nil {
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	if err := admin.DeleteChannel(mqCtx, spec); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err, syncStatusOpts{})
 	}
 

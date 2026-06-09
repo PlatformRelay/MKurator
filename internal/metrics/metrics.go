@@ -78,6 +78,14 @@ var (
 		},
 		[]string{labelController},
 	)
+
+	CircuitBreakerTransitionsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "mkurator_mq_circuit_breaker_transitions_total",
+			Help: "mqweb circuit breaker state transitions per connection client.",
+		},
+		[]string{"from", "to"},
+	)
 )
 
 func init() {
@@ -86,6 +94,7 @@ func init() {
 		ReconcileErrors,
 		MQOperationsTotal,
 		DriftDetectedTotal,
+		CircuitBreakerTransitionsTotal,
 	)
 }
 
@@ -111,4 +120,8 @@ func RecordMQOperation(operation string, err error) {
 // RecordDriftDetected increments drift detection counters for a workload controller.
 func RecordDriftDetected(controller string) {
 	DriftDetectedTotal.WithLabelValues(controller).Inc()
+}
+
+func RecordCircuitBreakerTransition(from, to string) {
+	CircuitBreakerTransitionsTotal.WithLabelValues(from, to).Inc()
 }

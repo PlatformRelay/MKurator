@@ -142,7 +142,10 @@ func (r *QueueReconciler) ensureQueue(
 	spec mqadmin.QueueSpec,
 	observeOnly bool,
 ) (bool, string, error) {
-	observed, err := admin.GetQueue(ctx, spec)
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	observed, err := admin.GetQueue(mqCtx, spec)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
 		return false, "", err
 	}
@@ -160,7 +163,7 @@ func (r *QueueReconciler) ensureQueue(
 		spec.Attributes,
 		mqrest.QueueDriftCheckKeys(spec.Type),
 		fmt.Sprintf("queue %q", spec.Name),
-		func() error { return admin.DefineQueue(ctx, spec) },
+		func() error { return admin.DefineQueue(mqCtx, spec) },
 	)
 }
 
@@ -181,7 +184,10 @@ func (r *QueueReconciler) handleDeletion(
 		return ctrl.Result{}, err
 	}
 
-	if err := admin.DeleteQueue(ctx, toMQQueueSpec(q)); err != nil {
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	if err := admin.DeleteQueue(mqCtx, toMQQueueSpec(q)); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{})
 	}
 

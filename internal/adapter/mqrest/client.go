@@ -42,6 +42,7 @@ type Config struct {
 	Password     string
 	TLSConfig    *tls.Config
 	HTTPClient   *http.Client
+	Resilience   ResilienceConfig
 }
 
 // Client implements mqadmin.Admin over the mqweb /mqsc endpoint.
@@ -52,6 +53,8 @@ type Client struct {
 	httpClient   *http.Client
 	username     string
 	password     string
+	retry        retryPolicy
+	breaker      *circuitBreaker
 }
 
 // NewClient builds an mqrest client from Config.
@@ -88,6 +91,8 @@ func NewClient(cfg Config) (*Client, error) {
 		httpClient:   hc,
 		username:     cfg.Username,
 		password:     cfg.Password,
+		retry:        retryPolicyFromResilience(cfg.Resilience),
+		breaker:      newCircuitBreaker(circuitBreakerConfigFromResilience(cfg.Resilience)),
 	}, nil
 }
 
@@ -109,15 +114,16 @@ func (c *Client) Ping(ctx context.Context) error {
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpPing, err) }()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.adminQMURL, nil)
+	res, err := c.roundTrip(ctx, func(ctx context.Context) (*http.Request, error) {
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, c.adminQMURL, nil)
+		if reqErr != nil {
+			return nil, reqErr
+		}
+		req.SetBasicAuth(c.username, c.password)
+		return req, nil
+	})
 	if err != nil {
-		return fmt.Errorf("build ping request: %w", err)
-	}
-	req.SetBasicAuth(c.username, c.password)
-
-	res, err := c.httpClient.Do(req)
-	if err != nil {
-		return &mqadmin.TransientError{Message: "mqweb ping failed", Cause: err}
+		return err
 	}
 	defer closeBody(res.Body)
 
@@ -349,17 +355,18 @@ func (c *Client) postMQSC(ctx context.Context, body any) (*mqscResponse, error) 
 		return nil, fmt.Errorf("marshal mqsc request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.mqscURL, bytes.NewReader(payload))
+	res, err := c.roundTrip(ctx, func(ctx context.Context) (*http.Request, error) {
+		req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, c.mqscURL, bytes.NewReader(payload))
+		if reqErr != nil {
+			return nil, reqErr
+		}
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+		req.Header.Set(csrfHeader, "1")
+		req.SetBasicAuth(c.username, c.password)
+		return req, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("build mqsc request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	req.Header.Set(csrfHeader, "1")
-	req.SetBasicAuth(c.username, c.password)
-
-	res, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, &mqadmin.TransientError{Message: "mqweb request failed", Cause: err}
+		return nil, err
 	}
 	defer closeBody(res.Body)
 

@@ -139,7 +139,10 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 	spec mqadmin.ChannelAuthSpec,
 	rule *messagingv1alpha1.ChannelAuthRule,
 ) (bool, bool, error) {
-	observed, err := admin.GetChannelAuth(ctx, spec)
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	observed, err := admin.GetChannelAuth(mqCtx, spec)
 	if err != nil && !errors.Is(err, mqadmin.ErrNotFound) {
 		return false, false, err
 	}
@@ -159,7 +162,7 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 		if observed != nil && isObserveOnly(rule) {
 			return true, true, nil
 		}
-		if err := admin.SetChannelAuth(ctx, spec); err != nil {
+		if err := admin.SetChannelAuth(mqCtx, spec); err != nil {
 			return exists, false, err
 		}
 		return true, false, nil
@@ -167,6 +170,7 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 	return true, false, nil
 }
 
+//nolint:dupl // per-kind deletion handlers share MQ timeout wiring
 func (r *ChannelAuthRuleReconciler) handleDeletion(
 	ctx context.Context,
 	rule *messagingv1alpha1.ChannelAuthRule,
@@ -178,7 +182,10 @@ func (r *ChannelAuthRuleReconciler) handleDeletion(
 	}
 
 	spec := toMQChannelAuthSpec(rule)
-	if err := admin.DeleteChannelAuth(ctx, spec); err != nil {
+	mqCtx, cancel := MQRequestContext(ctx)
+	defer cancel()
+
+	if err := admin.DeleteChannelAuth(mqCtx, spec); err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
 	}
 
