@@ -4,6 +4,15 @@ properties:
   address:
     description: Address maps to ADDRESS(...) for ADDRESSMAP and BLOCKADDR rules.
     type: string
+  adoptionPolicy:
+    default: Adopt
+    description: AdoptionPolicy controls behaviour when the MQ object already exists
+      on first reconcile.
+    enum:
+    - Adopt
+    - AdoptIfMatching
+    - FailIfExists
+    type: string
   channelName:
     description: ChannelName is the IBM MQ channel name in SET CHLAUTH('…').
     minLength: 1
@@ -26,6 +35,13 @@ properties:
     required:
     - name
     type: object
+  deletionPolicy:
+    default: Delete
+    description: DeletionPolicy controls MQ cleanup when the CR is deleted.
+    enum:
+    - Delete
+    - Orphan
+    type: string
   description:
     description: Description maps to DESCR(...).
     type: string

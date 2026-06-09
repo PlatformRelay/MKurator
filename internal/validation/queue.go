@@ -26,6 +26,7 @@ func ValidateQueueSpec(
 	errs = append(errs, ValidateKubernetesResourceName(field.NewPath("metadata").Child("name"), resourceName)...)
 	errs = append(errs, ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))...)
+	errs = append(errs, ValidateWorkloadLifecyclePolicies(field.NewPath("spec"), spec.WorkloadLifecyclePolicies)...)
 	errs = append(errs, ValidateMQObjectName(field.NewPath("spec").Child("queueName"), spec.QueueName)...)
 
 	normalized := normalizeQueueAttributes(spec.Attributes, spec.Type)

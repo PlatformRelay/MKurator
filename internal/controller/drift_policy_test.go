@@ -35,6 +35,8 @@ func TestReconcileMQObjectState_ObserveOnlyDrift(t *testing.T) {
 	t.Parallel()
 	exists, msg, err := reconcileMQObjectState(
 		true,
+		messagingv1alpha1.AdoptionPolicyAdopt,
+		false,
 		true,
 		map[string]string{"maxdepth": "1000"},
 		map[string]string{"maxdepth": "5000"},
@@ -54,6 +56,8 @@ func TestReconcileMQObjectState_ObserveOnlyNotFound(t *testing.T) {
 	t.Parallel()
 	exists, msg, err := reconcileMQObjectState(
 		true,
+		messagingv1alpha1.AdoptionPolicyAdopt,
+		false,
 		false,
 		nil,
 		map[string]string{"maxdepth": "5000"},
@@ -73,6 +77,8 @@ func TestReconcileMQObjectState_DefaultDefinesOnDrift(t *testing.T) {
 	t.Parallel()
 	called := false
 	exists, msg, err := reconcileMQObjectState(
+		false,
+		messagingv1alpha1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"maxdepth": "1000"},
@@ -322,5 +328,24 @@ func TestQueueReconciler_PeriodicResyncDetectsDrift(t *testing.T) {
 	}
 	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
+	}
+}
+
+func TestReconcileMQObjectState_FailIfExistsBlocks(t *testing.T) {
+	t.Parallel()
+	_, _, err := reconcileMQObjectState(
+		false,
+		messagingv1alpha1.AdoptionPolicyFailIfExists,
+		true,
+		true,
+		map[string]string{"maxdepth": "5000"},
+		map[string]string{"maxdepth": "1000"},
+		[]string{"maxdepth"},
+		`queue "APP.Q"`,
+		func() error { t.Fatal("define should not run"); return nil },
+	)
+	var block *AdoptionBlockedError
+	if !errors.As(err, &block) || block.Reason != messagingv1alpha1.ReasonAlreadyExists {
+		t.Fatalf("err = %v", err)
 	}
 }

@@ -38,6 +38,8 @@ type QueueSpec struct {
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	WorkloadLifecyclePolicies `json:",inline"`
 }
 
 // LocalObjectReference is a namespaced object reference.

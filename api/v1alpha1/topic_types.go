@@ -26,6 +26,8 @@ type TopicSpec struct {
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	WorkloadLifecyclePolicies `json:",inline"`
 }
 
 // TopicStatus defines the observed state of Topic.

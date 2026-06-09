@@ -79,6 +79,8 @@ type ChannelAuthRuleSpec struct {
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	WorkloadLifecyclePolicies `json:",inline"`
 }
 
 // ChannelAuthRuleStatus defines the observed state of ChannelAuthRule.

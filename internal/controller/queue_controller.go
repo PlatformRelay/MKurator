@@ -101,8 +101,13 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 	q.Status.DesiredMQSC = desiredMQSC
 
-	mqExists, driftMsg, err := r.ensureQueue(ctx, admin, spec, isObserveOnly(q))
+	mqExists, driftMsg, err := r.ensureQueue(ctx, admin, q, spec, isObserveOnly(q))
 	if err != nil {
+		var block *AdoptionBlockedError
+		if errors.As(err, &block) {
+			return handleAdoptionBlock(ctx, r.Status(), r.Recorder, q, q.Generation, block,
+				syncStatusOpts{mqObjectExists: &mqExists})
+		}
 		return setSyncedError(
 			ctx,
 			r.Status(),
@@ -133,6 +138,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *QueueReconciler) ensureQueue(
 	ctx context.Context,
 	admin mqadmin.Admin,
+	q *messagingv1alpha1.Queue,
 	spec mqadmin.QueueSpec,
 	observeOnly bool,
 ) (bool, string, error) {
@@ -147,6 +153,8 @@ func (r *QueueReconciler) ensureQueue(
 	}
 	return reconcileMQObjectState(
 		observeOnly,
+		workloadAdoptionPolicy(q),
+		workloadFirstAdoption(q),
 		exists,
 		observedAttrs,
 		spec.Attributes,

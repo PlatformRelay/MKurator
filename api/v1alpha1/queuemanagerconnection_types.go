@@ -12,13 +12,15 @@ const (
 
 // Condition reasons shared across resources.
 const (
-	ReasonAvailable     = "Available"
-	ReasonProgressing   = "Progressing"
-	ReasonError         = "Error"
-	ReasonDeleting      = "Deleting"
-	ReasonDriftDetected = "DriftDetected"
-	ReasonOrphaned      = "Orphaned"
-	ReasonSuspended     = "Suspended"
+	ReasonAvailable        = "Available"
+	ReasonProgressing      = "Progressing"
+	ReasonError            = "Error"
+	ReasonDeleting         = "Deleting"
+	ReasonDriftDetected    = "DriftDetected"
+	ReasonOrphaned         = "Orphaned"
+	ReasonAdoptionConflict = "AdoptionConflict"
+	ReasonAlreadyExists    = "AlreadyExists"
+	ReasonSuspended        = "Suspended"
 )
 
 // ReconcileRequestedAtAnnotation triggers an immediate reconcile when its value changes.

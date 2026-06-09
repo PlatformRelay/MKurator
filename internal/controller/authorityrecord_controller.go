@@ -106,6 +106,11 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	mqExists, drifted, err := r.ensureAuthority(ctx, admin, spec, auth)
 	if err != nil {
+		var block *AdoptionBlockedError
+		if errors.As(err, &block) {
+			return handleAdoptionBlock(ctx, r.Status(), r.Recorder, auth, auth.Generation, block,
+				syncStatusOpts{mqObjectExists: &mqExists})
+		}
 		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err,
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
@@ -139,7 +144,18 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 		return false, false, err
 	}
 	exists := observed != nil
-	if observed == nil || mqadmin.AuthorityNeedsUpdate(spec, observed) {
+	needsUpdate := observed == nil || mqadmin.AuthorityNeedsUpdate(spec, observed)
+	if blocked := adoptionBlockForExisting(
+		workloadAdoptionPolicy(auth),
+		workloadFirstAdoption(auth),
+		exists,
+		needsUpdate,
+		fmt.Sprintf("authority record for profile %q", spec.Profile),
+		"AUTHREC on IBM MQ differs from spec",
+	); blocked != nil {
+		return exists, false, blocked
+	}
+	if needsUpdate {
 		if observed != nil && isObserveOnly(auth) {
 			return true, true, nil
 		}

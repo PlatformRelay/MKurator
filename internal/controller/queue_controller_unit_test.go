@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 	"github.com/konih/mkurator/internal/mqadmin"
@@ -668,5 +669,65 @@ func readyConnForUnit(ns string) *messagingv1alpha1.QueueManagerConnection {
 				LastTransitionTime: metav1.Now(),
 			}},
 		},
+	}
+}
+
+func TestQueueReconciler_AdoptionConflict(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+	conn := readyConnForUnit(ns)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Finalizers: []string{messagingv1alpha1.QueueFinalizer}},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS", Type: messagingv1alpha1.QueueTypeLocal,
+			Attributes:                map[string]string{"maxdepth": "5000"},
+			WorkloadLifecyclePolicies: messagingv1alpha1.WorkloadLifecyclePolicies{AdoptionPolicy: messagingv1alpha1.AdoptionPolicyAdoptIfMatching},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q, conn).WithObjects(conn, q).Build()
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetQueue(mock.Anything, mock.Anything).Return(&mqadmin.QueueState{Attributes: map[string]string{"maxdepth": "1000"}}, nil)
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+	rec := &QueueReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	updated := &messagingv1alpha1.Queue{}
+	_ = cl.Get(ctx, key, updated)
+	if conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != messagingv1alpha1.ReasonAdoptionConflict {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+	}
+}
+
+func TestQueueReconciler_OrphanDeleteWithoutConnection(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+	now := metav1.Now()
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Finalizers: []string{messagingv1alpha1.QueueFinalizer}, DeletionTimestamp: &now},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "missing-qmc"},
+			QueueName:     "APP.ORDERS", Type: messagingv1alpha1.QueueTypeLocal,
+			WorkloadLifecyclePolicies: messagingv1alpha1.WorkloadLifecyclePolicies{DeletionPolicy: messagingv1alpha1.DeletionPolicyOrphan},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
+	rec := &QueueReconciler{Client: cl, Scheme: s, MQFactory: mqadmintest.NewMockFactory(t)}
+	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if err != nil || result != (ctrl.Result{}) {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+	updated := &messagingv1alpha1.Queue{}
+	_ = cl.Get(ctx, key, updated)
+	if controllerutil.ContainsFinalizer(updated, messagingv1alpha1.QueueFinalizer) {
+		t.Fatal("finalizer should be removed")
 	}
 }

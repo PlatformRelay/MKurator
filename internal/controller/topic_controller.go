@@ -101,8 +101,13 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 	topic.Status.DesiredMQSC = desiredMQSC
 
-	mqExists, driftMsg, err := r.ensureTopic(ctx, admin, spec, isObserveOnly(topic))
+	mqExists, driftMsg, err := r.ensureTopic(ctx, admin, topic, spec, isObserveOnly(topic))
 	if err != nil {
+		var block *AdoptionBlockedError
+		if errors.As(err, &block) {
+			return handleAdoptionBlock(ctx, r.Status(), r.Recorder, topic, topic.Generation, block,
+				syncStatusOpts{mqObjectExists: &mqExists})
+		}
 		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err,
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
@@ -128,6 +133,7 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *TopicReconciler) ensureTopic(
 	ctx context.Context,
 	admin mqadmin.Admin,
+	topic *messagingv1alpha1.Topic,
 	spec mqadmin.TopicSpec,
 	observeOnly bool,
 ) (bool, string, error) {
@@ -142,6 +148,8 @@ func (r *TopicReconciler) ensureTopic(
 	}
 	return reconcileMQObjectState(
 		observeOnly,
+		workloadAdoptionPolicy(topic),
+		workloadFirstAdoption(topic),
 		exists,
 		observedAttrs,
 		spec.Attributes,

@@ -59,6 +59,15 @@ spec:
             description: QueueSpec defines a queue to maintain on a referenced queue
               manager.
             properties:
+              adoptionPolicy:
+                default: Adopt
+                description: AdoptionPolicy controls behaviour when the MQ object
+                  already exists on first reconcile.
+                enum:
+                - Adopt
+                - AdoptIfMatching
+                - FailIfExists
+                type: string
               attributes:
                 additionalProperties:
                   type: string
@@ -76,6 +85,13 @@ spec:
                 required:
                 - name
                 type: object
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy controls MQ cleanup when the CR is deleted.
+                enum:
+                - Delete
+                - Orphan
+                type: string
               queueName:
                 description: QueueName is the IBM MQ object name.
                 minLength: 1

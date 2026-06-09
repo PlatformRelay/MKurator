@@ -106,6 +106,11 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 
 	mqExists, drifted, err := r.ensureChannelAuth(ctx, admin, spec, rule)
 	if err != nil {
+		var block *AdoptionBlockedError
+		if errors.As(err, &block) {
+			return handleAdoptionBlock(ctx, r.Status(), r.Recorder, rule, rule.Generation, block,
+				syncStatusOpts{mqObjectExists: &mqExists})
+		}
 		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err,
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
@@ -139,7 +144,18 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 		return false, false, err
 	}
 	exists := observed != nil
-	if observed == nil || mqadmin.ChannelAuthNeedsUpdate(spec, observed) {
+	needsUpdate := observed == nil || mqadmin.ChannelAuthNeedsUpdate(spec, observed)
+	if blocked := adoptionBlockForExisting(
+		workloadAdoptionPolicy(rule),
+		workloadFirstAdoption(rule),
+		exists,
+		needsUpdate,
+		fmt.Sprintf("CHLAUTH rule for channel %q", spec.ChannelName),
+		"CHLAUTH on IBM MQ differs from spec",
+	); blocked != nil {
+		return exists, false, blocked
+	}
+	if needsUpdate {
 		if observed != nil && isObserveOnly(rule) {
 			return true, true, nil
 		}

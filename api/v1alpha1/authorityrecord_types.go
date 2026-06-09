@@ -53,6 +53,8 @@ type AuthorityRecordSpec struct {
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	WorkloadLifecyclePolicies `json:",inline"`
 }
 
 // AuthorityRecordStatus defines the observed state of AuthorityRecord.

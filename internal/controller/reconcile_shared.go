@@ -299,7 +299,7 @@ func reconcileWorkloadDeletion(
 		return ctrl.Result{}, nil
 	}
 
-	if forceOrphanRequested(obj) {
+	if orphanDeletionRequested(obj) {
 		return orphanFinalizeWorkload(ctx, c, status, recorder, obj, generation, finalizer, orphanMessage)
 	}
 

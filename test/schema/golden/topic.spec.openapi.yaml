@@ -1,6 +1,15 @@
 description: TopicSpec defines an administrative topic object on a referenced queue
   manager.
 properties:
+  adoptionPolicy:
+    default: Adopt
+    description: AdoptionPolicy controls behaviour when the MQ object already exists
+      on first reconcile.
+    enum:
+    - Adopt
+    - AdoptIfMatching
+    - FailIfExists
+    type: string
   attributes:
     additionalProperties:
       type: string
@@ -17,6 +26,13 @@ properties:
     required:
     - name
     type: object
+  deletionPolicy:
+    default: Delete
+    description: DeletionPolicy controls MQ cleanup when the CR is deleted.
+    enum:
+    - Delete
+    - Orphan
+    type: string
   suspend:
     description: Suspend pauses MQ reconciliation for this object. Status shows Synced=False
       ReasonSuspended.

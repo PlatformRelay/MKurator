@@ -115,8 +115,13 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	channel.Status.DesiredMQSC = desiredMQSC
 
-	mqExists, driftMsg, err := r.ensureChannel(ctx, admin, spec, isObserveOnly(channel))
+	mqExists, driftMsg, err := r.ensureChannel(ctx, admin, channel, spec, isObserveOnly(channel))
 	if err != nil {
+		var block *AdoptionBlockedError
+		if errors.As(err, &block) {
+			return handleAdoptionBlock(ctx, r.Status(), r.Recorder, channel, channel.Generation, block,
+				syncStatusOpts{mqObjectExists: &mqExists})
+		}
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err,
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
@@ -142,6 +147,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ChannelReconciler) ensureChannel(
 	ctx context.Context,
 	admin mqadmin.Admin,
+	channel *messagingv1alpha1.Channel,
 	spec mqadmin.ChannelSpec,
 	observeOnly bool,
 ) (bool, string, error) {
@@ -156,6 +162,8 @@ func (r *ChannelReconciler) ensureChannel(
 	}
 	return reconcileMQObjectState(
 		observeOnly,
+		workloadAdoptionPolicy(channel),
+		workloadFirstAdoption(channel),
 		exists,
 		observedAttrs,
 		spec.Attributes,

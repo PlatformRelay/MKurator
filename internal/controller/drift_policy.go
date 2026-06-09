@@ -22,6 +22,8 @@ func isObserveOnly(obj client.Object) bool {
 
 func reconcileMQObjectState(
 	observeOnly bool,
+	adoptionPolicy messagingv1alpha1.AdoptionPolicy,
+	firstAdoption bool,
 	exists bool,
 	observedAttrs map[string]string,
 	desiredAttrs map[string]string,
@@ -39,7 +41,19 @@ func reconcileMQObjectState(
 		return true, "", nil
 	}
 
-	if !exists || mqadmin.AttributesNeedUpdate(desiredAttrs, observedAttrs, driftKeys) {
+	needsUpdate := !exists || mqadmin.AttributesNeedUpdate(desiredAttrs, observedAttrs, driftKeys)
+	if blocked := adoptionBlockForExisting(
+		adoptionPolicy,
+		firstAdoption,
+		exists,
+		needsUpdate,
+		objectLabel,
+		attributeMismatchMessage(desiredAttrs, observedAttrs, driftKeys, objectLabel),
+	); blocked != nil {
+		return exists, "", blocked
+	}
+
+	if needsUpdate {
 		if err := defineFn(); err != nil {
 			return exists, "", err
 		}

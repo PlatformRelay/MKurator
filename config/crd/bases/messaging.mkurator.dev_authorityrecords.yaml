@@ -60,6 +60,15 @@ spec:
             description: AuthorityRecordSpec defines a SET AUTHREC rule on a referenced
               queue manager.
             properties:
+              adoptionPolicy:
+                default: Adopt
+                description: AdoptionPolicy controls behaviour when the MQ object
+                  already exists on first reconcile.
+                enum:
+                - Adopt
+                - AdoptIfMatching
+                - FailIfExists
+                type: string
               authorities:
                 description: Authorities maps to AUTHADD(...) — e.g. GET, PUT, CONNECT.
                 items:
@@ -78,6 +87,13 @@ spec:
                 required:
                 - name
                 type: object
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy controls MQ cleanup when the CR is deleted.
+                enum:
+                - Delete
+                - Orphan
+                type: string
               group:
                 description: Group maps to GROUP('…'). Mutually exclusive with Principal.
                 type: string

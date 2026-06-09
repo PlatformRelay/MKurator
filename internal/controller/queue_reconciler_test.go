@@ -321,6 +321,30 @@ var _ = Describe("QueueReconciler", func() {
 			To(Equal(messagingv1alpha1.ReasonProgressing))
 	})
 
+	It("removes the finalizer on deletionPolicy Orphan without MQ connectivity (T1)", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{Conditions: []metav1.Condition{{
+			Type: messagingv1alpha1.ConditionReady, Status: metav1.ConditionTrue, Reason: messagingv1alpha1.ReasonAvailable, LastTransitionTime: metav1.Now(),
+		}}}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+		q := sampleQueue(ns, key, "qm1", testQueueName)
+		q.Spec.DeletionPolicy = messagingv1alpha1.DeletionPolicyOrphan
+		Expect(k8sClient.Create(ctx, q)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
+		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+		Expect(k8sClient.Update(ctx, q)).To(Succeed())
+		rec := &QueueReconciler{Client: k8sClient, Scheme: k8sClient.Scheme(), MQFactory: mqadmintest.NewMockFactory(GinkgoT()), Recorder: testEventsRecorder()}
+		Expect(k8sClient.Delete(ctx, conn)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, q)).To(Succeed())
+		result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ns, Name: key}})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{}))
+		updated := &messagingv1alpha1.Queue{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+
 	It("removes the finalizer on force-orphan without MQ connectivity (T1)", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
