@@ -13,5 +13,8 @@ func SetMaxConcurrentReconciles(n int) {
 }
 
 func controllerOptions() controller.Options {
-	return controller.Options{MaxConcurrentReconciles: maxConcurrentReconciles}
+	return controller.Options{
+		MaxConcurrentReconciles: maxConcurrentReconciles,
+		RecoverPanic:            boolPtr(true),
+	}
 }

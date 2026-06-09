@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -57,8 +56,8 @@ func TestChannelAuthRuleReconciler_TransientError(t *testing.T) {
 
 	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
 	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
-	if !errors.Is(err, mqadmin.ErrTransient) {
-		t.Fatalf("expected transient error, got result=%+v err=%v", result, err)
+	if err != nil {
+		t.Fatalf("transient reconcile should requeue without error, got result=%+v err=%v", result, err)
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)
@@ -259,8 +258,8 @@ func TestAuthorityRecordReconciler_TransientError(t *testing.T) {
 
 	rec := &AuthorityRecordReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
 	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
-	if !errors.Is(err, mqadmin.ErrTransient) {
-		t.Fatalf("expected transient error, got result=%+v err=%v", result, err)
+	if err != nil {
+		t.Fatalf("transient reconcile should requeue without error, got result=%+v err=%v", result, err)
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)
@@ -390,7 +389,7 @@ func TestSetSyncedError_TransientChannelAuthRule(t *testing.T) {
 	result, err := setSyncedError(
 		ctx, cl.Status(), nil, rule, 1, &mqadmin.TransientError{Message: "timeout"}, syncStatusOpts{},
 	)
-	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
+	if err != nil || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }

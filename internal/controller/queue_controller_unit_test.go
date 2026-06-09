@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -344,8 +343,8 @@ func TestQueueReconciler_TransientError(t *testing.T) {
 	}
 
 	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
-	if !errors.Is(err, mqadmin.ErrTransient) {
-		t.Fatalf("expected transient error, got result=%+v err=%v", result, err)
+	if err != nil {
+		t.Fatalf("transient reconcile should requeue without error, got result=%+v err=%v", result, err)
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)
@@ -548,8 +547,8 @@ func TestQueueManagerConnectionReconciler_TransientPingFailure(t *testing.T) {
 	}
 
 	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
-	if !errors.Is(err, mqadmin.ErrTransient) {
-		t.Fatalf("expected transient error, got result=%+v err=%v", result, err)
+	if err != nil {
+		t.Fatalf("transient reconcile should requeue without error, got result=%+v err=%v", result, err)
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)

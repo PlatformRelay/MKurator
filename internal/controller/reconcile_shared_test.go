@@ -20,6 +20,7 @@ import (
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 	"github.com/konih/mkurator/internal/mqadmin"
+	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
 
 func TestRequestsForConnection_EnqueuesDependents(t *testing.T) {
@@ -393,7 +394,7 @@ func TestSetSyncedError_TransientChannel(t *testing.T) {
 	result, err := setSyncedError(
 		ctx, cl.Status(), nil, ch, 1, &mqadmin.TransientError{Message: "timeout"}, syncStatusOpts{},
 	)
-	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
+	if err != nil || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }
@@ -534,6 +535,155 @@ func TestConnectionRefName_AuthTypes(t *testing.T) {
 	}
 }
 
+func TestForceOrphanRequested(t *testing.T) {
+	t.Parallel()
+	q := &messagingv1alpha1.Queue{}
+	if forceOrphanRequested(q) {
+		t.Fatal("expected false without annotation")
+	}
+	q.Annotations = map[string]string{messagingv1alpha1.ForceOrphanAnnotation: "true"}
+	if !forceOrphanRequested(q) {
+		t.Fatal("expected true with force-orphan annotation")
+	}
+}
+
+func TestDeletionAwaitingConnection_Requeues(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unitSchemeOrFatal(t)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
+	notFound := apierrors.NewNotFound(
+		schema.GroupResource{Group: "messaging.mkurator.dev", Resource: "queuemanagerconnections"},
+		"qm1",
+	)
+	result, err := deletionAwaitingConnection(ctx, cl.Status(), nil, q, 1, notFound)
+	if err != nil || result.RequeueAfter != 15*time.Second {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+}
+
+func TestPatchSyncedOrphaned_AllKinds(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unitSchemeOrFatal(t)
+	cases := []client.Object{
+		&messagingv1alpha1.Queue{ObjectMeta: metav1.ObjectMeta{Name: "q1", Namespace: ns, Generation: 1}},
+		&messagingv1alpha1.Topic{ObjectMeta: metav1.ObjectMeta{Name: "t1", Namespace: ns, Generation: 1}},
+		&messagingv1alpha1.Channel{ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: ns, Generation: 1}},
+		&messagingv1alpha1.ChannelAuthRule{ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1}},
+		&messagingv1alpha1.AuthorityRecord{ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1}},
+	}
+	for _, obj := range cases {
+		cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(obj).WithObjects(obj).Build()
+		if err := patchSyncedOrphaned(ctx, cl.Status(), nil, obj, 1, "orphaned"); err != nil {
+			t.Fatalf("%T: %v", obj, err)
+		}
+	}
+}
+
+func TestOrphanFinalizeWorkload_AllKinds(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unitSchemeOrFatal(t)
+	type tc struct {
+		obj       client.Object
+		finalizer string
+	}
+	cases := []tc{
+		{
+			&messagingv1alpha1.Queue{ObjectMeta: metav1.ObjectMeta{
+				Name: "q1", Namespace: ns, Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			}},
+			messagingv1alpha1.QueueFinalizer,
+		},
+		{
+			&messagingv1alpha1.Topic{ObjectMeta: metav1.ObjectMeta{
+				Name: "t1", Namespace: ns, Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			}},
+			messagingv1alpha1.TopicFinalizer,
+		},
+		{
+			&messagingv1alpha1.Channel{ObjectMeta: metav1.ObjectMeta{
+				Name: "c1", Namespace: ns, Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			}},
+			messagingv1alpha1.ChannelFinalizer,
+		},
+		{
+			&messagingv1alpha1.ChannelAuthRule{ObjectMeta: metav1.ObjectMeta{
+				Name: "car1", Namespace: ns, Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			}},
+			messagingv1alpha1.ChannelAuthRuleFinalizer,
+		},
+		{
+			&messagingv1alpha1.AuthorityRecord{ObjectMeta: metav1.ObjectMeta{
+				Name: "auth1", Namespace: ns, Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			}},
+			messagingv1alpha1.AuthorityRecordFinalizer,
+		},
+	}
+	for _, c := range cases {
+		cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(c.obj).WithObjects(c.obj).Build()
+		result, err := orphanFinalizeWorkload(ctx, cl, cl.Status(), nil, c.obj, 1, c.finalizer, "orphaned")
+		if err != nil || result != (ctrl.Result{}) {
+			t.Fatalf("%T: result=%+v err=%v", c.obj, result, err)
+		}
+	}
+}
+
+func TestReconcileWorkloadDeletion_NoFinalizer(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
+	}
+	result, err := reconcileWorkloadDeletion(
+		ctx, fake.NewClientBuilder().WithScheme(unitSchemeOrFatal(t)).WithObjects(q).Build(),
+		nil, nil, mqadmintest.NewMockFactory(t), q, 1, messagingv1alpha1.QueueFinalizer, "orphaned",
+		func(context.Context, mqadmin.Admin) (ctrl.Result, error) {
+			t.Fatal("deleteFn should not run without finalizer")
+			return ctrl.Result{}, nil
+		},
+	)
+	if err != nil || result != (ctrl.Result{}) {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+}
+
+func TestOrphanFinalizeWorkload_Queue(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unitSchemeOrFatal(t)
+	q := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orders",
+			Namespace:  ns,
+			Generation: 1,
+			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
+	result, err := orphanFinalizeWorkload(
+		ctx, cl, cl.Status(), nil, q, 1, messagingv1alpha1.QueueFinalizer, "orphaned",
+	)
+	if err != nil || result != (ctrl.Result{}) {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+	got := &messagingv1alpha1.Queue{}
+	if getErr := cl.Get(ctx, client.ObjectKey{Namespace: ns, Name: "orders"}, got); getErr != nil {
+		t.Fatal(getErr)
+	}
+	if len(got.Finalizers) != 0 {
+		t.Fatalf("finalizers = %v, want none", got.Finalizers)
+	}
+}
+
 func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -546,7 +696,7 @@ func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 	result, err := setSyncedError(
 		ctx, cl.Status(), nil, auth, 1, &mqadmin.TransientError{Message: "timeout"}, syncStatusOpts{},
 	)
-	if !errors.Is(err, mqadmin.ErrTransient) || result.RequeueAfter != 30*time.Second {
+	if err != nil || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }

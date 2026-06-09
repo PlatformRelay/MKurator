@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -648,8 +647,8 @@ func TestTopicReconciler_TransientError(t *testing.T) {
 
 	rec := &TopicReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
 	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
-	if !errors.Is(err, mqadmin.ErrTransient) {
-		t.Fatalf("expected transient error, got result=%+v err=%v", result, err)
+	if err != nil {
+		t.Fatalf("transient reconcile should requeue without error, got result=%+v err=%v", result, err)
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)
@@ -722,8 +721,8 @@ func TestChannelReconciler_TransientError(t *testing.T) {
 
 	rec := &ChannelReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
 	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
-	if !errors.Is(err, mqadmin.ErrTransient) {
-		t.Fatalf("expected transient error, got result=%+v err=%v", result, err)
+	if err != nil {
+		t.Fatalf("transient reconcile should requeue without error, got result=%+v err=%v", result, err)
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)

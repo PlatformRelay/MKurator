@@ -402,7 +402,7 @@ tasks:
     desc: Preview unreleased changelog section (stdout)
     deps: [tools:git-cliff]
     cmds:
-      - "{{.GIT_CLIFF_BIN}} --config cliff.toml --unreleased"
+      - "{{.GIT_CLIFF_BIN}} --config cliff.toml --unreleased -o -"
 
   changelog:write:
     desc: Regenerate CHANGELOG.md from git tags and unreleased commits
@@ -414,4 +414,4 @@ tasks:
     desc: Print changelog section for the latest tag (release notes)
     deps: [tools:git-cliff]
     cmds:
-      - "{{.GIT_CLIFF_BIN}} --config cliff.toml --latest"
+      - "{{.GIT_CLIFF_BIN}} --config cliff.toml --latest -o -"

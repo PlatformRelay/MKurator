@@ -134,7 +134,7 @@ func (r *QueueManagerConnectionReconciler) fail(
 		return requeue, fmt.Errorf("update status: %w", statusErr)
 	}
 	if errors.Is(err, mqadmin.ErrTransient) {
-		return requeue, err
+		return requeue, nil
 	}
 	return ctrl.Result{}, nil
 }

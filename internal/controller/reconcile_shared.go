@@ -13,14 +13,18 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 	"github.com/konih/mkurator/internal/mqadmin"
 )
+
+const forceOrphanAnnotationValue = "true"
 
 func resolveConnection(
 	ctx context.Context,
@@ -180,7 +184,7 @@ func setSyncedError(
 	}
 
 	if errors.Is(err, mqadmin.ErrTransient) {
-		return requeue, err
+		return requeue, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -275,6 +279,146 @@ func patchSyncedDeleting(
 	}
 }
 
+func forceOrphanRequested(obj metav1.Object) bool {
+	ann := obj.GetAnnotations()
+	return ann != nil && ann[messagingv1alpha1.ForceOrphanAnnotation] == forceOrphanAnnotationValue
+}
+
+func reconcileWorkloadDeletion(
+	ctx context.Context,
+	c client.Client,
+	status client.StatusWriter,
+	recorder events.EventRecorder,
+	factory mqadmin.Factory,
+	obj client.Object,
+	generation int64,
+	finalizer string,
+	orphanMessage string,
+	deleteFn func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error),
+) (ctrl.Result, error) {
+	if !controllerutil.ContainsFinalizer(obj, finalizer) {
+		return ctrl.Result{}, nil
+	}
+
+	if forceOrphanRequested(obj) {
+		return orphanFinalizeWorkload(ctx, c, status, recorder, obj, generation, finalizer, orphanMessage)
+	}
+
+	connRef, err := connectionRefName(obj)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	conn, err := resolveConnection(ctx, c, obj.GetNamespace(), connRef)
+	if err != nil {
+		return deletionAwaitingConnection(ctx, status, recorder, obj, generation, err)
+	}
+
+	waitResult, waitDone, waitErr := waitForConnectionReady(ctx, status, recorder, obj, conn, generation)
+	if waitDone {
+		return waitResult, waitErr
+	}
+
+	admin, err := factory.ForConnection(ctx, conn)
+	if err != nil {
+		return deletionAwaitingConnection(ctx, status, recorder, obj, generation, err)
+	}
+
+	return deleteFn(ctx, admin)
+}
+
+func deletionAwaitingConnection(
+	ctx context.Context,
+	status client.StatusWriter,
+	recorder events.EventRecorder,
+	obj client.Object,
+	generation int64,
+	err error,
+) (ctrl.Result, error) {
+	msg := fmt.Sprintf("Deletion waiting for connection: %v", err)
+	if patchErr := patchSyncedProgressing(ctx, status, recorder, obj, generation, msg); patchErr != nil {
+		return ctrl.Result{RequeueAfter: 15 * time.Second}, patchErr
+	}
+	return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+}
+
+func orphanFinalizeWorkload(
+	ctx context.Context,
+	c client.Client,
+	status client.StatusWriter,
+	recorder events.EventRecorder,
+	obj client.Object,
+	generation int64,
+	finalizer string,
+	message string,
+) (ctrl.Result, error) {
+	if err := patchSyncedOrphaned(ctx, status, recorder, obj, generation, message); err != nil {
+		return ctrl.Result{}, err
+	}
+	recordNormalEvent(recorder, obj, messagingv1alpha1.ReasonOrphaned, message)
+
+	switch o := obj.(type) {
+	case *messagingv1alpha1.Queue:
+		controllerutil.RemoveFinalizer(o, finalizer)
+		return ctrl.Result{}, c.Update(ctx, o)
+	case *messagingv1alpha1.Topic:
+		controllerutil.RemoveFinalizer(o, finalizer)
+		return ctrl.Result{}, c.Update(ctx, o)
+	case *messagingv1alpha1.Channel:
+		controllerutil.RemoveFinalizer(o, finalizer)
+		return ctrl.Result{}, c.Update(ctx, o)
+	case *messagingv1alpha1.ChannelAuthRule:
+		controllerutil.RemoveFinalizer(o, finalizer)
+		return ctrl.Result{}, c.Update(ctx, o)
+	case *messagingv1alpha1.AuthorityRecord:
+		controllerutil.RemoveFinalizer(o, finalizer)
+		return ctrl.Result{}, c.Update(ctx, o)
+	default:
+		return ctrl.Result{}, fmt.Errorf("orphanFinalizeWorkload: unsupported type %T", obj)
+	}
+}
+
+//nolint:dupl // per-kind status patch shape matches patchSyncedDeleting
+func patchSyncedOrphaned(
+	ctx context.Context,
+	status client.StatusWriter,
+	recorder events.EventRecorder,
+	obj client.Object,
+	generation int64,
+	message string,
+) error {
+	emitSyncedTransitionEvent(recorder, obj, metav1.ConditionFalse, messagingv1alpha1.ReasonOrphaned, message)
+
+	switch o := obj.(type) {
+	case *messagingv1alpha1.Queue:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonOrphaned, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.Topic:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonOrphaned, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.Channel:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonOrphaned, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.ChannelAuthRule:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonOrphaned, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
+		return status.Update(ctx, o)
+	case *messagingv1alpha1.AuthorityRecord:
+		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonOrphaned, message, generation)
+		applyMQObjectStatusFields(o, syncStatusOpts{}, message, nil)
+		return status.Update(ctx, o)
+	default:
+		return fmt.Errorf("patchSyncedOrphaned: unsupported type %T", obj)
+	}
+}
+
 func connectionRefName(obj client.Object) (string, error) {
 	switch o := obj.(type) {
 	case *messagingv1alpha1.Queue:
@@ -297,6 +441,7 @@ func requestsForConnection(
 	c client.Client,
 	conn *messagingv1alpha1.QueueManagerConnection,
 ) []reconcile.Request {
+	logger := log.FromContext(ctx)
 	var reqs []reconcile.Request
 	ns := conn.Namespace
 	connName := conn.Name
@@ -310,6 +455,9 @@ func requestsForConnection(
 				})
 			}
 		}
+	} else {
+		logger.Error(err, "list dependent resources for connection fan-out",
+			"namespace", ns, "connection", connName, "kind", "Queue")
 	}
 
 	topicList := &messagingv1alpha1.TopicList{}
@@ -321,6 +469,9 @@ func requestsForConnection(
 				})
 			}
 		}
+	} else {
+		logger.Error(err, "list dependent resources for connection fan-out",
+			"namespace", ns, "connection", connName, "kind", "Topic")
 	}
 
 	channelList := &messagingv1alpha1.ChannelList{}
@@ -332,6 +483,9 @@ func requestsForConnection(
 				})
 			}
 		}
+	} else {
+		logger.Error(err, "list dependent resources for connection fan-out",
+			"namespace", ns, "connection", connName, "kind", "Channel")
 	}
 
 	authRuleList := &messagingv1alpha1.ChannelAuthRuleList{}
@@ -343,6 +497,9 @@ func requestsForConnection(
 				})
 			}
 		}
+	} else {
+		logger.Error(err, "list dependent resources for connection fan-out",
+			"namespace", ns, "connection", connName, "kind", "ChannelAuthRule")
 	}
 
 	authRecList := &messagingv1alpha1.AuthorityRecordList{}
@@ -354,6 +511,9 @@ func requestsForConnection(
 				})
 			}
 		}
+	} else {
+		logger.Error(err, "list dependent resources for connection fan-out",
+			"namespace", ns, "connection", connName, "kind", "AuthorityRecord")
 	}
 
 	return reqs
