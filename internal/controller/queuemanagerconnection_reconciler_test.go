@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
+	"github.com/konih/mkurator/internal/adapter/mqrest"
 	"github.com/konih/mkurator/internal/mqadmin"
 	mqadmintest "github.com/konih/mkurator/test/mocks/mqadmin"
 )
@@ -186,5 +188,123 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		updated := &messagingv1alpha1.QueueManagerConnection{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue(), "finalizer removed and object deleted from API")
+	})
+
+	It("removes the finalizer when deleted after the credentials Secret is gone (T2)", func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
+			Data: map[string][]byte{
+				"username": []byte("admin"),
+				"password": []byte("secret"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().Ping(mock.Anything).Return(nil).Maybe()
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil).Maybe()
+
+		rec := &QueueManagerConnectionReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, conn)).To(Succeed())
+
+		rec.MQFactory = mqrest.NewClientFactory(k8sClient)
+		_, err = rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		updated := &messagingv1alpha1.QueueManagerConnection{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue(), "finalizer removed despite missing Secret")
+	})
+
+	It("emits exactly one Available event across two successful reconciles (T4)", func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
+			Data: map[string][]byte{
+				"username": []byte("admin"),
+				"password": []byte("secret"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().Ping(mock.Anything).Return(nil).Times(2)
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil).Times(2)
+
+		rec := &QueueManagerConnectionReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+			Recorder:  testEventsRecorder(),
+		}
+
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ns, Name: key}}
+		_, err := rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+
+		afterReady := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, afterReady)).To(Succeed())
+		Expect(conditionStatus(afterReady.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionTrue))
+
+		_, err = rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+
+		afterSecond := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, afterSecond)).To(Succeed())
+		Expect(conditionStatus(afterSecond.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionTrue))
+
+		Eventually(func(g Gomega) {
+			g.Expect(countEventsAPIEvents(ctx, ns, "QueueManagerConnection", key,
+				corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)).To(Equal(1))
+		}).WithTimeout(5 * time.Second).WithPolling(200 * time.Millisecond).Should(Succeed())
 	})
 })

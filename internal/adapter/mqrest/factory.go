@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -65,18 +66,25 @@ func (f *ClientFactory) ForConnection(
 }
 
 // ReleaseConnection implements mqadmin.Factory.
+// Eviction is keyed by QMC identity (namespace/name) and does not read Secrets,
+// so deletion succeeds when credentials were removed first (ADR-0023).
 func (f *ClientFactory) ReleaseConnection(
-	ctx context.Context,
+	_ context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
 ) error {
-	key, err := f.cacheKey(ctx, conn)
-	if err != nil {
-		return err
-	}
+	prefix := connectionCachePrefix(conn)
 	f.mu.Lock()
-	delete(f.cache, key)
+	for k := range f.cache {
+		if strings.HasPrefix(k, prefix) {
+			delete(f.cache, k)
+		}
+	}
 	f.mu.Unlock()
 	return nil
+}
+
+func connectionCachePrefix(conn *messagingv1alpha1.QueueManagerConnection) string {
+	return fmt.Sprintf("%s/%s/", conn.Namespace, conn.Name)
 }
 
 func (f *ClientFactory) cacheKey(

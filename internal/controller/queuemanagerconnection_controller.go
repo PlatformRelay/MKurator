@@ -77,10 +77,14 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 
 	gen := conn.Generation
 	readyMsg := "mqweb connection is healthy"
-	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
-		metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, "Testing mqweb connectivity", gen)
-	if err := r.Status().Update(ctx, conn); err != nil {
-		return ctrl.Result{}, fmt.Errorf("update status progressing: %w", err)
+	alreadyReady := connectionReady(conn) && conn.Status.ObservedGeneration == gen
+
+	if !alreadyReady {
+		setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
+			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, "Testing mqweb connectivity", gen)
+		if err := r.Status().Update(ctx, conn); err != nil {
+			return ctrl.Result{}, fmt.Errorf("update status progressing: %w", err)
+		}
 	}
 
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
@@ -89,6 +93,11 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 	}
 	if err := admin.Ping(ctx); err != nil {
 		return r.fail(ctx, conn, gen, err)
+	}
+
+	if alreadyReady {
+		logger.V(1).Info("QueueManagerConnection still ready", "connection", conn.Name)
+		return ctrl.Result{}, nil
 	}
 
 	if conditionChanged(conn.Status.Conditions, messagingv1alpha1.ConditionReady,

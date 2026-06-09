@@ -225,6 +225,31 @@ func eventuallyExpectEventsAPIEvent(
 	}).WithTimeout(5 * time.Second).WithPolling(200 * time.Millisecond).Should(Succeed())
 }
 
+func countEventsAPIEvents(ctx context.Context, ns, kind, name, eventType, reason string) int {
+	var list eventsv1.EventList
+	if err := k8sClient.List(ctx, &list, client.InNamespace(ns)); err != nil {
+		return 0
+	}
+	n := 0
+	for _, ev := range list.Items {
+		if ev.Regarding.Kind != kind || ev.Regarding.Name != name {
+			continue
+		}
+		if ev.Type != eventType || ev.Reason != reason {
+			continue
+		}
+		gvk := ev.GetObjectKind().GroupVersionKind()
+		if gvk.Group != "" && (gvk.Group != "events.k8s.io" || gvk.Version != "v1") {
+			continue
+		}
+		if ev.Action != eventActionReconcile {
+			continue
+		}
+		n++
+	}
+	return n
+}
+
 func hasEventsAPIEvent(ctx context.Context, ns, kind, name, eventType, reason string) bool {
 	var list eventsv1.EventList
 	if err := k8sClient.List(ctx, &list, client.InNamespace(ns)); err != nil {
