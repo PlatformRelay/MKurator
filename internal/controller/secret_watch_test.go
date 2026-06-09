@@ -137,8 +137,14 @@ func TestSecretContentChanged(t *testing.T) {
 	if !secretContentChanged(old, newDiff) {
 		t.Fatal("expected changed")
 	}
-	rvOnlyOld := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "1"}, Data: map[string][]byte{"password": []byte("a")}}
-	rvOnlyNew := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{ResourceVersion: "2"}, Data: map[string][]byte{"password": []byte("a")}}
+	rvOnlyOld := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: "1"},
+		Data:       map[string][]byte{"password": []byte("a")},
+	}
+	rvOnlyNew := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{ResourceVersion: "2"},
+		Data:       map[string][]byte{"password": []byte("a")},
+	}
 	if secretContentChanged(rvOnlyOld, rvOnlyNew) {
 		t.Fatal("expected unchanged when credential data is present")
 	}

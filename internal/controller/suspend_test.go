@@ -63,7 +63,10 @@ func TestPatchSyncedSuspended_AllKinds(t *testing.T) {
 		if err := cl.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 			t.Fatalf("get %T: %v", obj, err)
 		}
-		if conditionReason(syncedConditions(obj), messagingv1alpha1.ConditionSynced) != messagingv1alpha1.ReasonSuspended {
+		if conditionReason(
+			syncedConditions(obj),
+			messagingv1alpha1.ConditionSynced,
+		) != messagingv1alpha1.ReasonSuspended {
 			t.Fatalf("%T reason = %s", obj, conditionReason(syncedConditions(obj), messagingv1alpha1.ConditionSynced))
 		}
 	}

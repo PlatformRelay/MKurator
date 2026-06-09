@@ -168,7 +168,10 @@ func TestQueueWebhookValidateDelete(t *testing.T) {
 func TestQueueManagerConnectionWebhookValidateCreate(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	_ = corev1.AddToScheme(scheme)
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{"username": []byte("mquser"), "password": []byte("x")}}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
+		Data:       map[string][]byte{"username": []byte("mquser"), "password": []byte("x")},
+	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 	v := &queueManagerConnectionCustomValidator{Client: cl}
 
@@ -181,7 +184,10 @@ func TestQueueManagerConnectionWebhookValidateCreate(t *testing.T) {
 func TestQueueManagerConnectionWebhookValidateCreateUsernameWarning(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	_ = corev1.AddToScheme(scheme)
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{"password": []byte("x")}}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
+		Data:       map[string][]byte{"password": []byte("x")},
+	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 	v := &queueManagerConnectionCustomValidator{Client: cl}
 	warnings, err := v.ValidateCreate(context.Background(), sampleWebhookConn("ns"))
@@ -196,7 +202,10 @@ func TestQueueManagerConnectionWebhookValidateCreateUsernameWarning(t *testing.T
 func TestQueueManagerConnectionWebhookValidateUpdate(t *testing.T) {
 	scheme := webhookTestScheme(t)
 	_ = corev1.AddToScheme(scheme)
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{"username": []byte("mquser"), "password": []byte("x")}}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
+		Data:       map[string][]byte{"username": []byte("mquser"), "password": []byte("x")},
+	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 	v := &queueManagerConnectionCustomValidator{Client: cl}
 

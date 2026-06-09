@@ -273,7 +273,10 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 	_ = corev1.AddToScheme(scheme)
 	t.Run("warn when username key missing", func(t *testing.T) {
 		t.Parallel()
-		secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{"password": []byte("x")}}
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
+			Data:       map[string][]byte{"password": []byte("x")},
+		}
 		cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 		spec := sampleConnection("ns", "qm1").Spec
 		warnings, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, &spec)
@@ -287,7 +290,10 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 	t.Run("no warning when username present", func(t *testing.T) {
 		t.Parallel()
 		for _, key := range []string{"username", "user", "mqAdminUser"} {
-			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{key: []byte("mquser"), "password": []byte("x")}}
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
+				Data:       map[string][]byte{key: []byte("mquser"), "password": []byte("x")},
+			}
 			cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 			spec := sampleConnection("ns", "qm1").Spec
 			warnings, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, &spec)
