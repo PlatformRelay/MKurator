@@ -17,6 +17,10 @@ import (
 const insecureTLSWithoutOptInMsg = "tls.insecureSkipVerify requires annotation " +
 	messagingv1alpha1.AllowInsecureTLSAnnotation + `="true" (dev/local only; do not use in production)`
 
+const credentialsUsernameDefaultWarningFmt = `credentials Secret %q has no username key ` +
+	`(expected one of username, user, or mqAdminUser); mqweb login will default to "admin" — ` +
+	`set an explicit username for production`
+
 // ValidateQueueManagerConnectionSpec runs admission validation for QueueManagerConnection spec fields.
 func ValidateQueueManagerConnectionSpec(
 	ctx context.Context,
@@ -24,8 +28,11 @@ func ValidateQueueManagerConnectionSpec(
 	namespace string,
 	annotations map[string]string,
 	spec *messagingv1alpha1.QueueManagerConnectionSpec,
-) field.ErrorList {
-	var errs field.ErrorList
+) ([]string, field.ErrorList) {
+	var (
+		warnings []string
+		errs     field.ErrorList
+	)
 
 	if spec.QueueManager == "" {
 		errs = append(errs, field.Required(field.NewPath("spec").Child("queueManager"), "queueManager is required"))
@@ -40,9 +47,12 @@ func ValidateQueueManagerConnectionSpec(
 		errs = append(errs, field.Required(field.NewPath("spec").Child("credentialsSecretRef").Child("name"),
 			"credentialsSecretRef.name is required"))
 	} else {
-		errs = append(errs, validateSecretExists(ctx, reader, namespace,
-			spec.CredentialsSecretRef.Name,
-			field.NewPath("spec").Child("credentialsSecretRef").Child("name"))...)
+		secretPath := field.NewPath("spec").Child("credentialsSecretRef").Child("name")
+		secretErrs, credSecret := getSecretOrErrors(ctx, reader, namespace, spec.CredentialsSecretRef.Name, secretPath)
+		errs = append(errs, secretErrs...)
+		if credSecret != nil {
+			warnings = append(warnings, credentialsSecretUsernameWarnings(credSecret)...)
+		}
 	}
 
 	if spec.TLS != nil {
@@ -57,7 +67,23 @@ func ValidateQueueManagerConnectionSpec(
 		}
 	}
 
-	return errs
+	return warnings, errs
+}
+
+func credentialsSecretUsernameWarnings(secret *corev1.Secret) []string {
+	if credentialsSecretHasUsername(secret.Data) {
+		return nil
+	}
+	return []string{fmt.Sprintf(credentialsUsernameDefaultWarningFmt, secret.Name)}
+}
+
+func credentialsSecretHasUsername(data map[string][]byte) bool {
+	for _, key := range []string{"username", "user", "mqAdminUser"} {
+		if v, ok := data[key]; ok && len(v) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func allowInsecureTLS(annotations map[string]string) bool {
@@ -175,21 +201,31 @@ func formatDependents(dependents []connectionDependent) string {
 	return strings.Join(parts, ", ")
 }
 
-func validateSecretExists(
+func getSecretOrErrors(
 	ctx context.Context,
 	reader client.Reader,
 	namespace, name string,
 	path *field.Path,
-) field.ErrorList {
+) (field.ErrorList, *corev1.Secret) {
 	secret := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: namespace, Name: name}
 	if err := reader.Get(ctx, key, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			return field.ErrorList{
 				field.NotFound(path, fmt.Sprintf("Secret %q not found in namespace %q", name, namespace)),
-			}
+			}, nil
 		}
-		return field.ErrorList{field.InternalError(path, fmt.Errorf("get Secret %q: %w", name, err))}
+		return field.ErrorList{field.InternalError(path, fmt.Errorf("get Secret %q: %w", name, err))}, nil
 	}
-	return nil
+	return nil, secret
+}
+
+func validateSecretExists(
+	ctx context.Context,
+	reader client.Reader,
+	namespace, name string,
+	path *field.Path,
+) field.ErrorList {
+	errs, _ := getSecretOrErrors(ctx, reader, namespace, name, path)
+	return errs
 }

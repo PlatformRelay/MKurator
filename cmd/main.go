@@ -22,6 +22,7 @@ import (
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 	"github.com/konih/mkurator/internal/adapter/mqrest"
+	"github.com/konih/mkurator/internal/cacheconfig"
 	"github.com/konih/mkurator/internal/controller"
 	"github.com/konih/mkurator/internal/health"
 	"github.com/konih/mkurator/internal/logging"
@@ -201,8 +202,11 @@ func main() {
 		metricsServerOptions.KeyName = metricsCertKey
 	}
 
+	secretCacheOpts, secretClientOpts := cacheconfig.ManagerOptions()
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
+		Cache:                  secretCacheOpts,
+		Client:                 secretClientOpts,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
 		HealthProbeBindAddress: probeAddr,

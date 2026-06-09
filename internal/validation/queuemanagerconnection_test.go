@@ -18,7 +18,7 @@ func TestValidateQueueManagerConnectionSpecRequiredFields(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
 
 	spec := &messagingv1alpha1.QueueManagerConnectionSpec{}
-	if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) < 3 {
+	if _, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) < 3 {
 		t.Fatalf("expected required field errors, got %v", errs)
 	}
 }
@@ -106,7 +106,7 @@ func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 			Endpoint:             "http://mq.example:9443",
 			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
 		}
-		if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) == 0 {
+		if _, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) == 0 {
 			t.Fatal("expected endpoint error")
 		}
 	})
@@ -117,7 +117,7 @@ func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 			Endpoint:             "https://mq.example:9443",
 			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "missing"},
 		}
-		if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) == 0 {
+		if _, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) == 0 {
 			t.Fatal("expected secret not found error")
 		}
 	})
@@ -204,7 +204,7 @@ func TestValidateQueueManagerConnectionInsecureTLS(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", tt.annotations, baseSpec())
+			_, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", tt.annotations, baseSpec())
 			if tt.wantErr && len(errs) == 0 {
 				t.Fatal("expected insecure TLS error")
 			}
@@ -262,7 +262,41 @@ func TestValidateQueueManagerConnectionCASecret(t *testing.T) {
 			CASecretRef: &messagingv1alpha1.SecretReference{Name: "ca"},
 		},
 	}
-	if errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) > 0 {
+	if _, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) > 0 {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
+}
+
+func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	t.Run("warn when username key missing", func(t *testing.T) {
+		t.Parallel()
+		secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{"password": []byte("x")}}
+		cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+		spec := sampleConnection("ns", "qm1").Spec
+		warnings, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, &spec)
+		if len(errs) > 0 {
+			t.Fatalf("unexpected errors: %v", errs)
+		}
+		if len(warnings) != 1 || !strings.Contains(warnings[0], `default to "admin"`) {
+			t.Fatalf("warnings = %v", warnings)
+		}
+	})
+	t.Run("no warning when username present", func(t *testing.T) {
+		t.Parallel()
+		for _, key := range []string{"username", "user", "mqAdminUser"} {
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}, Data: map[string][]byte{key: []byte("mquser"), "password": []byte("x")}}
+			cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+			spec := sampleConnection("ns", "qm1").Spec
+			warnings, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, &spec)
+			if len(errs) > 0 {
+				t.Fatalf("key %q: unexpected errors: %v", key, errs)
+			}
+			if len(warnings) != 0 {
+				t.Fatalf("key %q: warnings = %v", key, warnings)
+			}
+		}
+	})
 }

@@ -157,7 +157,7 @@ func TestConfigSamplesAdmissionValidation(t *testing.T) {
 	for _, obj := range objects {
 		switch o := obj.(type) {
 		case *messagingv1alpha1.QueueManagerConnection:
-			errs := validation.ValidateQueueManagerConnectionSpec(
+			_, errs := validation.ValidateQueueManagerConnectionSpec(
 				ctx, cl, o.Namespace, o.Annotations, &o.Spec,
 			)
 			if len(errs) > 0 {

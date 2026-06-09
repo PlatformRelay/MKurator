@@ -477,6 +477,20 @@ var _ = Describe("Validating admission webhooks", func() {
 	})
 
 	// Requires envtest K8s ≥ 1.27 for admission warning propagation to the client.
+	It("allows QueueManagerConnection create and warns when credentials Secret omits username", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds-no-user", Namespace: ns}, Data: map[string][]byte{"password": []byte("x")}})).To(Succeed())
+		warningClient, capture := newWarningCapturingClient()
+		conn := sampleWebhookConnection(ns, "qm-no-user")
+		conn.Spec.CredentialsSecretRef.Name = "creds-no-user"
+		Expect(warningClient.Create(ctx, conn)).To(Succeed())
+		capture.mu.Lock()
+		defer capture.mu.Unlock()
+		combined := strings.Join(*capture.store, " ")
+		Expect(*capture.store).NotTo(BeEmpty(), "expected admission warnings, got none")
+		Expect(combined).To(ContainSubstring(`default to "admin"`))
+	})
+
 	Describe("unknown spec.attributes admission warnings", func() {
 		BeforeEach(func() {
 			ctx := context.Background()

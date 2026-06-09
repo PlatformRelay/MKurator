@@ -62,9 +62,23 @@ func secretEnqueueMapper(c client.Client) handler.MapFunc {
 	}
 }
 
+func secretCredentialsStripped(secret *corev1.Secret) bool {
+	return len(secret.Data) == 0 && len(secret.StringData) == 0
+}
+
 func secretContentChanged(oldSecret, newSecret *corev1.Secret) bool {
-	return !reflect.DeepEqual(oldSecret.Data, newSecret.Data) ||
+	dataChanged := !reflect.DeepEqual(oldSecret.Data, newSecret.Data) ||
 		!reflect.DeepEqual(oldSecret.StringData, newSecret.StringData)
+	if dataChanged {
+		return true
+	}
+	// ResourceVersion catches rotations when the informer cache strips Secret data (ADR-0023 / ARCH-05).
+	if secretCredentialsStripped(oldSecret) && secretCredentialsStripped(newSecret) &&
+		oldSecret.ResourceVersion != "" && newSecret.ResourceVersion != "" &&
+		oldSecret.ResourceVersion != newSecret.ResourceVersion {
+		return true
+	}
+	return false
 }
 
 func secretWatchPredicates() predicate.Funcs {

@@ -238,7 +238,7 @@ func credentialsFromSecret(data map[string][]byte) (string, string, error) {
 	user := firstKey(data, "username", "user", "mqAdminUser")
 	pass := firstKey(data, "password", "mqAdminPassword")
 	if user == "" {
-		// IBM MQ dev images often use admin; explicit username in Secret is preferred in production.
+		// IBM MQ dev images often use admin; admission warns when username keys are absent (ARCH-12).
 		user = "admin"
 	}
 	if pass == "" {

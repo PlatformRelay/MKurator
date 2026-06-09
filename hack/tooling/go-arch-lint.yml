@@ -33,6 +33,7 @@ components:
     in: test/mocks/**
   shared:
     in:
+      - internal/cacheconfig/**
       - internal/metrics/**
       - internal/health/**
       - internal/logging/**
