@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -108,7 +109,7 @@ func TestClientFactory_BuildConfigWithCA(t *testing.T) {
 	}
 }
 
-func TestClientFactory_CacheKeyChangesWithSecretResourceVersion(t *testing.T) {
+func TestClientFactory_CacheFingerprintChangesWithSecretResourceVersion(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
@@ -143,16 +144,19 @@ func TestClientFactory_CacheKeyChangesWithSecretResourceVersion(t *testing.T) {
 	cl1 := fake.NewClientBuilder().WithScheme(s).WithObjects(secretV1, conn).Build()
 	cl2 := fake.NewClientBuilder().WithScheme(s).WithObjects(secretV2, conn).Build()
 
-	key1, err := NewClientFactory(cl1).(*ClientFactory).cacheKey(ctx, conn)
+	fp1, err := NewClientFactory(cl1).(*ClientFactory).cacheFingerprint(ctx, conn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	key2, err := NewClientFactory(cl2).(*ClientFactory).cacheKey(ctx, conn)
+	fp2, err := NewClientFactory(cl2).(*ClientFactory).cacheFingerprint(ctx, conn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if key1 == key2 {
-		t.Fatalf("cache keys should differ when secret ResourceVersion changes: %q", key1)
+	if fp1.credRV == fp2.credRV {
+		t.Fatalf("fingerprints should differ when secret ResourceVersion changes: %+v", fp1)
+	}
+	if connectionCacheKey(conn) != fmt.Sprintf("%s/%s", ns, conn.Name) {
+		t.Fatal("cache key should be namespace/name identity only")
 	}
 }
 
@@ -267,7 +271,7 @@ func TestCaPoolFromSecretMissingKey(t *testing.T) {
 	}
 }
 
-func TestClientFactory_CacheKeyMissingCredSecret(t *testing.T) {
+func TestClientFactory_CacheFingerprintMissingCredSecret(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
@@ -281,7 +285,7 @@ func TestClientFactory_CacheKeyMissingCredSecret(t *testing.T) {
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(conn).Build()
-	_, err := NewClientFactory(cl).(*ClientFactory).cacheKey(ctx, conn)
+	_, err := NewClientFactory(cl).(*ClientFactory).cacheFingerprint(ctx, conn)
 	if err == nil {
 		t.Fatal("expected error when credentials secret is missing")
 	}

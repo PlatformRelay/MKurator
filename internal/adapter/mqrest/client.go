@@ -91,6 +91,19 @@ func NewClient(cfg Config) (*Client, error) {
 	}, nil
 }
 
+// CloseIdleConnections closes idle connections on the underlying HTTP transport.
+func (c *Client) CloseIdleConnections() {
+	if c == nil || c.httpClient == nil || c.httpClient.Transport == nil {
+		return
+	}
+	type idleCloser interface {
+		CloseIdleConnections()
+	}
+	if tr, ok := c.httpClient.Transport.(idleCloser); ok {
+		tr.CloseIdleConnections()
+	}
+}
+
 // Ping verifies mqweb can reach the queue manager.
 func (c *Client) Ping(ctx context.Context) error {
 	var err error

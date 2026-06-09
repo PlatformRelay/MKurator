@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
-	"strings"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -20,16 +19,43 @@ import (
 type ClientFactory struct {
 	K8s client.Client
 
-	mu    sync.Mutex
-	cache map[string]mqadmin.Admin
+	mu        sync.Mutex
+	cache     map[string]*cacheEntry
+	newClient func(Config) (mqadmin.Admin, error)
 }
 
-// NewClientFactory returns a mqadmin.Factory that caches clients by connection + secret versions.
+type cacheEntry struct {
+	admin      mqadmin.Admin
+	generation int64
+	credRV     string
+	caRV       string
+}
+
+type cacheFingerprint struct {
+	generation int64
+	credRV     string
+	caRV       string
+}
+
+func (e *cacheEntry) matches(fp cacheFingerprint) bool {
+	return e.generation == fp.generation &&
+		e.credRV == fp.credRV &&
+		e.caRV == fp.caRV
+}
+
+// NewClientFactory returns a mqadmin.Factory that caches clients by QMC identity (ADR-0023).
 func NewClientFactory(k8s client.Client) mqadmin.Factory {
 	return &ClientFactory{
 		K8s:   k8s,
-		cache: make(map[string]mqadmin.Admin),
+		cache: make(map[string]*cacheEntry),
 	}
+}
+
+func (f *ClientFactory) createClient(cfg Config) (mqadmin.Admin, error) {
+	if f.newClient != nil {
+		return f.newClient(cfg)
+	}
+	return NewClient(cfg)
 }
 
 // ForConnection implements mqadmin.Factory.
@@ -37,15 +63,18 @@ func (f *ClientFactory) ForConnection(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
 ) (mqadmin.Admin, error) {
-	key, err := f.cacheKey(ctx, conn)
+	key := connectionCacheKey(conn)
+
+	fp, err := f.cacheFingerprint(ctx, conn)
 	if err != nil {
 		return nil, err
 	}
 
 	f.mu.Lock()
-	if c, ok := f.cache[key]; ok {
+	if entry, ok := f.cache[key]; ok && entry.matches(fp) {
+		admin := entry.admin
 		f.mu.Unlock()
-		return c, nil
+		return admin, nil
 	}
 	f.mu.Unlock()
 
@@ -54,14 +83,30 @@ func (f *ClientFactory) ForConnection(
 		return nil, err
 	}
 
-	c, err := NewClient(cfg)
+	c, err := f.createClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	f.mu.Lock()
-	f.cache[key] = c
-	f.mu.Unlock()
+	defer f.mu.Unlock()
+
+	var old mqadmin.Admin
+	if entry, ok := f.cache[key]; ok {
+		if entry.matches(fp) {
+			closeClientIdleConnections(c)
+			return entry.admin, nil
+		}
+		old = entry.admin
+	}
+
+	f.cache[key] = &cacheEntry{
+		admin:      c,
+		generation: fp.generation,
+		credRV:     fp.credRV,
+		caRV:       fp.caRV,
+	}
+	closeClientIdleConnections(old)
 	return c, nil
 }
 
@@ -72,35 +117,41 @@ func (f *ClientFactory) ReleaseConnection(
 	_ context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
 ) error {
-	prefix := connectionCachePrefix(conn)
+	key := connectionCacheKey(conn)
+
 	f.mu.Lock()
-	for k := range f.cache {
-		if strings.HasPrefix(k, prefix) {
-			delete(f.cache, k)
-		}
+	entry, ok := f.cache[key]
+	if ok {
+		delete(f.cache, key)
 	}
 	f.mu.Unlock()
+
+	if ok {
+		closeClientIdleConnections(entry.admin)
+	}
 	return nil
 }
 
-func connectionCachePrefix(conn *messagingv1alpha1.QueueManagerConnection) string {
-	return fmt.Sprintf("%s/%s/", conn.Namespace, conn.Name)
+func connectionCacheKey(conn *messagingv1alpha1.QueueManagerConnection) string {
+	return fmt.Sprintf("%s/%s", conn.Namespace, conn.Name)
 }
 
-func (f *ClientFactory) cacheKey(
+func (f *ClientFactory) cacheFingerprint(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
-) (string, error) {
+) (cacheFingerprint, error) {
 	credSecret := &corev1.Secret{}
 	if err := f.K8s.Get(ctx, client.ObjectKey{
 		Namespace: conn.Namespace,
 		Name:      conn.Spec.CredentialsSecretRef.Name,
 	}, credSecret); err != nil {
-		return "", fmt.Errorf("get credentials secret for cache key: %w", err)
+		return cacheFingerprint{}, fmt.Errorf("get credentials secret for cache fingerprint: %w", err)
 	}
 
-	key := fmt.Sprintf("%s/%s/gen:%d/cred:%s",
-		conn.Namespace, conn.Name, conn.Generation, credSecret.ResourceVersion)
+	fp := cacheFingerprint{
+		generation: conn.Generation,
+		credRV:     credSecret.ResourceVersion,
+	}
 
 	if conn.Spec.TLS != nil && conn.Spec.TLS.CASecretRef != nil {
 		caSecret := &corev1.Secret{}
@@ -108,12 +159,21 @@ func (f *ClientFactory) cacheKey(
 			Namespace: conn.Namespace,
 			Name:      conn.Spec.TLS.CASecretRef.Name,
 		}, caSecret); err != nil {
-			return "", fmt.Errorf("get CA secret for cache key: %w", err)
+			return cacheFingerprint{}, fmt.Errorf("get CA secret for cache fingerprint: %w", err)
 		}
-		key += "/ca:" + caSecret.ResourceVersion
+		fp.caRV = caSecret.ResourceVersion
 	}
 
-	return key, nil
+	return fp, nil
+}
+
+func closeClientIdleConnections(admin mqadmin.Admin) {
+	if admin == nil {
+		return
+	}
+	if c, ok := admin.(*Client); ok {
+		c.CloseIdleConnections()
+	}
 }
 
 func (f *ClientFactory) buildConfig(
