@@ -4,15 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
@@ -144,5 +146,10 @@ func (r *QueueManagerConnectionReconciler) SetupWithManager(mgr ctrl.Manager) er
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&messagingv1alpha1.QueueManagerConnection{}).
 		WithOptions(controllerOptions()).
+		Watches(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(secretEnqueueMapper(mgr.GetClient())),
+			builder.WithPredicates(secretWatchPredicates()),
+		).
 		Complete(r)
 }

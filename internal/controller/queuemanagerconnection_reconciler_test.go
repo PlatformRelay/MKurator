@@ -307,4 +307,83 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 				corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)).To(Equal(1))
 		}).WithTimeout(5 * time.Second).WithPolling(200 * time.Millisecond).Should(Succeed())
 	})
+
+	It("becomes Ready after credentials Secret is fixed without editing QMC (T5)", func() {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
+			Data: map[string][]byte{
+				"username": []byte("admin"),
+				"password": []byte("bad"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		failAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		failAdmin.EXPECT().Ping(mock.Anything).Return(&mqadmin.TerminalError{
+			Reason:  "Unauthorized",
+			Message: "unauthorized",
+		}).Once()
+
+		failFactory := mqadmintest.NewMockFactory(GinkgoT())
+		failFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(failAdmin, nil).Once()
+
+		rec := &QueueManagerConnectionReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: failFactory,
+		}
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ns, Name: key}}
+
+		_, err := rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+		_, err = rec.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+
+		failed := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, failed)).To(Succeed())
+		Expect(conditionStatus(failed.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionFalse))
+		Expect(conditionReason(failed.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(messagingv1alpha1.ReasonError))
+		origGen := failed.Generation
+
+		updatedSecret := &corev1.Secret{}
+		Expect(
+			k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: testSecretName}, updatedSecret),
+		).To(Succeed())
+		updatedSecret.Data["password"] = []byte("good")
+		Expect(k8sClient.Update(ctx, updatedSecret)).To(Succeed())
+
+		reqs := requestsForSecret(ctx, k8sClient, updatedSecret)
+		Expect(reqs).To(ContainElement(req))
+
+		okAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		okAdmin.EXPECT().Ping(mock.Anything).Return(nil).Times(2)
+		okFactory := mqadmintest.NewMockFactory(GinkgoT())
+		okFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(okAdmin, nil).Times(2)
+		rec.MQFactory = okFactory
+
+		_, err = rec.Reconcile(ctx, reqs[0])
+		Expect(err).NotTo(HaveOccurred())
+		_, err = rec.Reconcile(ctx, reqs[0])
+		Expect(err).NotTo(HaveOccurred())
+
+		recovered := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, recovered)).To(Succeed())
+		Expect(recovered.Generation).To(Equal(origGen))
+		Expect(conditionStatus(recovered.Status.Conditions, messagingv1alpha1.ConditionReady)).
+			To(Equal(metav1.ConditionTrue))
+	})
 })
