@@ -8,10 +8,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
@@ -192,6 +194,93 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		expectRecordedEvent(recorder, corev1.EventTypeWarning, "MQSCError")
+	})
+
+	It("requeues deletion when the connection is missing instead of failing terminally (T1)", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		q := sampleQueue(ns, key, "qm1", testQueueName)
+		Expect(k8sClient.Create(ctx, q)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
+		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+		Expect(k8sClient.Update(ctx, q)).To(Succeed())
+
+		rec := &QueueReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mqadmintest.NewMockFactory(GinkgoT()),
+		}
+
+		Expect(k8sClient.Delete(ctx, conn)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, q)).To(Succeed())
+
+		result, err := rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
+
+		updated := &messagingv1alpha1.Queue{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
+		Expect(updated.DeletionTimestamp).NotTo(BeZero())
+		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+			To(Equal(messagingv1alpha1.ReasonProgressing))
+	})
+
+	It("removes the finalizer on force-orphan without MQ connectivity (T1)", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		q := sampleQueue(ns, key, "qm1", testQueueName)
+		Expect(k8sClient.Create(ctx, q)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
+		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+		Expect(k8sClient.Update(ctx, q)).To(Succeed())
+
+		rec := &QueueReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mqadmintest.NewMockFactory(GinkgoT()),
+			Recorder:  testEventsRecorder(),
+		}
+
+		Expect(k8sClient.Delete(ctx, conn)).To(Succeed())
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
+		if q.Annotations == nil {
+			q.Annotations = map[string]string{}
+		}
+		q.Annotations[messagingv1alpha1.ForceOrphanAnnotation] = "true"
+		Expect(k8sClient.Update(ctx, q)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, q)).To(Succeed())
+
+		result, err := rec.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		updated := &messagingv1alpha1.Queue{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
 })
 

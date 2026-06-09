@@ -17,7 +17,11 @@ const (
 	ReasonError         = "Error"
 	ReasonDeleting      = "Deleting"
 	ReasonDriftDetected = "DriftDetected"
+	ReasonOrphaned      = "Orphaned"
 )
+
+// ForceOrphanAnnotation skips MQ cleanup and removes the finalizer on a deleting CR.
+const ForceOrphanAnnotation = "messaging.mkurator.dev/force-orphan"
 
 // DriftPolicyAnnotation selects how the operator responds to spec vs IBM MQ drift.
 const DriftPolicyAnnotation = "messaging.mkurator.dev/drift-policy"

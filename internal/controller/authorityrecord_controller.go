@@ -54,6 +54,16 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("get AuthorityRecord: %w", err)
 	}
 
+	if !auth.DeletionTimestamp.IsZero() {
+		return reconcileWorkloadDeletion(
+			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, auth, auth.Generation,
+			messagingv1alpha1.AuthorityRecordFinalizer, "Authority record orphaned in IBM MQ",
+			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
+				return r.handleDeletion(ctx, auth, admin)
+			},
+		)
+	}
+
 	connRef, err := connectionRefName(auth)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -73,10 +83,6 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
-	}
-
-	if !auth.DeletionTimestamp.IsZero() {
-		return r.handleDeletion(ctx, auth, admin)
 	}
 
 	if !controllerutil.ContainsFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer) {

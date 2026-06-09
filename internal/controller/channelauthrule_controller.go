@@ -54,6 +54,16 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("get ChannelAuthRule: %w", err)
 	}
 
+	if !rule.DeletionTimestamp.IsZero() {
+		return reconcileWorkloadDeletion(
+			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, rule, rule.Generation,
+			messagingv1alpha1.ChannelAuthRuleFinalizer, "CHLAUTH rule orphaned in IBM MQ",
+			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
+				return r.handleDeletion(ctx, rule, admin)
+			},
+		)
+	}
+
 	connRef, err := connectionRefName(rule)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -73,10 +83,6 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
-	}
-
-	if !rule.DeletionTimestamp.IsZero() {
-		return r.handleDeletion(ctx, rule, admin)
 	}
 
 	if !controllerutil.ContainsFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer) {
