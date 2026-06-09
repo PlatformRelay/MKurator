@@ -53,6 +53,16 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, fmt.Errorf("get Queue: %w", err)
 	}
 
+	if !q.DeletionTimestamp.IsZero() {
+		return reconcileWorkloadDeletion(
+			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, q, q.Generation,
+			messagingv1alpha1.QueueFinalizer, "Queue orphaned in IBM MQ",
+			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
+				return r.handleDeletion(ctx, q, admin)
+			},
+		)
+	}
+
 	connRef, err := connectionRefName(q)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -70,10 +80,6 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{})
-	}
-
-	if !q.DeletionTimestamp.IsZero() {
-		return r.handleDeletion(ctx, q, admin)
 	}
 
 	if !controllerutil.ContainsFinalizer(q, messagingv1alpha1.QueueFinalizer) {

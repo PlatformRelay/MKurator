@@ -53,6 +53,16 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("get Channel: %w", err)
 	}
 
+	if !channel.DeletionTimestamp.IsZero() {
+		return reconcileWorkloadDeletion(
+			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, channel, channel.Generation,
+			messagingv1alpha1.ChannelFinalizer, "Channel orphaned in IBM MQ",
+			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
+				return r.handleDeletion(ctx, channel, admin)
+			},
+		)
+	}
+
 	connRef, err := connectionRefName(channel)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -77,10 +87,6 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	admin, err := r.MQFactory.ForConnection(ctx, conn)
 	if err != nil {
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err, syncStatusOpts{})
-	}
-
-	if !channel.DeletionTimestamp.IsZero() {
-		return r.handleDeletion(ctx, channel, admin)
 	}
 
 	if !controllerutil.ContainsFinalizer(channel, messagingv1alpha1.ChannelFinalizer) {
