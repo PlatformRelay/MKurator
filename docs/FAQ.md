@@ -58,8 +58,14 @@ values differ. See [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 ### Can I suspend reconciliation?
 
-Set the `messaging.mkurator.dev/suspend: "true"` annotation on a CR to pause reconcile for that
-object without deleting it. Remove the annotation to resume.
+Set **`spec.suspend: true`** on a workload CR (`Queue`, `Topic`, `Channel`,
+`ChannelAuthRule`, or `AuthorityRecord`) to pause MQ reconciliation for that object
+without deleting it. Status shows `Synced=False` with `Reason=Suspended`. Set
+`spec.suspend: false` (or omit the field) to resume.
+
+To force an immediate reconcile after clearing suspend or changing spec, update the
+annotation `messaging.mkurator.dev/reconcile-requested-at` to a new value (for
+example the current UTC time in RFC3339).
 
 ## Authentication and authorization
 

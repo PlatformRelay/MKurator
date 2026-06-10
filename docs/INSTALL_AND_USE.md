@@ -63,6 +63,13 @@ Test coverage: [README.md#what-ci-proves](../README.md#what-ci-proves) and
 - `kubectl` configured for your cluster
 - Network path from the MKurator pod to your queue manager’s **mqweb HTTPS port**
   (typically `9443`)
+- **[cert-manager](https://cert-manager.io/)** — required for the default install
+  (validating webhooks enabled). The chart/manifests create webhook TLS via
+  cert-manager `Issuer` + `Certificate`; verify cert-manager is healthy and the
+  serving certificate becomes `Ready` before relying on admission. Until
+  [CEL-first validation](adr/0025-cel-first-admission-validation.md) lands, plan
+  on cert-manager for production clusters (see
+  [Upgrading from a previous release](#upgrading-from-a-previous-release)).
 
 ### Queue manager requirements
 
@@ -405,9 +412,10 @@ Full matrix: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). MQSC re
 
 | Condition | Meaning |
 |-----------|---------|
-| `Synced=True` | Queue exists on MQ with matching attributes |
+| `Synced=True` | Queue exists on MQ; drift-checked attributes match spec (default policy auto-corrects out-of-band drift via `DEFINE … REPLACE`) |
 | `Synced=False`, `Reason=Progressing` | Waiting for connection `Ready` (see `status.message`; includes QMC `Ready` reason when known) |
-| `Synced=False`, `Reason=DriftDetected` | MQ object exists but attributes differ from spec; operator does not auto-REPLACE (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md)) |
+| `Synced=False`, `Reason=DriftDetected` | **Observe-only** (`messaging.mkurator.dev/drift-policy=observe-only`): drift or missing object reported without applying to MQ |
+| `Synced=False`, `Reason=Suspended` | `spec.suspend: true` — MQ reconciliation paused for this object |
 | `Synced=False`, `Reason=Deleting` | Removing queue from MQ |
 | `Synced=False`, `Reason=Error` | MQ or configuration error (see `status.message` and condition message) |
 
@@ -617,11 +625,15 @@ kubectl get qmc,mq,tp,chl,car,auth -n mkurator-system
 
 `Synced=False` with `Reason=Progressing` on a workload CR usually means the
 referenced `QueueManagerConnection` is not **Ready** yet — check `status.message`
-on the workload CR for the QMC `Ready` reason/details. `Reason=DriftDetected`
-means the object on MQ no longer matches spec (out-of-band change); reconcile
-succeeds but the operator will not overwrite MQ without an explicit fix.
-`Reason=Error` surfaces a classified mqweb/MQSC summary in `status.message` and
-the condition message.
+on the workload CR for the QMC `Ready` reason/details. With the **default** drift
+policy, out-of-band MQ edits to drift-checked attributes are corrected on the next
+reconcile (`DEFINE … REPLACE` or auth GET/replace); status returns to
+`Synced=True`. `Reason=DriftDetected` appears only when
+`messaging.mkurator.dev/drift-policy=observe-only` is set — drift is reported but
+MQ is not changed (see
+[ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy)).
+`Reason=Suspended` means `spec.suspend: true`. `Reason=Error` surfaces a classified
+mqweb/MQSC summary in `status.message` and the condition message.
 
 For **Queue**, **Topic**, **Channel**, **ChannelAuthRule**, and **AuthorityRecord**
 resources, `status.desiredMQSC` is a debug/GitOps aid (not authoritative): the

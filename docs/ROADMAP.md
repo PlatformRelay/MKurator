@@ -325,7 +325,7 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
 
 ### 7d — Docs truth wave
 
-- [ ] Fix drift-semantics contradiction in INSTALL_AND_USE.md (DOC-01);
+- [x] Fix drift-semantics contradiction in INSTALL_AND_USE.md (DOC-01);
   remove/implement FAQ `suspend` entry (DOC-02 — closes with 7b);
   cert-manager in prerequisites (DOC-03); uninstall covers auth CRs (DOC-09);
   broken ADR-0006 links (DOC-04); cert `Ready` wait in UPGRADE.md (DOC-07);
