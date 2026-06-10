@@ -20,6 +20,24 @@ func isObserveOnly(obj client.Object) bool {
 	return anns[messagingv1alpha1.DriftPolicyAnnotation] == messagingv1alpha1.DriftPolicyObserveOnly
 }
 
+func observeOnlyAuthDriftMessage(exists bool, objectName, objectLabel string) string {
+	if !exists {
+		return fmt.Sprintf(
+			`%s for %q not found on queue manager (observe-only; not applying)`,
+			objectLabel,
+			objectName,
+		)
+	}
+	switch objectLabel {
+	case "CHLAUTH rule":
+		return "CHLAUTH on IBM MQ differs from spec (observe-only; not applying)"
+	case "authority record":
+		return "AUTHREC on IBM MQ differs from spec (observe-only; not applying)"
+	default:
+		return fmt.Sprintf("%s on IBM MQ differs from spec (observe-only; not applying)", objectLabel)
+	}
+}
+
 func reconcileMQObjectState(
 	observeOnly bool,
 	adoptionPolicy messagingv1alpha1.AdoptionPolicy,
