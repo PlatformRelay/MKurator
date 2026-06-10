@@ -59,17 +59,17 @@ Test coverage: [README.md#what-ci-proves](../README.md#what-ci-proves) and
 
 ### Cluster requirements
 
-- Kubernetes **1.28+**
+- Kubernetes **1.29+** (CRD CEL validation for admission rules; see [ADR-0025](adr/0025-cel-first-admission-validation.md))
 - `kubectl` configured for your cluster
 - Network path from the MKurator pod to your queue manager’s **mqweb HTTPS port**
   (typically `9443`)
-- **[cert-manager](https://cert-manager.io/)** — required for the default install
-  (validating webhooks enabled). The chart/manifests create webhook TLS via
-  cert-manager `Issuer` + `Certificate`; verify cert-manager is healthy and the
-  serving certificate becomes `Ready` before relying on admission. Until
-  [CEL-first validation](adr/0025-cel-first-admission-validation.md) lands, plan
-  on cert-manager for production clusters (see
-  [Upgrading from a previous release](#upgrading-from-a-previous-release)).
+- **[cert-manager](https://cert-manager.io/)** — required when validating webhooks are
+  enabled (the default). The chart/manifests create webhook TLS via cert-manager
+  `Issuer` + `Certificate`; verify cert-manager is healthy and the serving
+  certificate becomes `Ready` before relying on admission. Stateless field rules
+  are enforced by CRD CEL in the API server, so you can install with
+  `webhooks.enabled=false` without cert-manager (referential checks then run at
+  reconcile time only — see [How it works](#how-it-works)).
 
 ### Queue manager requirements
 
