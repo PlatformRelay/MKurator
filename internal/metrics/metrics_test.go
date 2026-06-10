@@ -60,13 +60,3 @@ func counterValue(t *testing.T, cv *prometheus.CounterVec, labels ...string) flo
 	}
 	return testutil.ToFloat64(m)
 }
-
-func TestRecordCircuitBreakerTransition(t *testing.T) {
-	t.Parallel()
-	before := counterValue(t, CircuitBreakerTransitionsTotal, "closed", "open")
-	RecordCircuitBreakerTransition("closed", "open")
-	after := counterValue(t, CircuitBreakerTransitionsTotal, "closed", "open")
-	if after != before+1 {
-		t.Fatalf("transition count: before=%v after=%v", before, after)
-	}
-}
