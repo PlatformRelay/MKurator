@@ -7,7 +7,7 @@ agent workflow see [../AGENTS.md](../AGENTS.md); for design see
 
 The Git repository is [konih/mkurator](https://github.com/konih/mkurator); your
 local clone directory may differ (for example `IBM-Message-Queue-Operator`).
-See [ADR-0006](adr/0006-project-name-mkurator.md).
+See [ADR-0006](adr/0006-project-name-kurator.md).
 
 Doc index: [README.md](README.md)
 
