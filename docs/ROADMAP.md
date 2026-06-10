@@ -342,8 +342,9 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 - [ ] **Typed attribute fields + escape hatch** per
   [ADR-0021](adr/0021-attribute-api-shape.md): promote drift-checked keys to
   typed, CEL-validated spec fields; exclusivity rule; schema goldens.
-- [ ] Published **API stability statement**: what `v1alpha1` guarantees, what
-  graduation to `v1beta1` requires (conversion webhook, deprecation policy).
+- [x] Published **API stability statement**: [API_STABILITY.md](API_STABILITY.md) —
+  what `v1alpha1` guarantees, what graduation to `v1beta1` requires (conversion
+  webhook, deprecation policy).
 - [ ] Optional: DISPLAY **capability probing** per
   [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4, replacing
   hand-maintained per-version safe lists.

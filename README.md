@@ -46,6 +46,8 @@ guides, examples, ADRs, and engineering standards.
 **v1alpha1 scope:** access control covers `SET CHLAUTH` (one rule per CR) and
 `SET AUTHREC` for queue/channel-style profiles. See
 [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md) for rule-type roadmap.
+**API stability:** [docs/API_STABILITY.md](docs/API_STABILITY.md) (`v1alpha1`
+guarantees and `v1beta1` graduation path).
 
 **Repository:** [github.com/konih/mkurator](https://github.com/konih/mkurator) — Go module
 [`github.com/konih/mkurator`](https://pkg.go.dev/github.com/konih/mkurator), images
