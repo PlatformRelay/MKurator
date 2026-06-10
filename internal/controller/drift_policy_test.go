@@ -52,6 +52,18 @@ func TestReconcileMQObjectState_ObserveOnlyDrift(t *testing.T) {
 	}
 }
 
+func TestObserveOnlyAuthDriftMessage(t *testing.T) {
+	t.Parallel()
+	if got := observeOnlyAuthDriftMessage(false, "APP.ORDERS", "authority record"); got !=
+		`authority record for "APP.ORDERS" not found on queue manager (observe-only; not applying)` {
+		t.Fatalf("got %q", got)
+	}
+	if got := observeOnlyAuthDriftMessage(true, "DEV.APP", "CHLAUTH rule"); got !=
+		"CHLAUTH on IBM MQ differs from spec (observe-only; not applying)" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestReconcileMQObjectState_ObserveOnlyNotFound(t *testing.T) {
 	t.Parallel()
 	exists, msg, err := reconcileMQObjectState(

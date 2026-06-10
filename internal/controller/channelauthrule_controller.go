@@ -115,10 +115,10 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
 	if drifted {
-		msg := "CHLAUTH on IBM MQ differs from spec (observe-only; not applying)"
+		msg := observeOnlyAuthDriftMessage(mqExists, spec.ChannelName, "CHLAUTH rule")
 		metrics.RecordDriftDetected(metrics.ControllerChannelAuthRule)
 		if err := patchSyncedDrift(ctx, r.Status(), r.Recorder, rule, rule.Generation, msg,
-			syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
+			syncStatusOpts{mqObjectExists: boolPtr(mqExists)}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 		}
 		logger.Info("ChannelAuthRule drift detected (observe-only)", "channel", rule.Spec.ChannelName)
@@ -133,6 +133,7 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	return workloadDriftResyncResult(), nil
 }
 
+//nolint:dupl // shared auth ensure flow; differs in GET/SET types and drift keys
 func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 	ctx context.Context,
 	admin mqadmin.Admin,
@@ -159,8 +160,8 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 		return exists, false, blocked
 	}
 	if needsUpdate {
-		if observed != nil && isObserveOnly(rule) {
-			return true, true, nil
+		if isObserveOnly(rule) {
+			return exists, true, nil
 		}
 		if err := admin.SetChannelAuth(mqCtx, spec); err != nil {
 			return exists, false, err

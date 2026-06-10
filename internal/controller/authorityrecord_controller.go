@@ -115,10 +115,10 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 			syncStatusOpts{mqObjectExists: &mqExists})
 	}
 	if drifted {
-		msg := "AUTHREC on IBM MQ differs from spec (observe-only; not applying)"
+		msg := observeOnlyAuthDriftMessage(mqExists, auth.Spec.Profile, "authority record")
 		metrics.RecordDriftDetected(metrics.ControllerAuthorityRecord)
 		if err := patchSyncedDrift(ctx, r.Status(), r.Recorder, auth, auth.Generation, msg,
-			syncStatusOpts{mqObjectExists: boolPtr(true)}); err != nil {
+			syncStatusOpts{mqObjectExists: boolPtr(mqExists)}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
 		}
 		logger.Info("AuthorityRecord drift detected (observe-only)", "profile", auth.Spec.Profile)
@@ -133,6 +133,7 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	return workloadDriftResyncResult(), nil
 }
 
+//nolint:dupl // shared auth ensure flow; differs in GET/SET types and drift keys
 func (r *AuthorityRecordReconciler) ensureAuthority(
 	ctx context.Context,
 	admin mqadmin.Admin,
@@ -159,8 +160,8 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 		return exists, false, blocked
 	}
 	if needsUpdate {
-		if observed != nil && isObserveOnly(auth) {
-			return true, true, nil
+		if isObserveOnly(auth) {
+			return exists, true, nil
 		}
 		if err := admin.SetAuthority(mqCtx, spec); err != nil {
 			return exists, false, err

@@ -673,6 +673,98 @@ func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 	}
 }
 
+func TestChannelAuthRuleReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
+	s := unitSchemeOrFatal(t)
+	conn := readyConnForUnit(ns)
+	rule := &messagingv1alpha1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dev-app-addressmap", Namespace: ns,
+			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Annotations: map[string]string{
+				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+			},
+		},
+		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS", RuleType: messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			Address: "*", UserSource: "CHANNEL", CheckClient: "REQUIRED",
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(rule, conn).WithObjects(conn, rule).Build()
+	spec := toMQChannelAuthSpec(rule)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetChannelAuth(mock.Anything, spec).Return(nil, mqadmin.ErrNotFound)
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+	rec := &ChannelAuthRuleReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	updated := &messagingv1alpha1.ChannelAuthRule{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if conditionReason(
+		updated.Status.Conditions,
+		messagingv1alpha1.ConditionSynced,
+	) != messagingv1alpha1.ReasonDriftDetected {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+	}
+	if updated.Status.MQObjectExists == nil || *updated.Status.MQObjectExists {
+		t.Fatalf("MQObjectExists = %v, want false", updated.Status.MQObjectExists)
+	}
+}
+
+func TestAuthorityRecordReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
+	s := unitSchemeOrFatal(t)
+	conn := readyConnForUnit(ns)
+	auth := &messagingv1alpha1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "app-orders-get-put", Namespace: ns,
+			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Annotations: map[string]string{
+				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+			},
+		},
+		Spec: messagingv1alpha1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS", ObjectType: messagingv1alpha1.AuthorityObjectTypeQueue,
+			Principal: "app", Authorities: []string{"GET", "PUT"},
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth, conn).WithObjects(conn, auth).Build()
+	spec := toMQAuthoritySpec(auth)
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetAuthority(mock.Anything, spec).Return(nil, mqadmin.ErrNotFound)
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+	rec := &AuthorityRecordReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	updated := &messagingv1alpha1.AuthorityRecord{}
+	if err := cl.Get(ctx, key, updated); err != nil {
+		t.Fatal(err)
+	}
+	if conditionReason(
+		updated.Status.Conditions,
+		messagingv1alpha1.ConditionSynced,
+	) != messagingv1alpha1.ReasonDriftDetected {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+	}
+	if updated.Status.MQObjectExists == nil || *updated.Status.MQObjectExists {
+		t.Fatalf("MQObjectExists = %v, want false", updated.Status.MQObjectExists)
+	}
+}
+
 func TestAuthorityRecordReconciler_NoDriftSkipsSet(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

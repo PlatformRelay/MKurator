@@ -255,6 +255,59 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 			To(Equal(messagingv1alpha1.ReasonDriftDetected))
 	})
 
+	It("reports not-found without SET when observe-only is set", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
+		rule.Finalizers = []string{messagingv1alpha1.ChannelAuthRuleFinalizer}
+		rule.Annotations = map[string]string{
+			messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+		}
+		Expect(k8sClient.Create(ctx, rule)).To(Succeed())
+
+		desired := mqadmin.ChannelAuthSpec{
+			ChannelName: channelName,
+			RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+			Address:     "*",
+			UserSource:  "CHANNEL",
+			CheckClient: "REQUIRED",
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetChannelAuth(mock.Anything, desired).Return(nil, mqadmin.ErrNotFound).Once()
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &ChannelAuthRuleReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		updated := &messagingv1alpha1.ChannelAuthRule{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
+		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+			To(Equal(messagingv1alpha1.ReasonDriftDetected))
+		Expect(updated.Status.MQObjectExists).NotTo(BeNil())
+		Expect(*updated.Status.MQObjectExists).To(BeFalse())
+	})
+
 	It("removes CHLAUTH on delete", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
