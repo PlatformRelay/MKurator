@@ -24,7 +24,7 @@ Release artifacts: [GitHub Releases](https://github.com/konih/mkurator/releases)
 
 ## Connect and create a queue
 
-1. Create a `Secret` with MQ credentials (see [sample Secret](../config/samples/messaging_v1alpha1_queuemanagerconnection.yaml)).
+1. Create a `Secret` with MQ credentials (see [sample Secret](../charts/mkurator/samples/resources/mq-credentials-secret.yaml) or [Credentials secret](../config/samples/README.md#credentials-secret)).
 2. Apply a `QueueManagerConnection` pointing at your mqweb endpoint.
 3. Wait for the connection `Ready` condition.
 4. Apply a `Queue` CR — the operator runs `DEFINE QLOCAL` (or alias/remote) via mqweb.

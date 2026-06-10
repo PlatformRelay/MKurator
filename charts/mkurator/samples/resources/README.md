@@ -1,10 +1,10 @@
 # Sample resources (Helm)
 
-Same manifests as [`config/samples/`](../../../config/samples/README.md), synced via
+Same manifests as [`config/samples/`](../../../../config/samples/README.md), synced via
 `task samples:sync`. Applied by **`task deploy:samples`** after `task deploy:helm`
 (or as part of `task local:up`).
 
-See [docs/INSTALL_AND_USE.md](../../../docs/INSTALL_AND_USE.md) for the full install
+See [docs/INSTALL_AND_USE.md](../../../../docs/INSTALL_AND_USE.md) for the full install
 and usage guide.
 
 | File | Kind |

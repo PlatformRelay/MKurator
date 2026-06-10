@@ -66,7 +66,7 @@ output.
 When `webhooks.enabled=true`, **cert-manager must be running** in the cluster so the
 serving certificate becomes Ready. Admission behaviour (invalid spec rejection,
 unknown-attribute warnings) is described in
-[docs/INSTALL_AND_USE.md](../../docs/INSTALL_AND_USE.md#how-mkurator-manages-mq-objects).
+[docs/INSTALL_AND_USE.md](../../docs/INSTALL_AND_USE.md#how-it-works).
 
 ## CRDs
 

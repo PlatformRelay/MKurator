@@ -48,4 +48,4 @@ RBAC: operator may `create`/`patch` Events (see generated ClusterRole).
 
 ## References
 
-- [ARCHITECTURE.md](../ARCHITECTURE.md#event-emission)
+- [ARCHITECTURE.md](../ARCHITECTURE.md#connection-events-and-errors)

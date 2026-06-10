@@ -35,6 +35,10 @@ in module paths, CRDs, namespaces, images, and docs.
 - Local kind clusters named `kurator` continue to work via `CLUSTER_NAME=kurator` until
   recreated; new defaults use `mkurator`.
 - Workspace directory may remain `IBM-Message-Queue-Operator`; module path is authoritative.
+- **Environment variable prefix** `KURATOR_` (e.g. `KURATOR_LOG_LEVEL`, `KURATOR_E2E_MQ`,
+  `KURATOR_INTEGRATION_MQ`) was **deliberately retained** for compatibility with existing
+  scripts, CI, and developer muscle memory; only product identifiers (module, API group,
+  namespaces, images) use `mkurator`.
 
 ## Alternatives considered
 

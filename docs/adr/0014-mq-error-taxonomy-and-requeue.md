@@ -52,4 +52,4 @@ Principles:
 ## References
 
 - `internal/mqadmin/admin.go` — `TerminalError`, `NotFoundError`
-- [ARCHITECTURE.md](../ARCHITECTURE.md#error-handling--requeue-strategy)
+- [OPERATOR_RUNTIME.md](../OPERATOR_RUNTIME.md#error-handling-and-requeue-adr-0014)
