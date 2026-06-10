@@ -66,7 +66,8 @@ type QueueManagerConnectionSpec struct {
 	TLS *TLSConfig `json:"tls,omitempty"`
 
 	// CredentialsSecretRef references a Secret with mqweb credentials.
-	// Required keys: username, password (mqAdminPassword is also accepted for password).
+	// Required key: password (mqAdminPassword is also accepted). Username is optional:
+	// username, user, or mqAdminUser (defaults to admin when absent; admission warns).
 	// +kubebuilder:validation:Required
 	CredentialsSecretRef SecretReference `json:"credentialsSecretRef"`
 }
@@ -77,7 +78,7 @@ type TLSConfig struct {
 	// +optional
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 
-	// CASecretRef references a Secret containing a CA bundle (key tls.crt or ca.crt).
+	// CASecretRef references a Secret containing a CA bundle (key tls.crt, ca.crt, or ca.pem).
 	// +optional
 	CASecretRef *SecretReference `json:"caSecretRef,omitempty"`
 }

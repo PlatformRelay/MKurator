@@ -56,7 +56,8 @@ spec:
               credentialsSecretRef:
                 description: |-
                   CredentialsSecretRef references a Secret with mqweb credentials.
-                  Required keys: username, password (mqAdminPassword is also accepted for password).
+                  Required key: password (mqAdminPassword is also accepted). Username is optional:
+                  username, user, or mqAdminUser (defaults to admin when absent; admission warns).
                 properties:
                   name:
                     minLength: 1
@@ -82,7 +83,7 @@ spec:
                 properties:
                   caSecretRef:
                     description: CASecretRef references a Secret containing a CA bundle
-                      (key tls.crt or ca.crt).
+                      (key tls.crt, ca.crt, or ca.pem).
                     properties:
                       name:
                         minLength: 1

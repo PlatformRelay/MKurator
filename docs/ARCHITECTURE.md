@@ -139,7 +139,7 @@ The operator ships a tightly scoped `ClusterRole` generated from
 - `create`/`patch` on `Events`; reconcilers emit Kubernetes Events on **condition
   transitions** (Normal) and **terminal failures** (Warning) in addition to status
   conditions. Transient MQ/network errors update status only — no Events — to
-  avoid noise during retries. See [Event emission](#event-emission) below.
+  avoid noise during retries. See [Connection, events, and errors](#connection-events-and-errors) below.
 - `Lease` access in the operator namespace for leader election.
 
 No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.

@@ -14,6 +14,9 @@ Full doc index by role (with navigation emojis): **[docs/README.md](docs/README.
 | | Document | What it covers |
 |---|----------|----------------|
 | 🎯 | [docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md) | User guide: install, connect, CRs, troubleshooting. |
+| 🎯 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | Fast path: install, connect, first queue. |
+| 🎯 | [docs/FAQ.md](docs/FAQ.md) | Common questions (QMC, drift, suspend, webhooks). |
+| 🎯 | [docs/GLOSSARY.md](docs/GLOSSARY.md) | MQ and operator terminology. |
 | 🎯 | [docs/UPGRADE.md](docs/UPGRADE.md) | Upgrade operator, CRDs, webhooks, cert-manager. |
 | 🎯 | [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Metrics, ServiceMonitor, Prometheus scrape. |
 | 🏗️ | [docs/LOGGING.md](docs/LOGGING.md) | Structured logging configuration. |
@@ -29,6 +32,8 @@ Full doc index by role (with navigation emojis): **[docs/README.md](docs/README.
 | 📋 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased delivery plan. |
 | 📋 | [docs/CICD.md](docs/CICD.md) | CI/CD pipeline and `verify` discipline. |
 | 📋 | [docs/NON_FUNCTIONAL_REQUIREMENTS.md](docs/NON_FUNCTIONAL_REQUIREMENTS.md) | NFRs: security, reliability, observability, performance. |
+| 🔒 | [docs/ASSURANCE-CASE.md](docs/ASSURANCE-CASE.md) | Security claims and trust boundaries. |
+| 🔒 | [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md) | Dated security self-review. |
 | 📚 | [docs/IBM_MQ_OBJECTS.md](docs/IBM_MQ_OBJECTS.md) | MQSC research inventory (not the product API). |
 | 📚 | [docs/IBM_MQ_REST_API.md](docs/IBM_MQ_REST_API.md) | How the `mqweb` REST API is consumed. |
 
@@ -189,7 +194,7 @@ Dependency hygiene:
 - Use `errors.Is` / `errors.As` for inspection and unwrapping.
 - Define sentinel/typed errors at the port (`mqadmin`) boundary so controllers
   can branch on them (e.g. `ErrNotFound`, transient vs. terminal) without
-  parsing strings. See [ARCHITECTURE.md](docs/ARCHITECTURE.md#error-handling--requeue-strategy).
+  parsing strings. See [OPERATOR_RUNTIME.md](docs/OPERATOR_RUNTIME.md#error-handling-and-requeue-adr-0014).
 
 ```go
 func (r *QueueReconciler) ensure(ctx context.Context, q *v1alpha1.Queue) error {

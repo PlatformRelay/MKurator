@@ -264,46 +264,46 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
 
 ### 7a — Reliability fixes (P0/P1, land first)
 
-- [ ] **Deletion deadlocks** (EC-P0-01/EC-P0-02): evaluate `DeletionTimestamp`
+- [x] **Deletion deadlocks** (EC-P0-01/EC-P0-02): evaluate `DeletionTimestamp`
   before requiring a ready connection; `ReleaseConnection` tolerates missing
   Secrets; envtest locks T1/T2. Per [ADR-0022](adr/0022-deletion-and-adoption-policy.md)
-  / [ADR-0023](adr/0023-connection-client-cache-lifecycle.md).
-- [ ] **QMC hot loop** (ARCH-01/EC-P1-02): stop `Ready` False→True flapping on
+  / [ADR-0023](adr/0023-connection-client-cache-lifecycle.md). *(v0.7.1)*
+- [x] **QMC hot loop** (ARCH-01/EC-P1-02): stop `Ready` False→True flapping on
   every reconcile; status-change-only patches + predicates; one `Available`
-  event per transition (ADR-0015 compliance); envtest lock T4.
-- [ ] **MQSC injection** (EC-P1-04): enum/pattern validation for
+  event per transition (ADR-0015 compliance); envtest lock T4. *(v0.7.1, refined v0.8.0)*
+- [x] **MQSC injection** (EC-P1-04): enum/pattern validation for
   `userSource`/`checkClient`/`authorities[]` + shared quoting helper per
-  [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md); webhook envtest T6.
-- [ ] **Periodic drift resync** (ARCH-04/EC-P1-01, ADR-0010 gap): configurable
+  [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md); webhook envtest T6. *(v0.7.1)*
+- [x] **Periodic drift resync** (ARCH-04/EC-P1-01, ADR-0010 gap): configurable
   jittered `RequeueAfter` on successful syncs (default 5–10 min) + drift
   detection metric; makes `/readyz` MQ-health real again (EC-P2-06); envtest
-  locks T3/T3b.
-- [ ] **Client cache lifecycle** (ARCH-02/03, EC-P2-01): identity-keyed cache,
+  locks T3/T3b. *(v0.7.1)*
+- [x] **Client cache lifecycle** (ARCH-02/03, EC-P2-01): identity-keyed cache,
   replace-on-rotation with transport close, bounded size — per
-  [ADR-0023](adr/0023-connection-client-cache-lifecycle.md).
-- [ ] `RecoverPanic` on all controllers (EC-P1-05); log swallowed `List` errors
+  [ADR-0023](adr/0023-connection-client-cache-lifecycle.md). *(v0.7.1)*
+- [x] `RecoverPanic` on all controllers (EC-P1-05); log swallowed `List` errors
   in connection fan-out (EC-P2-02, ARCH-10); fix transient
-  `RequeueAfter`+error conflict (EC-P3-02).
+  `RequeueAfter`+error conflict (EC-P3-02). *(v0.7.1)*
 
 ### 7b — Operator table stakes
 
-- [ ] **`spec.suspend` + reconcile-now annotation** (MKR-01; makes the FAQ
-  claim true — currently documents a non-existent annotation, DOC-02).
-- [ ] **Watch referenced Secrets** (MKR-02/EC-P1-03): credential rotation and
-  fixed-Secret recovery become event-driven; envtest lock T5.
-- [ ] **`spec.deletionPolicy` (`Delete`/`Orphan`) + force-orphan annotation;
+- [x] **`spec.suspend` + reconcile-now annotation** (MKR-01; makes the FAQ
+  claim true — previously documented a non-existent annotation, DOC-02). *(v0.8.0)*
+- [x] **Watch referenced Secrets** (MKR-02/EC-P1-03): credential rotation and
+  fixed-Secret recovery become event-driven; envtest lock T5. *(v0.8.0)*
+- [x] **`spec.deletionPolicy` (`Delete`/`Orphan`) + force-orphan annotation;
   `spec.adoptionPolicy` (`Adopt`/`AdoptIfMatching`/`FailIfExists`)** — per
-  [ADR-0022](adr/0022-deletion-and-adoption-policy.md); brownfield-safe semantics.
-- [ ] **Retry/backoff + circuit breaker around mqweb** (MKR-03) with breaker
-  state metric; per-request context deadlines distinct from the 60 s client cap.
-- [ ] **Configurable, jittered requeue intervals** (MKR-05): QMC health 30 s,
-  connection-wait 15 s, transient 30 s, drift resync — manager flags.
+  [ADR-0022](adr/0022-deletion-and-adoption-policy.md); brownfield-safe semantics. *(v0.8.0)*
+- [x] **Retry/backoff + circuit breaker around mqweb** (MKR-03) with breaker
+  state metric; per-request context deadlines distinct from the 60 s client cap. *(v0.8.0)*
+- [x] **Configurable, jittered requeue intervals** (MKR-05): QMC health 30 s,
+  connection-wait 15 s, transient 30 s, drift resync — manager flags. *(v0.8.0)*
 - [ ] **CEL-first validation** per [ADR-0025](adr/0025-cel-first-admission-validation.md):
   stateless rules to `x-kubernetes-validations`; webhook shrinks to stateful
   checks; cert-manager becomes optional (`webhooks.enabled=false` documented).
-- [ ] **Secret RBAC/cache scoping** (ARCH-05): filtered informer cache for
-  Secrets; align ARCHITECTURE.md least-privilege claim. Require explicit
-  `username` (or loud warning on the `admin` default, ARCH-12).
+- [x] **Secret RBAC/cache scoping** (ARCH-05): filtered informer cache for
+  Secrets; align ARCHITECTURE.md least-privilege claim. Warn on the `admin`
+  default when username keys are absent (ARCH-12). *(v0.8.0)*
 
 ### 7c — Code & test health
 
@@ -311,17 +311,17 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
   `MQObject` interface or generics across `reconcile_shared.go` /
   `status_helpers.go` / `drift_policy.go`; one generic workload reconcile
   skeleton. **Precondition for any new CRD kind.**
-- [ ] **Wrong-behavior fixes** (test audit): observe-only CHLAUTH/AUTHREC must
+- [x] **Wrong-behavior fixes** (test audit): observe-only CHLAUTH/AUTHREC must
   not SET missing objects (WB-01/F01); typed wrap errors replace substring
   event classification (WB-02/F02, ADR-0014 compliance); per-kind status-patch
-  tests assert re-read state (WB-03/F03).
-- [ ] Delete dead helpers + padding tests (ARCH-09/F04); envtest gaps for
+  tests assert re-read state (WB-03/F03). *(v0.8.0)*
+- [x] Delete dead helpers + padding tests (ARCH-09/F04); envtest gaps for
   Channel/Topic/AuthorityRecord paths (F07) — lifts `internal/controller`
-  coverage (87.6%) honestly.
+  coverage (87.6%) honestly. *(v0.8.0)*
 - [ ] **E2E flake triage** (ARCH-07): 2 of last 6 main runs failed with
-  reruns green; duration variance 13–34 min.
-- [ ] Fix `task changelog` clobbering `CHANGELOG.md` (release audit P1-2:
-  `cliff.toml` `output` vs preview tasks).
+  reruns green; duration variance 13–34 min (note added v0.8.0; root cause open).
+- [x] Fix `task changelog` clobbering `CHANGELOG.md` (release audit P1-2:
+  `cliff.toml` `output` vs preview tasks). *(v0.7.1)*
 
 ### 7d — Docs truth wave
 
@@ -330,7 +330,8 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
   cert-manager in prerequisites (DOC-03); uninstall covers auth CRs (DOC-09);
   broken ADR-0006 links (DOC-04); cert `Ready` wait in UPGRADE.md (DOC-07);
   version pins → current release (DOC-08); remaining link/anchor fixes
-  (DOC-05/10/11/12); doc-map sync (DOC-13).
+  (DOC-05/10/11/12); doc-map sync (DOC-13); CRD field comments (DOC-14);
+  ADR-0018 `KURATOR_*` prefix note (DOC-17).
 
 Exit criteria: all EC-P0/P1 closed with envtest locks; suspend/deletion/
 adoption/resync shipped and documented; CEL migration complete with golden

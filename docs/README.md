@@ -22,6 +22,7 @@
 | | Document | Covers |
 |---|----------|--------|
 | 🎯 | [INSTALL_AND_USE.md](INSTALL_AND_USE.md) | Install, connect, CRs, kubectl diagnostics, upgrade, uninstall |
+| 🎯 | [QUICKSTART.md](QUICKSTART.md) | Fast path: install, connect, first queue |
 | 🎯 | [FAQ.md](FAQ.md) | Common questions (QMC, drift, suspend, webhooks) |
 | 🎯 | [GLOSSARY.md](GLOSSARY.md) | MQ and operator terminology |
 | 🎯 | [UPGRADE.md](UPGRADE.md) | Upgrade operator, CRDs, webhooks, cert-manager |
@@ -35,6 +36,7 @@
 | 🛠️ | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager, health/readiness, metrics, graceful shutdown |
 | 🛠️ | [development/](development/) | Engineering standards (guidelines, coding, testing) |
 | 🔒 | [ASSURANCE-CASE.md](ASSURANCE-CASE.md) | Security claims and trust boundaries |
+| 🔒 | [SECURITY-REVIEW.md](SECURITY-REVIEW.md) | Dated security self-review |
 | 🛠️ | [CONTRIBUTING.md](CONTRIBUTING.md) | Commit format (Conventional Commits + gitmoji) |
 | 🛠️ | [RELEASE.md](RELEASE.md) | Maintainer guide: tag, changelog, publish a version |
 | 🛠️ | [../hack/kind-cluster/README.md](../hack/kind-cluster/README.md) | kind + Terraform + IBM MQ platform only |
