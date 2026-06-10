@@ -22,6 +22,8 @@ const (
 const AuthorityRecordFinalizer = "messaging.mkurator.dev/authorityrecord"
 
 // AuthorityRecordSpec defines a SET AUTHREC rule on a referenced queue manager.
+// +kubebuilder:validation:XValidation:rule="(has(self.principal) && size(self.principal) > 0) || (has(self.group) && size(self.group) > 0)",message="principal or group is required"
+// +kubebuilder:validation:XValidation:rule="!(has(self.principal) && size(self.principal) > 0 && has(self.group) && size(self.group) > 0)",message="specify principal or group, not both"
 type AuthorityRecordSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -30,6 +32,12 @@ type AuthorityRecordSpec struct {
 	// Profile maps to PROFILE('…') — queue, channel, or other object name.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=48
+	// +kubebuilder:validation:Pattern=`^[A-Z0-9./%&$#@]+$`
+	// +kubebuilder:validation:XValidation:rule="self == self.trim()",message="name must not have leading or trailing whitespace"
+	// +kubebuilder:validation:XValidation:rule="!self.startsWith('.') && !self.endsWith('.')",message="name must not start or end with '.'"
+	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('SYSTEM.')",message="names with prefix SYSTEM. are reserved for queue manager objects"
+	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('AMQ')",message="names with prefix AMQ are reserved for IBM MQ internal use"
 	Profile string `json:"profile"`
 
 	// ObjectType maps to OBJTYPE(...).
