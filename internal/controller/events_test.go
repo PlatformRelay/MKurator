@@ -39,27 +39,46 @@ func TestClassifyReconcileError(t *testing.T) {
 		},
 		{
 			name: "connection not found",
-			err: fmt.Errorf(
-				`get connection "qm1": %w`,
-				apierrors.NewNotFound(schema.GroupResource{Resource: "queuemanagerconnections"}, "qm1"),
-			),
+			err: &mqadmin.ConnectionNotFoundError{
+				Name: "qm1",
+				Cause: apierrors.NewNotFound(
+					schema.GroupResource{Resource: "queuemanagerconnections"},
+					"qm1",
+				),
+			},
 			wantReason: EventReasonConnectionNotFound,
 		},
 		{
 			name: "credentials secret not found",
-			err: fmt.Errorf(
-				"get credentials secret: %w",
-				apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "mq-creds"),
-			),
+			err: &mqadmin.SecretNotFoundError{
+				Name: "mq-creds",
+				Role: "credentials",
+				Cause: apierrors.NewNotFound(
+					schema.GroupResource{Resource: "secrets"},
+					"mq-creds",
+				),
+			},
 			wantReason: EventReasonSecretNotFound,
 		},
 		{
 			name: "ca secret not found",
-			err: fmt.Errorf(
-				"get CA secret for cache key: %w",
-				apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "mq-ca"),
-			),
+			err: &mqadmin.SecretNotFoundError{
+				Name: "mq-ca",
+				Role: "CA",
+				Cause: apierrors.NewNotFound(
+					schema.GroupResource{Resource: "secrets"},
+					"mq-ca",
+				),
+			},
 			wantReason: EventReasonSecretNotFound,
+		},
+		{
+			name: "substring-only connection error is generic",
+			err: fmt.Errorf(
+				`get connection "qm1": %w`,
+				apierrors.NewNotFound(schema.GroupResource{Resource: "queuemanagerconnections"}, "qm1"),
+			),
+			wantReason: messagingv1alpha1.ReasonError,
 		},
 		{
 			name:       "generic error",

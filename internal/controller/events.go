@@ -2,10 +2,8 @@ package controller
 
 import (
 	"errors"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
@@ -37,13 +35,14 @@ func classifyReconcileError(err error) (reason, message string) {
 		return reason, message
 	}
 
-	if hasNotFoundInChain(err) {
-		if containsInChain(err, "get connection") {
-			return EventReasonConnectionNotFound, message
-		}
-		if containsInChain(err, "credentials secret") || containsInChain(err, "CA secret") {
-			return EventReasonSecretNotFound, message
-		}
+	var connNF *mqadmin.ConnectionNotFoundError
+	if errors.As(err, &connNF) {
+		return EventReasonConnectionNotFound, message
+	}
+
+	var secretNF *mqadmin.SecretNotFoundError
+	if errors.As(err, &secretNF) {
+		return EventReasonSecretNotFound, message
 	}
 
 	return messagingv1alpha1.ReasonError, message
@@ -76,22 +75,4 @@ func conditionChanged(
 		}
 	}
 	return true
-}
-
-func hasNotFoundInChain(err error) bool {
-	for e := err; e != nil; e = errors.Unwrap(e) {
-		if k8serrors.IsNotFound(e) {
-			return true
-		}
-	}
-	return false
-}
-
-func containsInChain(err error, substr string) bool {
-	for e := err; e != nil; e = errors.Unwrap(e) {
-		if strings.Contains(e.Error(), substr) {
-			return true
-		}
-	}
-	return false
 }

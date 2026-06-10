@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
@@ -145,7 +146,12 @@ func (f *ClientFactory) cacheFingerprint(
 		Namespace: conn.Namespace,
 		Name:      conn.Spec.CredentialsSecretRef.Name,
 	}, credSecret); err != nil {
-		return cacheFingerprint{}, fmt.Errorf("get credentials secret for cache fingerprint: %w", err)
+		return cacheFingerprint{}, secretLookupError(
+			conn.Spec.CredentialsSecretRef.Name,
+			"credentials",
+			"cache fingerprint",
+			err,
+		)
 	}
 
 	fp := cacheFingerprint{
@@ -159,7 +165,12 @@ func (f *ClientFactory) cacheFingerprint(
 			Namespace: conn.Namespace,
 			Name:      conn.Spec.TLS.CASecretRef.Name,
 		}, caSecret); err != nil {
-			return cacheFingerprint{}, fmt.Errorf("get CA secret for cache fingerprint: %w", err)
+			return cacheFingerprint{}, secretLookupError(
+				conn.Spec.TLS.CASecretRef.Name,
+				"CA",
+				"cache fingerprint",
+				err,
+			)
 		}
 		fp.caRV = caSecret.ResourceVersion
 	}
@@ -186,7 +197,12 @@ func (f *ClientFactory) buildConfig(
 		Namespace: ns,
 		Name:      conn.Spec.CredentialsSecretRef.Name,
 	}, credSecret); err != nil {
-		return Config{}, fmt.Errorf("get credentials secret: %w", err)
+		return Config{}, secretLookupError(
+			conn.Spec.CredentialsSecretRef.Name,
+			"credentials",
+			"",
+			err,
+		)
 	}
 
 	user, pass, err := credentialsFromSecret(credSecret.Data)
@@ -205,7 +221,12 @@ func (f *ClientFactory) buildConfig(
 			Namespace: ns,
 			Name:      conn.Spec.TLS.CASecretRef.Name,
 		}, caSecret); getErr != nil {
-			return Config{}, fmt.Errorf("get CA secret: %w", getErr)
+			return Config{}, secretLookupError(
+				conn.Spec.TLS.CASecretRef.Name,
+				"CA",
+				"",
+				getErr,
+			)
 		}
 		pool, poolErr := caPoolFromSecret(caSecret.Data)
 		if poolErr != nil {
@@ -275,4 +296,14 @@ func firstBytes(data map[string][]byte, keys ...string) []byte {
 		}
 	}
 	return nil
+}
+
+func secretLookupError(name, role, context string, err error) error {
+	if k8serrors.IsNotFound(err) {
+		return &mqadmin.SecretNotFoundError{Name: name, Role: role, Cause: err}
+	}
+	if context != "" {
+		return fmt.Errorf("get %s secret for %s: %w", role, context, err)
+	}
+	return fmt.Errorf("get %s secret: %w", role, err)
 }

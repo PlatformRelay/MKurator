@@ -82,9 +82,11 @@ type ChannelState struct {
 
 // Sentinel errors for controller branching.
 var (
-	ErrNotFound  = errors.New("mq object not found")
-	ErrTerminal  = errors.New("mq terminal error")
-	ErrTransient = errors.New("mq transient error")
+	ErrNotFound           = errors.New("mq object not found")
+	ErrTerminal           = errors.New("mq terminal error")
+	ErrTransient          = errors.New("mq transient error")
+	ErrConnectionNotFound = errors.New("queuemanagerconnection not found")
+	ErrSecretNotFound     = errors.New("kubernetes secret not found")
 )
 
 // TerminalError wraps a non-retryable MQ or REST failure.
@@ -132,3 +134,35 @@ func (e *NotFoundError) Error() string {
 }
 
 func (e *NotFoundError) Is(target error) bool { return target == ErrNotFound }
+
+// ConnectionNotFoundError indicates the referenced QueueManagerConnection CR is missing.
+type ConnectionNotFoundError struct {
+	Name  string
+	Cause error
+}
+
+func (e *ConnectionNotFoundError) Error() string {
+	return fmt.Sprintf("get connection %q: %v", e.Name, e.Cause)
+}
+
+func (e *ConnectionNotFoundError) Unwrap() error { return e.Cause }
+
+func (e *ConnectionNotFoundError) Is(target error) bool { return target == ErrConnectionNotFound }
+
+// SecretNotFoundError indicates a referenced Kubernetes Secret is missing.
+type SecretNotFoundError struct {
+	Name  string
+	Role  string
+	Cause error
+}
+
+func (e *SecretNotFoundError) Error() string {
+	if e.Role != "" {
+		return fmt.Sprintf("get %s secret %q: %v", e.Role, e.Name, e.Cause)
+	}
+	return fmt.Sprintf("get secret %q: %v", e.Name, e.Cause)
+}
+
+func (e *SecretNotFoundError) Unwrap() error { return e.Cause }
+
+func (e *SecretNotFoundError) Is(target error) bool { return target == ErrSecretNotFound }

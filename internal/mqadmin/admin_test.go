@@ -67,3 +67,33 @@ func TestNotFoundError(t *testing.T) {
 		t.Fatal("expected ErrNotFound")
 	}
 }
+
+func TestConnectionNotFoundError(t *testing.T) {
+	t.Parallel()
+	cause := fmt.Errorf("not found")
+	err := &ConnectionNotFoundError{Name: "qm1", Cause: cause}
+	if err.Error() != `get connection "qm1": not found` {
+		t.Fatalf("Error() = %q", err.Error())
+	}
+	if !errors.Is(err, ErrConnectionNotFound) {
+		t.Fatal("expected ErrConnectionNotFound")
+	}
+	if !errors.Is(err, cause) {
+		t.Fatal("expected unwrap to cause")
+	}
+}
+
+func TestSecretNotFoundError(t *testing.T) {
+	t.Parallel()
+	cause := fmt.Errorf("not found")
+	err := &SecretNotFoundError{Name: "mq-creds", Role: "credentials", Cause: cause}
+	if err.Error() != `get credentials secret "mq-creds": not found` {
+		t.Fatalf("Error() = %q", err.Error())
+	}
+	if !errors.Is(err, ErrSecretNotFound) {
+		t.Fatal("expected ErrSecretNotFound")
+	}
+	if !errors.Is(err, cause) {
+		t.Fatal("expected unwrap to cause")
+	}
+}

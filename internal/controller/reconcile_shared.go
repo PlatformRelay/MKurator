@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -31,6 +32,9 @@ func resolveConnection(
 ) (*messagingv1alpha1.QueueManagerConnection, error) {
 	conn := &messagingv1alpha1.QueueManagerConnection{}
 	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, conn); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return nil, &mqadmin.ConnectionNotFoundError{Name: name, Cause: err}
+		}
 		return nil, fmt.Errorf("get connection %q: %w", name, err)
 	}
 	return conn, nil
