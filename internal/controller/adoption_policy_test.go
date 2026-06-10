@@ -91,7 +91,9 @@ func TestPatchSyncedAdoptionBlocked_AllKinds(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(cases...).WithObjects(cases...).Build()
 	for _, obj := range cases {
-		if err := patchSyncedAdoptionBlocked(ctx, cl.Status(), nil, obj, 1, messagingv1alpha1.ReasonAlreadyExists, "exists", syncStatusOpts{}); err != nil {
+		if err := patchSyncedAdoptionBlocked(
+			ctx, cl.Status(), nil, obj, 1, messagingv1alpha1.ReasonAlreadyExists, "exists", syncStatusOpts{},
+		); err != nil {
 			t.Fatalf("%T: %v", obj, err)
 		}
 	}

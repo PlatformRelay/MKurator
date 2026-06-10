@@ -185,6 +185,7 @@ func channelNeedsUpdate(desired mqadmin.ChannelSpec, observed *mqadmin.ChannelSt
 }
 
 //nolint:dupl // per-kind deletion handlers share MQ timeout wiring
+//nolint:dupl // shared MQ object deletion flow; differs in spec mapping and finalizer
 func (r *ChannelReconciler) handleDeletion(
 	ctx context.Context,
 	channel *messagingv1alpha1.Channel,

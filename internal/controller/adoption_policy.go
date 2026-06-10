@@ -69,7 +69,9 @@ func handleAdoptionBlock(
 	if block == nil {
 		return ctrl.Result{}, nil
 	}
-	if err := patchSyncedAdoptionBlocked(ctx, status, recorder, obj, generation, block.Reason, block.Message, opts); err != nil {
+	if err := patchSyncedAdoptionBlocked(
+		ctx, status, recorder, obj, generation, block.Reason, block.Message, opts,
+	); err != nil {
 		return ctrl.Result{}, err
 	}
 	return workloadDriftResyncResult(), nil

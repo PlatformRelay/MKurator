@@ -171,6 +171,7 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 }
 
 //nolint:dupl // per-kind deletion handlers share MQ timeout wiring
+//nolint:dupl // shared MQ object deletion flow; differs in spec mapping and finalizer
 func (r *AuthorityRecordReconciler) handleDeletion(
 	ctx context.Context,
 	auth *messagingv1alpha1.AuthorityRecord,

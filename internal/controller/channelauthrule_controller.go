@@ -171,6 +171,7 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 }
 
 //nolint:dupl // per-kind deletion handlers share MQ timeout wiring
+//nolint:dupl // shared MQ object deletion flow; differs in spec mapping and finalizer
 func (r *ChannelAuthRuleReconciler) handleDeletion(
 	ctx context.Context,
 	rule *messagingv1alpha1.ChannelAuthRule,
