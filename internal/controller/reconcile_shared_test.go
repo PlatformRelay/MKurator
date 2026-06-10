@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -140,16 +139,6 @@ func TestResolveConnection_NotFound(t *testing.T) {
 	_, err := resolveConnection(ctx, cl, "default", "missing")
 	if err == nil {
 		t.Fatal("expected error")
-	}
-}
-
-func TestIgnoreNotFound(t *testing.T) {
-	t.Parallel()
-	if !ignoreNotFound(apierrors.NewNotFound(schema.GroupResource{}, "x")) {
-		t.Fatal("expected true for NotFound")
-	}
-	if ignoreNotFound(errors.New("other")) {
-		t.Fatal("expected false")
 	}
 }
 

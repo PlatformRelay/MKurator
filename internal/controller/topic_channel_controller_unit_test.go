@@ -419,34 +419,6 @@ func TestTopicReconciler_Deletion(t *testing.T) {
 	}
 }
 
-func TestTopicNeedsUpdate(t *testing.T) {
-	t.Parallel()
-	desired := mqadmin.TopicSpec{
-		Name:       "RETAIL.ORDERS",
-		Attributes: map[string]string{"topstr": "retail/orders"},
-	}
-	observed := &mqadmin.TopicState{Attributes: map[string]string{"topstr": "retail/orders"}}
-	if topicNeedsUpdate(desired, observed) {
-		t.Fatal("expected no update")
-	}
-	observed.Attributes["topstr"] = "other"
-	if !topicNeedsUpdate(desired, observed) {
-		t.Fatal("expected update on drift")
-	}
-}
-
-func TestTopicNeedsUpdate_PubSubCaseInsensitive(t *testing.T) {
-	t.Parallel()
-	desired := mqadmin.TopicSpec{
-		Name:       "RETAIL.ORDERS",
-		Attributes: map[string]string{"pub": "enabled", "sub": "enabled"},
-	}
-	observed := &mqadmin.TopicState{Attributes: map[string]string{"pub": "ENABLED", "sub": "ENABLED"}}
-	if topicNeedsUpdate(desired, observed) {
-		t.Fatal("expected no update when pub/sub differ only by case")
-	}
-}
-
 func TestChannelReconciler_DefinesWhenMissing(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -589,23 +561,6 @@ func TestChannelReconciler_Deletion(t *testing.T) {
 	}
 	if len(updated.Finalizers) != 0 {
 		t.Fatalf("finalizers = %v", updated.Finalizers)
-	}
-}
-
-func TestChannelNeedsUpdate(t *testing.T) {
-	t.Parallel()
-	desired := mqadmin.ChannelSpec{
-		Name:       "ORDERS.APP",
-		Type:       mqadmin.ChannelTypeSvrconn,
-		Attributes: map[string]string{"trptype": "tcp"},
-	}
-	observed := &mqadmin.ChannelState{Attributes: map[string]string{"trptype": "tcp"}}
-	if channelNeedsUpdate(desired, observed) {
-		t.Fatal("expected no update")
-	}
-	observed.Attributes["trptype"] = "lu62"
-	if !channelNeedsUpdate(desired, observed) {
-		t.Fatal("expected update on drift")
 	}
 }
 

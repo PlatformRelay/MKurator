@@ -9,11 +9,6 @@ import (
 	"github.com/konih/mkurator/internal/mqadmin"
 )
 
-func TestClient_ImplementsAdmin(t *testing.T) {
-	t.Parallel()
-	var _ mqadmin.Admin = (*mqpcf.Client)(nil)
-}
-
 func TestNewClient_RequiresQueueManager(t *testing.T) {
 	t.Parallel()
 	_, err := mqpcf.NewClient(mqpcf.Config{})

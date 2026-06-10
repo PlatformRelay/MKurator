@@ -167,14 +167,6 @@ func (r *QueueReconciler) ensureQueue(
 	)
 }
 
-func needsUpdate(desired mqadmin.QueueSpec, observed *mqadmin.QueueState) bool {
-	return mqadmin.AttributesNeedUpdate(
-		desired.Attributes,
-		observed.Attributes,
-		mqrest.QueueDriftCheckKeys(desired.Type),
-	)
-}
-
 func (r *QueueReconciler) handleDeletion(
 	ctx context.Context,
 	q *messagingv1alpha1.Queue,

@@ -47,23 +47,3 @@ func TestConnectionReady(t *testing.T) {
 		t.Fatal("expected not ready")
 	}
 }
-
-func TestNeedsUpdate(t *testing.T) {
-	t.Parallel()
-	desired := mqadmin.QueueSpec{
-		Name: testQueueName,
-		Attributes: map[string]string{
-			testAttrMaxDepth: testMaxDepth,
-		},
-	}
-	observed := &mqadmin.QueueState{
-		Attributes: map[string]string{testAttrMaxDepth: testMaxDepth},
-	}
-	if needsUpdate(desired, observed) {
-		t.Fatal("expected no update when attributes match")
-	}
-	observed.Attributes[testAttrMaxDepth] = "1000"
-	if !needsUpdate(desired, observed) {
-		t.Fatal("expected update when maxdepth drifts")
-	}
-}

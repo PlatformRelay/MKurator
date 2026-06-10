@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -543,10 +542,6 @@ func connectionReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
 
 func connectionReadyChanged(oldConn, newConn *messagingv1alpha1.QueueManagerConnection) bool {
 	return connectionReady(oldConn) != connectionReady(newConn)
-}
-
-func ignoreNotFound(err error) bool {
-	return k8serrors.IsNotFound(err)
 }
 
 func connectionWatchPredicates() predicate.Funcs {

@@ -162,14 +162,6 @@ func (r *TopicReconciler) ensureTopic(
 	)
 }
 
-func topicNeedsUpdate(desired mqadmin.TopicSpec, observed *mqadmin.TopicState) bool {
-	return mqadmin.AttributesNeedUpdate(
-		desired.Attributes,
-		observed.Attributes,
-		mqrest.TopicDriftCheckKeys(),
-	)
-}
-
 func (r *TopicReconciler) handleDeletion(
 	ctx context.Context,
 	topic *messagingv1alpha1.Topic,

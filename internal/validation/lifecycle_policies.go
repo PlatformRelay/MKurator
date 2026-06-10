@@ -6,7 +6,10 @@ import (
 	messagingv1alpha1 "github.com/konih/mkurator/api/v1alpha1"
 )
 
-func ValidateWorkloadLifecyclePolicies(path *field.Path, policies messagingv1alpha1.WorkloadLifecyclePolicies) field.ErrorList {
+func ValidateWorkloadLifecyclePolicies(
+	path *field.Path,
+	policies messagingv1alpha1.WorkloadLifecyclePolicies,
+) field.ErrorList {
 	var errs field.ErrorList
 	if policies.DeletionPolicy != "" &&
 		policies.DeletionPolicy != messagingv1alpha1.DeletionPolicyDelete &&

@@ -117,6 +117,7 @@ func TestConditionChanged(t *testing.T) {
 	}
 }
 
+// Smoke test: nil recorder must not panic (optional dependency in unit tests).
 func TestRecordReconcileWarning_NilRecorder(t *testing.T) {
 	t.Parallel()
 	recordReconcileWarning(nil, &messagingv1alpha1.Queue{
