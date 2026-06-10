@@ -115,8 +115,21 @@ spec:
               profile:
                 description: Profile maps to PROFILE('…') — queue, channel, or other
                   object name.
+                maxLength: 48
                 minLength: 1
+                pattern: ^[A-Z0-9./%&$#@]+$
                 type: string
+                x-kubernetes-validations:
+                - message: name must not have leading or trailing whitespace
+                  rule: self == self.trim()
+                - message: name must not start or end with '.'
+                  rule: '!self.startsWith(''.'') && !self.endsWith(''.'')'
+                - message: names with prefix SYSTEM. are reserved for queue manager
+                    objects
+                  rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
+                - message: names with prefix AMQ are reserved for IBM MQ internal
+                    use
+                  rule: '!self.upperAscii().startsWith(''AMQ'')'
               suspend:
                 description: Suspend pauses MQ reconciliation for this object. Status
                   shows Synced=False ReasonSuspended.
@@ -127,6 +140,13 @@ spec:
             - objectType
             - profile
             type: object
+            x-kubernetes-validations:
+            - message: principal or group is required
+              rule: (has(self.principal) && size(self.principal) > 0) || (has(self.group)
+                && size(self.group) > 0)
+            - message: specify principal or group, not both
+              rule: '!(has(self.principal) && size(self.principal) > 0 && has(self.group)
+                && size(self.group) > 0)'
           status:
             description: AuthorityRecordStatus defines the observed state of AuthorityRecord.
             properties:

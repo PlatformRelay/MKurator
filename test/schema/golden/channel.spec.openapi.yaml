@@ -18,8 +18,19 @@ properties:
     type: object
   channelName:
     description: ChannelName is the IBM MQ channel name (e.g. ORDERS.APP).
+    maxLength: 48
     minLength: 1
+    pattern: ^[A-Z0-9./%&$#@]+$
     type: string
+    x-kubernetes-validations:
+    - message: name must not have leading or trailing whitespace
+      rule: self == self.trim()
+    - message: name must not start or end with '.'
+      rule: '!self.startsWith(''.'') && !self.endsWith(''.'')'
+    - message: names with prefix SYSTEM. are reserved for queue manager objects
+      rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
+    - message: names with prefix AMQ are reserved for IBM MQ internal use
+      rule: '!self.upperAscii().startsWith(''AMQ'')'
   connectionRef:
     description: ConnectionRef names a QueueManagerConnection in the same namespace.
     properties:

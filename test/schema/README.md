@@ -1,7 +1,12 @@
 # CRD OpenAPI contract tests (no cluster)
 
 Golden **spec** OpenAPI fragments extracted from `config/crd/bases/*.yaml` catch
-kubebuilder marker drift without kind or e2e.
+kubebuilder marker drift without kind or e2e. Fragments include
+`x-kubernetes-validations` (CEL) rules migrated per
+[ADR-0025](../docs/adr/0025-cel-first-admission-validation.md).
+
+CEL acceptance/rejection parity with the prior webhook rules is covered by
+`internal/webhook/v1alpha1/cel_validation_test.go` (envtest against committed CRDs).
 
 ## Enforced kinds
 

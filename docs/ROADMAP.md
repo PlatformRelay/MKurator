@@ -298,9 +298,9 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
   state metric; per-request context deadlines distinct from the 60 s client cap. *(v0.8.0)*
 - [x] **Configurable, jittered requeue intervals** (MKR-05): QMC health 30 s,
   connection-wait 15 s, transient 30 s, drift resync — manager flags. *(v0.8.0)*
-- [ ] **CEL-first validation** per [ADR-0025](adr/0025-cel-first-admission-validation.md):
-  stateless rules to `x-kubernetes-validations`; webhook shrinks to stateful
-  checks; cert-manager becomes optional (`webhooks.enabled=false` documented).
+- [x] **CEL-first validation** per [ADR-0025](adr/0025-cel-first-admission-validation.md):
+  stateless rules on CRDs; webhooks for referential checks only; golden + envtest
+  parity; cert-manager optional with `webhooks.enabled=false`.
 - [x] **Secret RBAC/cache scoping** (ARCH-05): filtered informer cache for
   Secrets; align ARCHITECTURE.md least-privilege claim. Warn on the `admin`
   default when username keys are absent (ARCH-12). *(v0.8.0)*

@@ -110,6 +110,10 @@ linters:
       - linters:
           - gosec
         path: test/utils/
+      - linters:
+          - lll
+        path: api/v1alpha1/.*_types\.go
+        source: kubebuilder:validation:XValidation
     paths:
       - third_party$
       - zz_generated\..*\.go$

@@ -15,8 +15,19 @@ properties:
     type: string
   channelName:
     description: ChannelName is the IBM MQ channel name in SET CHLAUTH('…').
+    maxLength: 48
     minLength: 1
+    pattern: ^[A-Z0-9./%&$#@]+$
     type: string
+    x-kubernetes-validations:
+    - message: name must not have leading or trailing whitespace
+      rule: self == self.trim()
+    - message: name must not start or end with '.'
+      rule: '!self.startsWith(''.'') && !self.endsWith(''.'')'
+    - message: names with prefix SYSTEM. are reserved for queue manager objects
+      rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
+    - message: names with prefix AMQ are reserved for IBM MQ internal use
+      rule: '!self.upperAscii().startsWith(''AMQ'')'
   checkClient:
     description: CheckClient maps to CHCKCLNT(...) for ADDRESSMAP rules.
     enum:
@@ -73,3 +84,13 @@ required:
 - connectionRef
 - ruleType
 type: object
+x-kubernetes-validations:
+- message: address is required for ADDRESSMAP rules
+  rule: self.ruleType != 'ADDRESSMAP' || (has(self.address) && size(self.address)
+    > 0)
+- message: address is required for BLOCKADDR rules
+  rule: self.ruleType != 'BLOCKADDR' || (has(self.address) && size(self.address) >
+    0)
+- message: userList is required for BLOCKUSER rules
+  rule: self.ruleType != 'BLOCKUSER' || (has(self.userList) && size(self.userList)
+    > 0)

@@ -42,6 +42,9 @@ const (
 const ChannelAuthRuleFinalizer = "messaging.mkurator.dev/channelauthrule"
 
 // ChannelAuthRuleSpec defines a SET CHLAUTH rule on a referenced queue manager.
+// +kubebuilder:validation:XValidation:rule="self.ruleType != 'ADDRESSMAP' || (has(self.address) && size(self.address) > 0)",message="address is required for ADDRESSMAP rules"
+// +kubebuilder:validation:XValidation:rule="self.ruleType != 'BLOCKADDR' || (has(self.address) && size(self.address) > 0)",message="address is required for BLOCKADDR rules"
+// +kubebuilder:validation:XValidation:rule="self.ruleType != 'BLOCKUSER' || (has(self.userList) && size(self.userList) > 0)",message="userList is required for BLOCKUSER rules"
 type ChannelAuthRuleSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -50,6 +53,12 @@ type ChannelAuthRuleSpec struct {
 	// ChannelName is the IBM MQ channel name in SET CHLAUTH('…').
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=48
+	// +kubebuilder:validation:Pattern=`^[A-Z0-9./%&$#@]+$`
+	// +kubebuilder:validation:XValidation:rule="self == self.trim()",message="name must not have leading or trailing whitespace"
+	// +kubebuilder:validation:XValidation:rule="!self.startsWith('.') && !self.endsWith('.')",message="name must not start or end with '.'"
+	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('SYSTEM.')",message="names with prefix SYSTEM. are reserved for queue manager objects"
+	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('AMQ')",message="names with prefix AMQ are reserved for IBM MQ internal use"
 	ChannelName string `json:"channelName"`
 
 	// RuleType maps to CHLAUTH TYPE(...).
