@@ -123,7 +123,8 @@ spec:
                 description: Description maps to DESCR(...).
                 type: string
               mcaUser:
-                description: McaUser maps to MCAUSER(...) for USERMAP (USERSRC MAP)
+                description: |-
+                  McaUser maps to MCAUSER(...) for USERMAP (USERSRC MAP), SSLPEERMAP (USERSRC MAP),
                   and ADDRESSMAP (USERSRC MAP) rules.
                 type: string
               ruleType:
@@ -136,6 +137,10 @@ spec:
                 - QMGRMAP
                 - BLOCKADDR
                 type: string
+              sslPeerName:
+                description: SslPeerName maps to SSLPEER(...) for SSLPEERMAP rules
+                  (TLS certificate DN pattern).
+                type: string
               suspend:
                 description: Suspend pauses MQ reconciliation for this object. Status
                   shows Synced=False ReasonSuspended.
@@ -144,8 +149,8 @@ spec:
                 description: UserList maps to USERLIST(...) for BLOCKUSER rules.
                 type: string
               userSource:
-                description: UserSource maps to USERSRC(...) for ADDRESSMAP and USERMAP
-                  rules.
+                description: UserSource maps to USERSRC(...) for ADDRESSMAP, USERMAP,
+                  and SSLPEERMAP rules.
                 enum:
                 - CHANNEL
                 - NOACCESS
@@ -169,9 +174,13 @@ spec:
             - message: clientUser is required for USERMAP rules
               rule: self.ruleType != 'USERMAP' || (has(self.clientUser) && size(self.clientUser)
                 > 0)
+            - message: sslPeerName is required for SSLPEERMAP rules
+              rule: self.ruleType != 'SSLPEERMAP' || (has(self.sslPeerName) && size(self.sslPeerName)
+                > 0)
             - message: mcaUser is required when userSource is MAP
-              rule: self.ruleType != 'USERMAP' || self.userSource != 'MAP' || (has(self.mcaUser)
-                && size(self.mcaUser) > 0)
+              rule: (self.ruleType != 'USERMAP' && self.ruleType != 'SSLPEERMAP')
+                || self.userSource != 'MAP' || (has(self.mcaUser) && size(self.mcaUser)
+                > 0)
           status:
             description: ChannelAuthRuleStatus defines the observed state of ChannelAuthRule.
             properties:

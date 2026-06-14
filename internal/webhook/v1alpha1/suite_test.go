@@ -294,7 +294,7 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
 	})
 
-	It("allows ChannelAuthRule SSLPEERMAP when Channel exists (deferred MQSC fields)", func() {
+	It("allows ChannelAuthRule SSLPEERMAP when Channel exists", func() {
 		ctx := context.Background()
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
@@ -317,6 +317,9 @@ var _ = Describe("Validating admission webhooks", func() {
 				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+				SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
+				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				McaUser:       "orders-app",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())

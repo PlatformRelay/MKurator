@@ -19,6 +19,7 @@ type ChannelAuthSpec struct {
 	Address     string
 	UserList    string
 	ClientUser  string
+	SSLPeerName string
 	McaUser     string
 	UserSource  string
 	CheckClient string
@@ -54,6 +55,7 @@ type ChannelAuthState struct {
 	Address     string
 	UserList    string
 	ClientUser  string
+	SSLPeerName string
 	McaUser     string
 	UserSource  string
 	CheckClient string

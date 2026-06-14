@@ -16,6 +16,8 @@ const attrTopstr = "topstr"
 const attrTopicStr = "topicStr" // mqweb runCommandJSON name for TOPSTR
 const attrReplace = "replace"
 const attrTrptype = "trptype"
+const attrMcaUser = "mcauser"
+const attrSslPeer = "sslpeer"
 
 // queueDisplayParameters lists attributes safe for runCommandJSON DISPLAY qlocal
 // on IBM MQ 9.4.x. Some keywords (e.g. maxmsglen, share, defopts) are rejected
@@ -59,7 +61,7 @@ var topicDisplayParameters = []string{
 }
 
 var channelDisplayParameters = []string{
-	attrDescr, attrTrptype, attrSharecnv, attrMaxMsgl, "mcauser", attrMaxInst, attrMaxInstc,
+	attrDescr, attrTrptype, attrSharecnv, attrMaxMsgl, attrMcaUser, attrMaxInst, attrMaxInstc,
 	"sslciph", "sslcauth",
 }
 
