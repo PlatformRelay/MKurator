@@ -165,6 +165,38 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("description"))
 	})
 
+	It("rejects Topic with both publish and attributes.pub", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Topic{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-topic-pub", Namespace: ns},
+			Spec: messagingv1alpha1.TopicSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				TopicName:     "RETAIL.ORDERS",
+				Publish:       messagingv1alpha1.TopicAccessEnabledEnabled,
+				Attributes:    map[string]string{"pub": "enabled"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("publish"))
+	})
+
+	It("rejects Topic with both subscribe and attributes.sub", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Topic{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-topic-sub", Namespace: ns},
+			Spec: messagingv1alpha1.TopicSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				TopicName:     "RETAIL.ORDERS",
+				Subscribe:     messagingv1alpha1.TopicAccessEnabledDisabled,
+				Attributes:    map[string]string{"sub": "disabled"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("subscribe"))
+	})
+
 	It("rejects Channel with both description and attributes.descr", func() {
 		ctx := context.Background()
 		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Channel{

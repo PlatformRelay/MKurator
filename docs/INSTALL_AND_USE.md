@@ -430,6 +430,10 @@ Manual MQ edits: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md#manua
 |-------|----------|-------------|
 | `spec.connectionRef.name` | yes | `QueueManagerConnection` in the same namespace |
 | `spec.topicName` | yes | IBM MQ topic object name (e.g. `RETAIL.ORDERS`) |
+| `spec.topicString` | no | Topic string (`TOPICSTR`); mutually exclusive with `attributes.topstr` |
+| `spec.description` | no | Topic description (`DESCR`); mutually exclusive with `attributes.descr` |
+| `spec.publish` | no | Publish policy (`PUB`): `enabled` or `disabled`; mutually exclusive with `attributes.pub` |
+| `spec.subscribe` | no | Subscribe policy (`SUB`): `enabled` or `disabled`; mutually exclusive with `attributes.sub` |
 | `spec.attributes` | no | MQSC parameters for `DEFINE TOPIC` (string keys/values) |
 
 **Common attributes** (lowercase keys in spec):

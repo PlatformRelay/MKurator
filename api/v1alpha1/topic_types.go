@@ -4,12 +4,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TopicAccessEnabled controls whether publish or subscribe is allowed on a topic (MQSC PUB/SUB).
+// +kubebuilder:validation:Enum=enabled;disabled
+type TopicAccessEnabled string
+
+const (
+	// TopicAccessEnabledEnabled allows publish or subscribe on the topic node.
+	TopicAccessEnabledEnabled TopicAccessEnabled = "enabled"
+	// TopicAccessEnabledDisabled disallows publish or subscribe on the topic node.
+	TopicAccessEnabledDisabled TopicAccessEnabled = "disabled"
+)
+
 // TopicFinalizer ensures the MQ topic is deleted before the CR is removed.
 const TopicFinalizer = "messaging.mkurator.dev/topic"
 
 // TopicSpec defines an administrative topic object on a referenced queue manager.
 // +kubebuilder:validation:XValidation:rule="!has(self.topicString) || self.topicString.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'topstr' || k.lowerAscii() == 'topicstr')",message="topicString field and attributes.topstr (or topicstr) are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.description) || self.description.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'descr')",message="description field and attributes.descr are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.publish) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'pub')",message="publish field and attributes.pub are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.subscribe) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sub')",message="subscribe field and attributes.sub are mutually exclusive"
 type TopicSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -42,6 +55,18 @@ type TopicSpec struct {
 	// into the attribute map for mqadmin.
 	// +optional
 	Description string `json:"description,omitempty"`
+
+	// Publish controls whether applications may publish to the topic (MQSC PUB).
+	// Mutually exclusive with attributes.pub; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	Publish TopicAccessEnabled `json:"publish,omitempty"`
+
+	// Subscribe controls whether applications may subscribe to the topic (MQSC SUB).
+	// Mutually exclusive with attributes.sub; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	Subscribe TopicAccessEnabled `json:"subscribe,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional

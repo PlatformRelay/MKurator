@@ -61,6 +61,24 @@ func TestToMQTopicSpecTypedDescription(t *testing.T) {
 	}
 }
 
+func TestToMQTopicSpecTypedPublishSubscribe(t *testing.T) {
+	t.Parallel()
+	topic := &messagingv1alpha1.Topic{
+		Spec: messagingv1alpha1.TopicSpec{
+			TopicName: "RETAIL.ORDERS",
+			Publish:   messagingv1alpha1.TopicAccessEnabledEnabled,
+			Subscribe: messagingv1alpha1.TopicAccessEnabledDisabled,
+		},
+	}
+	spec := toMQTopicSpec(topic)
+	if spec.Attributes["pub"] != "enabled" {
+		t.Fatalf("pub = %q", spec.Attributes["pub"])
+	}
+	if spec.Attributes["sub"] != "disabled" {
+		t.Fatalf("sub = %q", spec.Attributes["sub"])
+	}
+}
+
 func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

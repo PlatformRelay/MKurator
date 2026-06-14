@@ -199,6 +199,12 @@ func toMQTopicSpec(topic *messagingv1alpha1.Topic) mqadmin.TopicSpec {
 	if topic.Spec.Description != "" {
 		attrs[mqadmin.NormalizeAttrKey("descr")] = topic.Spec.Description
 	}
+	if topic.Spec.Publish != "" {
+		attrs[mqadmin.NormalizeAttrKey("pub")] = string(topic.Spec.Publish)
+	}
+	if topic.Spec.Subscribe != "" {
+		attrs[mqadmin.NormalizeAttrKey("sub")] = string(topic.Spec.Subscribe)
+	}
 	return mqadmin.TopicSpec{
 		Name:       topic.Spec.TopicName,
 		Attributes: attrs,

@@ -99,6 +99,24 @@ spec:
                   Mutually exclusive with attributes.descr; typed field takes precedence when folded
                   into the attribute map for mqadmin.
                 type: string
+              publish:
+                description: |-
+                  Publish controls whether applications may publish to the topic (MQSC PUB).
+                  Mutually exclusive with attributes.pub; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                enum:
+                - enabled
+                - disabled
+                type: string
+              subscribe:
+                description: |-
+                  Subscribe controls whether applications may subscribe to the topic (MQSC SUB).
+                  Mutually exclusive with attributes.sub; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                enum:
+                - enabled
+                - disabled
+                type: string
               suspend:
                 description: Suspend pauses MQ reconciliation for this object. Status
                   shows Synced=False ReasonSuspended.
@@ -139,6 +157,12 @@ spec:
             - message: description field and attributes.descr are mutually exclusive
               rule: '!has(self.description) || self.description.size() == 0 || !has(self.attributes)
                 || !self.attributes.exists(k, k.lowerAscii() == ''descr'')'
+            - message: publish field and attributes.pub are mutually exclusive
+              rule: '!has(self.publish) || !has(self.attributes) || !self.attributes.exists(k,
+                k.lowerAscii() == ''pub'')'
+            - message: subscribe field and attributes.sub are mutually exclusive
+              rule: '!has(self.subscribe) || !has(self.attributes) || !self.attributes.exists(k,
+                k.lowerAscii() == ''sub'')'
           status:
             description: TopicStatus defines the observed state of Topic.
             properties:
