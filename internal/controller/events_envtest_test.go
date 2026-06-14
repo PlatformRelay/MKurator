@@ -198,6 +198,193 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 			ctx, ns, "Topic", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
 		)
 	})
+
+	It("records Progressing on ChannelAuthRule when the connection is not Ready", func() {
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		const (
+			key         = "dev-app-addressmap"
+			channelName = "DEV.APP.SVRCONN.0TLS"
+		)
+		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
+		Expect(k8sClient.Create(ctx, rule)).To(Succeed())
+
+		rec := &ChannelAuthRuleReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mqadmintest.NewMockFactory(GinkgoT()),
+			Recorder:  testEventsRecorder(),
+		}
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "ChannelAuthRule", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing,
+		)
+	})
+
+	It("records Available on ChannelAuthRule when reconcile succeeds", func() {
+		const (
+			key         = "dev-app-addressmap"
+			channelName = "DEV.APP.SVRCONN.0TLS"
+		)
+
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
+		Expect(k8sClient.Create(ctx, rule)).To(Succeed())
+
+		desired := mqadmin.ChannelAuthSpec{
+			ChannelName: channelName,
+			RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+			Address:     "*",
+			UserSource:  "CHANNEL",
+			CheckClient: "REQUIRED",
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetChannelAuth(mock.Anything, desired).Return(nil, mqadmin.ErrNotFound).Once()
+		mockAdmin.EXPECT().SetChannelAuth(mock.Anything, desired).Return(nil).Once()
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &ChannelAuthRuleReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+			Recorder:  testEventsRecorder(),
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "ChannelAuthRule", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+		)
+	})
+
+	It("records Progressing on AuthorityRecord when the connection is not Ready", func() {
+		conn := &messagingv1alpha1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
+			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+				QueueManager: testQueueManager,
+				Endpoint:     testEndpoint,
+				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+					Name: testSecretName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+
+		const (
+			key     = "app-orders-get-put"
+			profile = "APP.ORDERS"
+		)
+		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
+		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
+
+		rec := &AuthorityRecordReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mqadmintest.NewMockFactory(GinkgoT()),
+			Recorder:  testEventsRecorder(),
+		}
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "AuthorityRecord", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing,
+		)
+	})
+
+	It("records Available on AuthorityRecord when reconcile succeeds", func() {
+		const (
+			key     = "app-orders-get-put"
+			profile = "APP.ORDERS"
+		)
+
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
+		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
+
+		desired := mqadmin.AuthoritySpec{
+			Profile:     profile,
+			ObjectType:  mqadmin.AuthorityObjectTypeQueue,
+			Principal:   "app",
+			Authorities: []string{"GET", "PUT"},
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetAuthority(mock.Anything, desired).Return(nil, mqadmin.ErrNotFound).Once()
+		mockAdmin.EXPECT().SetAuthority(mock.Anything, desired).Return(nil).Once()
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &AuthorityRecordReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+			Recorder:  testEventsRecorder(),
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		eventuallyExpectEventsAPIEvent(
+			ctx, ns, "AuthorityRecord", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+		)
+	})
 })
 
 func testEventsRecorder() events.EventRecorder {
