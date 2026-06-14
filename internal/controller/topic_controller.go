@@ -193,6 +193,9 @@ func toMQTopicSpec(topic *messagingv1alpha1.Topic) mqadmin.TopicSpec {
 	for k, v := range topic.Spec.Attributes {
 		attrs[mqadmin.NormalizeAttrKey(k)] = v
 	}
+	if topic.Spec.TopicString != "" {
+		attrs[mqadmin.NormalizeAttrKey("topstr")] = topic.Spec.TopicString
+	}
 	return mqadmin.TopicSpec{
 		Name:       topic.Spec.TopicName,
 		Attributes: attrs,
