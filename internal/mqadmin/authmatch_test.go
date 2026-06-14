@@ -118,9 +118,10 @@ func TestChannelAuthNeedsUpdateUserMap(t *testing.T) {
 		ClientUser:  "johndoe",
 		UserSource:  "map",
 		McaUser:     "orders-app",
+		CheckClient: "ASQMGR",
 	}
 	if ChannelAuthNeedsUpdate(desired, observed) {
-		t.Fatal("expected no update when USERMAP attributes match")
+		t.Fatal("expected no update when USERMAP attributes match and CheckClient is MQ default")
 	}
 	observed.McaUser = "other"
 	if !ChannelAuthNeedsUpdate(desired, observed) {
