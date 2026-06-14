@@ -431,7 +431,7 @@ metadata:
 spec:
   connectionRef:
     name: %s
-  channelName: %s
+  channelName: "%s"
   type: svrconn
   attributes:
     trptype: tcp
@@ -446,7 +446,7 @@ metadata:
 spec:
   connectionRef:
     name: %s
-  channelName: %s
+  channelName: "%s"
   ruleType: BLOCKADDR
   address: %s
   description: e2e blockaddr rule
