@@ -33,7 +33,7 @@ const (
 )
 
 // QueueSpec defines a queue to maintain on a referenced queue manager.
-// +kubebuilder:validation:XValidation:rule="self.type != 'alias' || (has(self.attributes) && (('targq' in self.attributes && size(self.attributes['targq']) > 0) || ('target' in self.attributes && size(self.attributes['target']) > 0)))",message="alias queues require attribute targq (or target)"
+// +kubebuilder:validation:XValidation:rule="self.type != 'alias' || (has(self.targetQueue) && size(self.targetQueue) > 0) || (has(self.attributes) && (('targq' in self.attributes && size(self.attributes['targq']) > 0) || ('target' in self.attributes && size(self.attributes['target']) > 0)))",message="alias queues require targetQueue or attribute targq (or target)"
 // +kubebuilder:validation:XValidation:rule="self.type != 'remote' || (has(self.attributes) && (('xmitq' in self.attributes && size(self.attributes['xmitq']) > 0) || ('transmissionqueue' in self.attributes && size(self.attributes['transmissionqueue']) > 0)))",message="remote queues require attribute xmitq (or transmissionqueue)"
 // +kubebuilder:validation:XValidation:rule="self.type != 'remote' || (has(self.attributes) && (('rqmname' in self.attributes && size(self.attributes['rqmname']) > 0) || ('remotemanager' in self.attributes && size(self.attributes['remotemanager']) > 0)))",message="remote queues require attribute rqmname (or remotemanager)"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxDepth) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxdepth')",message="maxDepth field and attributes.maxdepth are mutually exclusive"
@@ -41,6 +41,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="!has(self.defPersistence) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'defpsist')",message="defPersistence field and attributes.defpsist are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.get) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'get')",message="get field and attributes.get are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.put) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'put')",message="put field and attributes.put are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.targetQueue) || self.targetQueue.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'targq' || k.lowerAscii() == 'target')",message="targetQueue field and attributes.targq (or target) are mutually exclusive"
 type QueueSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -98,6 +99,16 @@ type QueueSpec struct {
 	// into the attribute map for mqadmin.
 	// +optional
 	Put QueueAccessEnabled `json:"put,omitempty"`
+
+	// TargetQueue is the local or remote queue name an alias resolves to (MQSC TARGQ).
+	// Required for type alias when not set via attributes.targq (or attributes.target).
+	// Mutually exclusive with attributes.targq and attributes.target; typed field takes
+	// precedence when folded into the attribute map for mqadmin.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=48
+	// +kubebuilder:validation:Pattern=`^[A-Z0-9./%&$#@]+$`
+	// +optional
+	TargetQueue string `json:"targetQueue,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional

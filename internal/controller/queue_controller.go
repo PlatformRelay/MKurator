@@ -213,6 +213,9 @@ func toMQQueueSpec(q *messagingv1alpha1.Queue) mqadmin.QueueSpec {
 	if q.Spec.Put != "" {
 		attrs[mqadmin.NormalizeAttrKey("put")] = string(q.Spec.Put)
 	}
+	if q.Spec.TargetQueue != "" {
+		attrs[mqadmin.NormalizeAttrKey("targq")] = q.Spec.TargetQueue
+	}
 	return mqadmin.QueueSpec{
 		Name:       q.Spec.QueueName,
 		Type:       mqadmin.QueueType(q.Spec.Type),

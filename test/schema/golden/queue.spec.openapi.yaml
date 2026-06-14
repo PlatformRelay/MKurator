@@ -93,6 +93,16 @@ properties:
     description: Suspend pauses MQ reconciliation for this object. Status shows Synced=False
       ReasonSuspended.
     type: boolean
+  targetQueue:
+    description: |-
+      TargetQueue is the local or remote queue name an alias resolves to (MQSC TARGQ).
+      Required for type alias when not set via attributes.targq (or attributes.target).
+      Mutually exclusive with attributes.targq and attributes.target; typed field takes
+      precedence when folded into the attribute map for mqadmin.
+    maxLength: 48
+    minLength: 1
+    pattern: ^[A-Z0-9./%&$#@]+$
+    type: string
   type:
     default: local
     description: 'Type is the queue kind to define: local (QLOCAL), alias (QALIAS),
@@ -107,10 +117,10 @@ required:
 - queueName
 type: object
 x-kubernetes-validations:
-- message: alias queues require attribute targq (or target)
-  rule: self.type != 'alias' || (has(self.attributes) && (('targq' in self.attributes
-    && size(self.attributes['targq']) > 0) || ('target' in self.attributes && size(self.attributes['target'])
-    > 0)))
+- message: alias queues require targetQueue or attribute targq (or target)
+  rule: self.type != 'alias' || (has(self.targetQueue) && size(self.targetQueue) >
+    0) || (has(self.attributes) && (('targq' in self.attributes && size(self.attributes['targq'])
+    > 0) || ('target' in self.attributes && size(self.attributes['target']) > 0)))
 - message: remote queues require attribute xmitq (or transmissionqueue)
   rule: self.type != 'remote' || (has(self.attributes) && (('xmitq' in self.attributes
     && size(self.attributes['xmitq']) > 0) || ('transmissionqueue' in self.attributes
@@ -134,3 +144,7 @@ x-kubernetes-validations:
 - message: put field and attributes.put are mutually exclusive
   rule: '!has(self.put) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii()
     == ''put'')'
+- message: targetQueue field and attributes.targq (or target) are mutually exclusive
+  rule: '!has(self.targetQueue) || self.targetQueue.size() == 0 || !has(self.attributes)
+    || !self.attributes.exists(k, k.lowerAscii() == ''targq'' || k.lowerAscii() ==
+    ''target'')'

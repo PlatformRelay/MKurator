@@ -75,6 +75,21 @@ func TestToMQQueueSpecTypedDefPersistence(t *testing.T) {
 	}
 }
 
+func TestToMQQueueSpecTypedTargetQueue(t *testing.T) {
+	t.Parallel()
+	q := &messagingv1alpha1.Queue{
+		Spec: messagingv1alpha1.QueueSpec{
+			QueueName:   "APP.ORDERS.ALIAS",
+			Type:        messagingv1alpha1.QueueTypeAlias,
+			TargetQueue: "APP.ORDERS",
+		},
+	}
+	spec := toMQQueueSpec(q)
+	if spec.Attributes["targq"] != "APP.ORDERS" {
+		t.Fatalf("attrs = %v", spec.Attributes)
+	}
+}
+
 func TestToMQQueueSpecTypedGetPut(t *testing.T) {
 	t.Parallel()
 	q := &messagingv1alpha1.Queue{
