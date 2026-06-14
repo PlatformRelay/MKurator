@@ -21,7 +21,10 @@ import (
 	"github.com/conduit-ops/mkurator/internal/mqadmin"
 )
 
-const e2eChannelName = "DEV.APP.SVRCONN.0TLS"
+const (
+	e2eChannelName          = "DEV.APP.SVRCONN.0TLS"
+	e2eBlockAddrChannelName = "*"
+)
 
 // e2eBlockAddrForTest returns a unique TEST-NET-1 address (192.0.2.0/24) per test name.
 func e2eBlockAddrForTest(testName string) string {

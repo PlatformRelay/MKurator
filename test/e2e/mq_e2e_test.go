@@ -420,28 +420,6 @@ spec:
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
-kind: Channel
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  connectionRef:
-    name: %s
-  channelName: %s
-  type: svrconn
-  attributes:
-    trptype: tcp
-`, mqChannelPrereqCRName, ns, mqConnectionName, e2eChannelName)
-		Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
-
-		Eventually(func(g Gomega) {
-			out, runErr := runKubectl("get", "channel", mqChannelPrereqCRName, "-n", ns,
-				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-			g.Expect(runErr).NotTo(HaveOccurred())
-			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
-		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
-
 		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: ChannelAuthRule
 metadata:
@@ -450,11 +428,11 @@ metadata:
 spec:
   connectionRef:
     name: %s
-  channelName: %s
+  channelName: "%s"
   ruleType: BLOCKADDR
   address: %s
   description: e2e blockaddr rule
-`, mqChannelBlockAddrCRName, ns, mqConnectionName, e2eChannelName, blockAddr)
+`, mqChannelBlockAddrCRName, ns, mqConnectionName, e2eBlockAddrChannelName, blockAddr)
 		Expect(applyWithWebhookRetry(carYAML)).To(Succeed())
 
 		Eventually(func(g Gomega) {
@@ -470,27 +448,27 @@ spec:
 		defer cancel()
 
 		carSpec := mqadmin.ChannelAuthSpec{
-			ChannelName: e2eChannelName,
+			ChannelName: e2eBlockAddrChannelName,
 			RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
 			Address:     blockAddr,
 			Description: "e2e blockaddr rule",
 		}
 		ok, err := channelAuthMatches(ctx, client, carSpec)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ok).To(BeTrue(), "BLOCKADDR CHLAUTH for %s should match ChannelAuthRule spec", e2eChannelName)
+		Expect(ok).To(BeTrue(), "BLOCKADDR CHLAUTH for channel %s should match ChannelAuthRule spec", e2eBlockAddrChannelName)
 
 		Expect(kubectlDeleteWait("channelauthrule", mqChannelBlockAddrCRName, ns)).To(Succeed(),
 			"BLOCKADDR ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
 
 		carLookup := mqadmin.ChannelAuthSpec{
-			ChannelName: e2eChannelName,
+			ChannelName: e2eBlockAddrChannelName,
 			RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
 			Address:     blockAddr,
 		}
 		Eventually(func(g Gomega) {
 			ok, err := channelAuthExists(ctx, client, carLookup)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(ok).To(BeFalse(), "BLOCKADDR CHLAUTH for %s should be removed from MQ after CR delete", e2eChannelName)
+			g.Expect(ok).To(BeFalse(), "BLOCKADDR CHLAUTH for channel %s should be removed from MQ after CR delete", e2eBlockAddrChannelName)
 		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 	})
 
