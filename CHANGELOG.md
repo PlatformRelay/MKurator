@@ -9,7 +9,11 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.9.2](https://github.com/conduit-ops/MKurator/compare/v0.9.1..v0.9.2) - 2026-06-14
+
 ### Features
+
+- **topic:** Add publish and subscribe typed fields (#37) ([#37](https://github.com/conduit-ops/MKurator/pull/37), )[15485d7](https://github.com/conduit-ops/MKurator/commit/15485d7678aebf7a01dd5a83fbffeed48dd886d3)
 
 - **channel:** Add sslCipherSpec and sslClientAuth fields (#36) ([#36](https://github.com/conduit-ops/MKurator/pull/36), )[6dae756](https://github.com/conduit-ops/MKurator/commit/6dae7568de1cbea4494736e42d3c3d5cc89ae93d)
 
