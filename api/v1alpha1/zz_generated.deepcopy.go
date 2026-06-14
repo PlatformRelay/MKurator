@@ -291,6 +291,11 @@ func (in *ChannelSpec) DeepCopyInto(out *ChannelSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.ShareConv != nil {
+		in, out := &in.ShareConv, &out.ShareConv
+		*out = new(int32)
+		**out = **in
+	}
 	out.WorkloadLifecyclePolicies = in.WorkloadLifecyclePolicies
 }
 

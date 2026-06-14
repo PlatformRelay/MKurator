@@ -213,6 +213,22 @@ func TestToMQChannelSpecTypedTransportType(t *testing.T) {
 	}
 }
 
+func TestToMQChannelSpecTypedShareConv(t *testing.T) {
+	t.Parallel()
+	shareConv := int32(10)
+	channel := &messagingv1alpha1.Channel{
+		Spec: messagingv1alpha1.ChannelSpec{
+			ChannelName: "ORDERS.APP",
+			Type:        messagingv1alpha1.ChannelTypeSvrconn,
+			ShareConv:   &shareConv,
+		},
+	}
+	spec := toMQChannelSpec(channel)
+	if spec.Attributes["sharecnv"] != "10" {
+		t.Fatalf("attrs = %v", spec.Attributes)
+	}
+}
+
 func TestToMQChannelSpec(t *testing.T) {
 	t.Parallel()
 	channel := &messagingv1alpha1.Channel{

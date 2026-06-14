@@ -219,6 +219,9 @@ func toMQChannelSpec(channel *messagingv1alpha1.Channel) mqadmin.ChannelSpec {
 	if channel.Spec.TransportType != "" {
 		attrs[mqadmin.NormalizeAttrKey("trptype")] = string(channel.Spec.TransportType)
 	}
+	if channel.Spec.ShareConv != nil {
+		attrs[mqadmin.NormalizeAttrKey("sharecnv")] = strconv.FormatInt(int64(*channel.Spec.ShareConv), 10)
+	}
 	chType := mqadmin.ChannelTypeSvrconn
 	if channel.Spec.Type != "" {
 		chType = mqadmin.ChannelType(channel.Spec.Type)

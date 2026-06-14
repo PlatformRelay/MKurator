@@ -214,6 +214,23 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("transportType"))
 	})
 
+	It("rejects Channel with both shareConv and attributes.sharecnv", func() {
+		ctx := context.Background()
+		shareConv := int32(10)
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-channel-sharecnv", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				ShareConv:     &shareConv,
+				Attributes:    map[string]string{"sharecnv": "10"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("shareConv"))
+	})
+
 	It("rejects Queue with both maxDepth and attributes.maxdepth", func() {
 		ctx := context.Background()
 		depth := int32(5000)

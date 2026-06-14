@@ -31,6 +31,7 @@ const ChannelFinalizer = "messaging.mkurator.dev/channel"
 // +kubebuilder:validation:XValidation:rule="!has(self.description) || self.description.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'descr')",message="description field and attributes.descr are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxMsgLength) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxmsgl')",message="maxMsgLength field and attributes.maxmsgl are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.transportType) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'trptype')",message="transportType field and attributes.trptype are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.shareConv) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sharecnv')",message="shareConv field and attributes.sharecnv are mutually exclusive"
 type ChannelSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -76,6 +77,15 @@ type ChannelSpec struct {
 	// into the attribute map for mqadmin.
 	// +optional
 	TransportType ChannelTransportType `json:"transportType,omitempty"`
+
+	// ShareConv is the maximum number of conversations shared per TCP/IP connection (MQSC SHARECNV).
+	// 0 disables conversation sharing (legacy mode); 1 enables MQ V7+ features without sharing;
+	// 2+ allows up to that many shared conversations. Mutually exclusive with attributes.sharecnv;
+	// typed field takes precedence when folded into the attribute map for mqadmin.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=999999999
+	// +optional
+	ShareConv *int32 `json:"shareConv,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional

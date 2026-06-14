@@ -11,3 +11,4 @@ spec:
   description: Application server-connection channel
   maxMsgLength: 4194304
   transportType: tcp
+  shareConv: 10

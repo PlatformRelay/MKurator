@@ -62,6 +62,16 @@ properties:
     maximum: 999999999
     minimum: 0
     type: integer
+  shareConv:
+    description: |-
+      ShareConv is the maximum number of conversations shared per TCP/IP connection (MQSC SHARECNV).
+      0 disables conversation sharing (legacy mode); 1 enables MQ V7+ features without sharing;
+      2+ allows up to that many shared conversations. Mutually exclusive with attributes.sharecnv;
+      typed field takes precedence when folded into the attribute map for mqadmin.
+    format: int32
+    maximum: 999999999
+    minimum: 0
+    type: integer
   suspend:
     description: Suspend pauses MQ reconciliation for this object. Status shows Synced=False
       ReasonSuspended.
@@ -96,3 +106,6 @@ x-kubernetes-validations:
 - message: transportType field and attributes.trptype are mutually exclusive
   rule: '!has(self.transportType) || !has(self.attributes) || !self.attributes.exists(k,
     k.lowerAscii() == ''trptype'')'
+- message: shareConv field and attributes.sharecnv are mutually exclusive
+  rule: '!has(self.shareConv) || !has(self.attributes) || !self.attributes.exists(k,
+    k.lowerAscii() == ''sharecnv'')'
