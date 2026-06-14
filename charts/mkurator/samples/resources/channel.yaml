@@ -11,3 +11,4 @@ spec:
   maxMsgLength: 4194304
   transportType: tcp
   shareConv: 10
+  mcaUser: appuser

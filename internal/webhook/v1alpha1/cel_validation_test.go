@@ -231,6 +231,22 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("shareConv"))
 	})
 
+	It("rejects Channel with both mcaUser and attributes.mcauser", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-channel-mcauser", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				McaUser:       "appuser",
+				Attributes:    map[string]string{"mcauser": "appuser"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("mcaUser"))
+	})
+
 	It("rejects Queue with both maxDepth and attributes.maxdepth", func() {
 		ctx := context.Background()
 		depth := int32(5000)

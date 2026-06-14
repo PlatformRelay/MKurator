@@ -229,6 +229,21 @@ func TestToMQChannelSpecTypedShareConv(t *testing.T) {
 	}
 }
 
+func TestToMQChannelSpecTypedMcaUser(t *testing.T) {
+	t.Parallel()
+	channel := &messagingv1alpha1.Channel{
+		Spec: messagingv1alpha1.ChannelSpec{
+			ChannelName: "ORDERS.APP",
+			Type:        messagingv1alpha1.ChannelTypeSvrconn,
+			McaUser:     "appuser",
+		},
+	}
+	spec := toMQChannelSpec(channel)
+	if spec.Attributes["mcauser"] != "appuser" {
+		t.Fatalf("attrs = %v", spec.Attributes)
+	}
+}
+
 func TestToMQChannelSpec(t *testing.T) {
 	t.Parallel()
 	channel := &messagingv1alpha1.Channel{

@@ -32,6 +32,7 @@ const ChannelFinalizer = "messaging.mkurator.dev/channel"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxMsgLength) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxmsgl')",message="maxMsgLength field and attributes.maxmsgl are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.transportType) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'trptype')",message="transportType field and attributes.trptype are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.shareConv) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sharecnv')",message="shareConv field and attributes.sharecnv are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.mcaUser) || self.mcaUser.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'mcauser')",message="mcaUser field and attributes.mcauser are mutually exclusive"
 type ChannelSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -86,6 +87,12 @@ type ChannelSpec struct {
 	// +kubebuilder:validation:Maximum=999999999
 	// +optional
 	ShareConv *int32 `json:"shareConv,omitempty"`
+
+	// McaUser is the MCA user ID for authority checks on this channel (MQSC MCAUSER).
+	// Mutually exclusive with attributes.mcauser; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	McaUser string `json:"mcaUser,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
