@@ -354,7 +354,7 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 
 ## Phase 9 — MQ surface depth (resequenced from Phase 5)
 
-- [ ] `SSLPEERMAP` kind e2e (AUTH-5b) — follows AUTH-5a CRD + mqrest integration.
+- [x] `SSLPEERMAP` kind e2e (AUTH-5b) — #46 @ `b82e809`; mirrors AUTH-4 USERMAP e2e.
 - [ ] Additional CHLAUTH rule types: `QMGRMAP` — CRD fields,
   mqrest SET/GET + drift, integration + e2e (daily-backlog AUTH-6).
 - [x] `SSLPEERMAP` CHLAUTH — `sslPeerName`/`mcaUser` CRD fields, mqrest SET/DISPLAY/DELETE,
