@@ -4,7 +4,7 @@
 |---|------------|
 | 🎯 | Install and manage MQ objects on your queue manager → [INSTALL_AND_USE.md](INSTALL_AND_USE.md) |
 | 🎯 | FAQ and glossary → [FAQ.md](FAQ.md) · [GLOSSARY.md](GLOSSARY.md) |
-| 📖 | Published documentation site → [konih.github.io/MKurator](https://konih.github.io/MKurator/) |
+| 📖 | Published documentation site → [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/) |
 | 🛠️ | Install dev tools → [LOCAL_SETUP.md](LOCAL_SETUP.md) |
 | 🛠️ | Hack on the operator locally → [DEVELOPMENT.md](DEVELOPMENT.md) |
 | 🛠️ | What to regenerate / test after a code change → [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) |
@@ -49,6 +49,7 @@
 | 🏗️ | [adr/](adr/) | Architecture Decision Records |
 | 📋 | [ROADMAP.md](ROADMAP.md) | Phased delivery plan |
 | 📋 | [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) | Phase 5 CHLAUTH / AUTHREC (shipped + roadmap) |
+| 📋 | [API_STABILITY.md](API_STABILITY.md) | `v1alpha1` guarantees, Phase 8 maturation, `v1beta1` graduation |
 | 📋 | [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) | Security, reliability, observability, performance |
 | 📋 | [CICD.md](CICD.md) | CI/CD pipeline and `verify` discipline |
 | 🔒 | [../SECURITY.md](../SECURITY.md) | Security posture and vulnerability reporting |

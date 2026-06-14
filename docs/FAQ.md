@@ -19,7 +19,9 @@ MKurator focuses on **declarative administration** of objects on a queue manager
 
 ### What API version is stable?
 
-`messaging.mkurator.dev/v1alpha1` is the current API. Breaking changes are documented in
+`messaging.mkurator.dev/v1alpha1` is the current **alpha** API — it may change between
+releases until `v1beta1`. What is and is not guaranteed, and the path to graduation, is
+in [API_STABILITY.md](API_STABILITY.md). Breaking changes are documented in
 [CHANGELOG.md](../CHANGELOG.md) and [UPGRADE.md](UPGRADE.md) before release.
 
 ## Connectivity
@@ -110,5 +112,5 @@ Use the process in [SECURITY.md](../SECURITY.md) — do not open public issues f
 
 ### Where is the full documentation site?
 
-Published docs: [konih.github.io/MKurator](https://konih.github.io/MKurator/). Source lives under
+Published docs: [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/). Source lives under
 [`docs/`](README.md).
