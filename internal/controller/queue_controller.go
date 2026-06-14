@@ -201,6 +201,9 @@ func toMQQueueSpec(q *messagingv1alpha1.Queue) mqadmin.QueueSpec {
 	if q.Spec.MaxDepth != nil {
 		attrs[mqadmin.NormalizeAttrKey("maxdepth")] = strconv.FormatInt(int64(*q.Spec.MaxDepth), 10)
 	}
+	if q.Spec.Description != "" {
+		attrs[mqadmin.NormalizeAttrKey("descr")] = q.Spec.Description
+	}
 	return mqadmin.QueueSpec{
 		Name:       q.Spec.QueueName,
 		Type:       mqadmin.QueueType(q.Spec.Type),

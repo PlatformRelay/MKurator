@@ -19,6 +19,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="self.type != 'remote' || (has(self.attributes) && (('xmitq' in self.attributes && size(self.attributes['xmitq']) > 0) || ('transmissionqueue' in self.attributes && size(self.attributes['transmissionqueue']) > 0)))",message="remote queues require attribute xmitq (or transmissionqueue)"
 // +kubebuilder:validation:XValidation:rule="self.type != 'remote' || (has(self.attributes) && (('rqmname' in self.attributes && size(self.attributes['rqmname']) > 0) || ('remotemanager' in self.attributes && size(self.attributes['remotemanager']) > 0)))",message="remote queues require attribute rqmname (or remotemanager)"
 // +kubebuilder:validation:XValidation:rule="!has(self.maxDepth) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxdepth')",message="maxDepth field and attributes.maxdepth are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="self.description.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'descr')",message="description field and attributes.descr are mutually exclusive"
 type QueueSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -52,6 +53,12 @@ type QueueSpec struct {
 	// +kubebuilder:validation:Maximum=999999999
 	// +optional
 	MaxDepth *int32 `json:"maxDepth,omitempty"`
+
+	// Description is the queue description (MQSC DESCR).
+	// Mutually exclusive with attributes.descr; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	Description string `json:"description,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
