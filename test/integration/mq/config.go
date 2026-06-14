@@ -129,3 +129,8 @@ func blockAddrForTest(tName string) string {
 func clientUserForTest(tName string) string {
 	return fmt.Sprintf("kitu%05d", testNameHash(tName)%100000)
 }
+
+// sslPeerNameForTest returns a unique TLS DN pattern per test.
+func sslPeerNameForTest(tName string) string {
+	return fmt.Sprintf("CN=kitp%05d,O=MKurator,C=US", testNameHash(tName)%100000)
+}

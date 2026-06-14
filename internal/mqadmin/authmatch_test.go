@@ -171,6 +171,53 @@ func TestChannelAuthNeedsUpdateUserMapUserSourceChannel(t *testing.T) {
 	}
 }
 
+func TestChannelAuthNeedsUpdateSSLPeerMap(t *testing.T) {
+	t.Parallel()
+	desired := ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+		UserSource:  "MAP",
+		McaUser:     "orders-app",
+	}
+	observed := &ChannelAuthState{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+		UserSource:  "map",
+		McaUser:     "orders-app",
+		CheckClient: "ASQMGR",
+	}
+	if ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected no update when SSLPEERMAP attributes match and CheckClient is MQ default")
+	}
+	observed.SSLPeerName = "CN=Other,O=MyOrg,C=US"
+	if !ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected update when sslPeerName drifts")
+	}
+}
+
+func TestChannelAuthNeedsUpdateSSLPeerMapUserSourceChannel(t *testing.T) {
+	t.Parallel()
+	desired := ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+		UserSource:  "CHANNEL",
+	}
+	observed := &ChannelAuthState{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+		UserSource:  "channel",
+		McaUser:     "legacy-mca",
+		CheckClient: "ASQMGR",
+	}
+	if ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected no update when USERSRC CHANNEL and desired mcaUser is unset")
+	}
+}
+
 func TestAuthoritySetsEqualDifferentLengths(t *testing.T) {
 	t.Parallel()
 	if authoritySetsEqual([]string{"GET", "PUT"}, []string{"GET"}) {

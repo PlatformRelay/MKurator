@@ -114,15 +114,50 @@ func TestBuildSetChannelAuthMQSCUserMapRemove(t *testing.T) {
 	}
 }
 
+func TestBuildSetChannelAuthMQSCSSLPeerMap(t *testing.T) {
+	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "ORDERS.APP",
+		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+		UserSource:  "MAP",
+		McaUser:     "orders-app",
+		Description: "map cert DN to orders-app",
+	}, "REPLACE")
+	if err != nil {
+		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+	}
+	want := "SET CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US') " +
+		"USERSRC(MAP) MCAUSER('orders-app') DESCR('map cert DN to orders-app') ACTION(REPLACE)"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
+func TestBuildSetChannelAuthMQSCSSLPeerMapRemove(t *testing.T) {
+	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "ORDERS.APP",
+		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+		UserSource:  "MAP",
+		McaUser:     "orders-app",
+		Description: "ignored on remove",
+	}, "REMOVE")
+	if err != nil {
+		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+	}
+	want := "SET CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US') ACTION(REMOVE)"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
 func TestBuildSetChannelAuthMQSCDeferredRuleTypes(t *testing.T) {
-	// Schema allows SSLPEERMAP/QMGRMAP; CRD fields for MQSC keywords are deferred
-	// (see docs/PHASE5_AUTH_SKETCH.md). Goldens assert ruleType-only SET CHLAUTH shape.
+	// QMGRMAP CRD fields are still deferred (see docs/PHASE5_AUTH_SKETCH.md).
 	cases := []struct {
 		name     string
 		ruleType mqadmin.ChannelAuthRuleType
 		wantType string
 	}{
-		{"SSLPEERMAP", mqadmin.ChannelAuthRuleTypeSSLPeerMap, "SSLPEERMAP"},
 		{"QMGRMAP", mqadmin.ChannelAuthRuleTypeQMGRMap, "QMGRMAP"},
 	}
 	for _, tc := range cases {
@@ -392,6 +427,34 @@ func TestChannelAuthStateFromAttributes(t *testing.T) {
 	}
 }
 
+func TestBuildDisplayChannelAuthMQSCSSLPeerMap(t *testing.T) {
+	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
+		ChannelName: "ORDERS.APP",
+		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "DISPLAY CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US')"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
+func TestChannelAuthStateFromAttributesSSLPeerMap(t *testing.T) {
+	spec := mqadmin.ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+	}
+	state := channelAuthStateFromAttributes(spec, map[string]string{
+		attrSslPeer: "CN=AppClient,O=MyOrg,C=US", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
+	})
+	if state.SSLPeerName != "CN=AppClient,O=MyOrg,C=US" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
+		t.Fatalf("state = %+v", state)
+	}
+}
+
 func TestBuildDisplayChannelAuthMQSCUserMap(t *testing.T) {
 	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
 		ChannelName: "ORDERS.APP",
@@ -413,7 +476,7 @@ func TestChannelAuthStateFromAttributesUserMap(t *testing.T) {
 		RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
 	}
 	state := channelAuthStateFromAttributes(spec, map[string]string{
-		"clntuser": "johndoe", "mcauser": "orders-app", "usersrc": "MAP", "descr": "map",
+		"clntuser": "johndoe", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
 	})
 	if state.ClientUser != "johndoe" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
 		t.Fatalf("state = %+v", state)
