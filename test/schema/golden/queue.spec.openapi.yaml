@@ -32,6 +32,12 @@ properties:
     - Delete
     - Orphan
     type: string
+  description:
+    description: |-
+      Description is the queue description (MQSC DESCR).
+      Mutually exclusive with attributes.descr; typed field takes precedence when folded
+      into the attribute map for mqadmin.
+    type: string
   maxDepth:
     description: |-
       MaxDepth is the maximum number of messages the queue can hold (MQSC MAXDEPTH).
@@ -89,3 +95,6 @@ x-kubernetes-validations:
 - message: maxDepth field and attributes.maxdepth are mutually exclusive
   rule: '!has(self.maxDepth) || !has(self.attributes) || !self.attributes.exists(k,
     k.lowerAscii() == ''maxdepth'')'
+- message: description field and attributes.descr are mutually exclusive
+  rule: self.description.size() == 0 || !has(self.attributes) || !self.attributes.exists(k,
+    k.lowerAscii() == 'descr')

@@ -45,6 +45,21 @@ func TestToMQQueueSpecTypedMaxDepth(t *testing.T) {
 	}
 }
 
+func TestToMQQueueSpecTypedDescription(t *testing.T) {
+	t.Parallel()
+	q := &messagingv1alpha1.Queue{
+		Spec: messagingv1alpha1.QueueSpec{
+			QueueName:   "APP.ORDERS",
+			Type:        messagingv1alpha1.QueueTypeLocal,
+			Description: "Order processing queue",
+		},
+	}
+	spec := toMQQueueSpec(q)
+	if spec.Attributes["descr"] != "Order processing queue" {
+		t.Fatalf("attrs = %v", spec.Attributes)
+	}
+}
+
 func TestConnectionReady(t *testing.T) {
 	t.Parallel()
 	ready := &messagingv1alpha1.QueueManagerConnection{
