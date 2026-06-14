@@ -434,6 +434,7 @@ Manual MQ edits: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md#manua
 | `spec.description` | no | Topic description (`DESCR`); mutually exclusive with `attributes.descr` |
 | `spec.publish` | no | Publish policy (`PUB`): `enabled` or `disabled`; mutually exclusive with `attributes.pub` |
 | `spec.subscribe` | no | Subscribe policy (`SUB`): `enabled` or `disabled`; mutually exclusive with `attributes.sub` |
+| `spec.defPersistence` | no | Default message persistence (`DEFPSIST`): `yes` or `no`; mutually exclusive with `attributes.defpsist` |
 | `spec.attributes` | no | MQSC parameters for `DEFINE TOPIC` (string keys/values) |
 
 **Common attributes** (lowercase keys in spec):

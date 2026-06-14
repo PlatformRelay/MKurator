@@ -61,6 +61,20 @@ func TestToMQTopicSpecTypedDescription(t *testing.T) {
 	}
 }
 
+func TestToMQTopicSpecTypedDefPersistence(t *testing.T) {
+	t.Parallel()
+	topic := &messagingv1alpha1.Topic{
+		Spec: messagingv1alpha1.TopicSpec{
+			TopicName:      "RETAIL.ORDERS",
+			DefPersistence: messagingv1alpha1.QueueDefaultPersistenceYes,
+		},
+	}
+	spec := toMQTopicSpec(topic)
+	if spec.Attributes["defpsist"] != "yes" {
+		t.Fatalf("defpsist = %q", spec.Attributes["defpsist"])
+	}
+}
+
 func TestToMQTopicSpecTypedPublishSubscribe(t *testing.T) {
 	t.Parallel()
 	topic := &messagingv1alpha1.Topic{
