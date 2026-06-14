@@ -153,7 +153,8 @@ func channelAuthStateFromAttributes(
 		Address:     address,
 		UserList:    attrs["userlist"],
 		ClientUser:  attrs["clntuser"],
-		McaUser:     attrs["mcauser"],
+		SSLPeerName: attrs[attrSslPeer],
+		McaUser:     attrs[attrMcaUser],
 		UserSource:  attrs["usersrc"],
 		CheckClient: attrs["chckclnt"],
 		Description: attrs["descr"],
@@ -196,6 +197,8 @@ func buildDisplayChannelAuthMQSC(spec mqadmin.ChannelAuthSpec) (string, error) {
 		parts = append(parts, "ADDRLIST")
 	case spec.RuleType == mqadmin.ChannelAuthRuleTypeUserMap && spec.ClientUser != "":
 		parts = append(parts, fmt.Sprintf("CLNTUSER('%s')", mqscQuote(spec.ClientUser)))
+	case spec.RuleType == mqadmin.ChannelAuthRuleTypeSSLPeerMap && spec.SSLPeerName != "":
+		parts = append(parts, fmt.Sprintf("SSLPEER('%s')", mqscQuote(spec.SSLPeerName)))
 	case spec.Address != "":
 		parts = append(parts, fmt.Sprintf("ADDRESS('%s')", mqscQuote(spec.Address)))
 	}
@@ -260,6 +263,9 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 		parts = append(parts, clause)
 	}
 	if clause := channelAuthClientUserClause(spec); clause != "" {
+		parts = append(parts, clause)
+	}
+	if clause := channelAuthSSLPeerClause(spec); clause != "" {
 		parts = append(parts, clause)
 	}
 	if action == "REMOVE" {
@@ -328,6 +334,13 @@ func channelAuthClientUserClause(spec mqadmin.ChannelAuthSpec) string {
 		return ""
 	}
 	return fmt.Sprintf("CLNTUSER('%s')", mqscQuote(spec.ClientUser))
+}
+
+func channelAuthSSLPeerClause(spec mqadmin.ChannelAuthSpec) string {
+	if spec.SSLPeerName == "" || spec.RuleType != mqadmin.ChannelAuthRuleTypeSSLPeerMap {
+		return ""
+	}
+	return fmt.Sprintf("SSLPEER('%s')", mqscQuote(spec.SSLPeerName))
 }
 
 func channelAuthAddressClause(spec mqadmin.ChannelAuthSpec) string {
