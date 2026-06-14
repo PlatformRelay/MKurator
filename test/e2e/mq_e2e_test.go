@@ -542,11 +542,9 @@ spec:
 			McaUser:     "app",
 			Description: "e2e usermap rule",
 		}
-		Eventually(func(g Gomega) {
-			ok, matchErr := channelAuthMatches(ctx, client, carSpec)
-			g.Expect(matchErr).NotTo(HaveOccurred())
-			g.Expect(ok).To(BeTrue(), "USERMAP CHLAUTH for channel %s should match ChannelAuthRule spec", channelObject)
-		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+		ok, err := channelAuthMatches(ctx, client, carSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ok).To(BeTrue(), "USERMAP CHLAUTH for channel %s should match ChannelAuthRule spec", channelObject)
 
 		Expect(kubectlDeleteWait("channelauthrule", mqChannelUserMapCRName, ns)).To(Succeed(),
 			"USERMAP ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
@@ -557,7 +555,9 @@ spec:
 			ClientUser:  clientUser,
 		}
 		Eventually(func(g Gomega) {
-			ok, err := channelAuthExists(ctx, client, carLookup)
+			pollCtx, pollCancel := context.WithTimeout(context.Background(), time.Minute)
+			defer pollCancel()
+			ok, err := channelAuthExists(pollCtx, client, carLookup)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(ok).To(BeFalse(), "USERMAP CHLAUTH for channel %s should be removed from MQ after CR delete", channelObject)
 		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())

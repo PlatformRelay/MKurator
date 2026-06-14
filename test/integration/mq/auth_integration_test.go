@@ -182,6 +182,9 @@ func TestIntegration_GetChannelAuth_UserMap(t *testing.T) {
 	if !strings.EqualFold(state.UserSource, "MAP") {
 		t.Fatalf("userSource = %q, want MAP", state.UserSource)
 	}
+	if mqadmin.ChannelAuthNeedsUpdate(authSpec, state) {
+		t.Fatalf("ChannelAuthNeedsUpdate after set; state=%+v", state)
+	}
 }
 
 func TestIntegration_GetChannelAuth_BlockUser(t *testing.T) {
