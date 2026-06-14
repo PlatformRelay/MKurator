@@ -17,13 +17,14 @@ const (
 	ChannelAuthRuleTypeBlockAddr  ChannelAuthRuleType = "BLOCKADDR"
 )
 
-// ChannelAuthUserSource is USERSRC for ADDRESSMAP rules.
-// +kubebuilder:validation:Enum=CHANNEL;NOACCESS
+// ChannelAuthUserSource is USERSRC for ADDRESSMAP and USERMAP rules.
+// +kubebuilder:validation:Enum=CHANNEL;NOACCESS;MAP
 type ChannelAuthUserSource string
 
 const (
 	ChannelAuthUserSourceChannel  ChannelAuthUserSource = "CHANNEL"
 	ChannelAuthUserSourceNoAccess ChannelAuthUserSource = "NOACCESS"
+	ChannelAuthUserSourceMap      ChannelAuthUserSource = "MAP"
 )
 
 // ChannelAuthCheckClient is CHCKCLNT for ADDRESSMAP rules.
@@ -45,6 +46,8 @@ const ChannelAuthRuleFinalizer = "messaging.mkurator.dev/channelauthrule"
 // +kubebuilder:validation:XValidation:rule="self.ruleType != 'ADDRESSMAP' || (has(self.address) && size(self.address) > 0)",message="address is required for ADDRESSMAP rules"
 // +kubebuilder:validation:XValidation:rule="self.ruleType != 'BLOCKADDR' || (has(self.address) && size(self.address) > 0)",message="address is required for BLOCKADDR rules"
 // +kubebuilder:validation:XValidation:rule="self.ruleType != 'BLOCKUSER' || (has(self.userList) && size(self.userList) > 0)",message="userList is required for BLOCKUSER rules"
+// +kubebuilder:validation:XValidation:rule="self.ruleType != 'USERMAP' || (has(self.clientUser) && size(self.clientUser) > 0)",message="clientUser is required for USERMAP rules"
+// +kubebuilder:validation:XValidation:rule="self.ruleType != 'USERMAP' || self.userSource != 'MAP' || (has(self.mcaUser) && size(self.mcaUser) > 0)",message="mcaUser is required when userSource is MAP"
 type ChannelAuthRuleSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -73,7 +76,15 @@ type ChannelAuthRuleSpec struct {
 	// +optional
 	UserList string `json:"userList,omitempty"`
 
-	// UserSource maps to USERSRC(...) for ADDRESSMAP rules.
+	// ClientUser maps to CLNTUSER(...) for USERMAP rules.
+	// +optional
+	ClientUser string `json:"clientUser,omitempty"`
+
+	// McaUser maps to MCAUSER(...) for USERMAP (USERSRC MAP) and ADDRESSMAP (USERSRC MAP) rules.
+	// +optional
+	McaUser string `json:"mcaUser,omitempty"`
+
+	// UserSource maps to USERSRC(...) for ADDRESSMAP and USERMAP rules.
 	// +optional
 	UserSource ChannelAuthUserSource `json:"userSource,omitempty"`
 

@@ -124,3 +124,8 @@ func testNameHash(tName string) uint32 {
 func blockAddrForTest(tName string) string {
 	return fmt.Sprintf("192.0.2.%d", testNameHash(tName)%254+1)
 }
+
+// clientUserForTest returns a short unique client user ID per test.
+func clientUserForTest(tName string) string {
+	return fmt.Sprintf("kitu%05d", testNameHash(tName)%100000)
+}

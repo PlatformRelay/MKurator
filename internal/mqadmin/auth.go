@@ -18,6 +18,8 @@ type ChannelAuthSpec struct {
 	RuleType    ChannelAuthRuleType
 	Address     string
 	UserList    string
+	ClientUser  string
+	McaUser     string
 	UserSource  string
 	CheckClient string
 	Description string
@@ -51,6 +53,8 @@ type ChannelAuthState struct {
 	RuleType    ChannelAuthRuleType
 	Address     string
 	UserList    string
+	ClientUser  string
+	McaUser     string
 	UserSource  string
 	CheckClient string
 	Description string

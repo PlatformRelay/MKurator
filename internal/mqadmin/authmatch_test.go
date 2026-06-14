@@ -103,6 +103,31 @@ func TestChannelAuthNeedsUpdateUserList(t *testing.T) {
 	}
 }
 
+func TestChannelAuthNeedsUpdateUserMap(t *testing.T) {
+	t.Parallel()
+	desired := ChannelAuthSpec{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeUserMap,
+		ClientUser:  "johndoe",
+		UserSource:  "MAP",
+		McaUser:     "orders-app",
+	}
+	observed := &ChannelAuthState{
+		ChannelName: "CH1",
+		RuleType:    ChannelAuthRuleTypeUserMap,
+		ClientUser:  "johndoe",
+		UserSource:  "map",
+		McaUser:     "orders-app",
+	}
+	if ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected no update when USERMAP attributes match")
+	}
+	observed.McaUser = "other"
+	if !ChannelAuthNeedsUpdate(desired, observed) {
+		t.Fatal("expected update when mcaUser drifts")
+	}
+}
+
 func TestAuthoritySetsEqualDifferentLengths(t *testing.T) {
 	t.Parallel()
 	if authoritySetsEqual([]string{"GET", "PUT"}, []string{"GET"}) {

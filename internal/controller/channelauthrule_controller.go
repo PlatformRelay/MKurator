@@ -206,6 +206,8 @@ func toMQChannelAuthSpec(rule *messagingv1alpha1.ChannelAuthRule) mqadmin.Channe
 		RuleType:    mqadmin.ChannelAuthRuleType(rule.Spec.RuleType),
 		Address:     rule.Spec.Address,
 		UserList:    rule.Spec.UserList,
+		ClientUser:  rule.Spec.ClientUser,
+		McaUser:     rule.Spec.McaUser,
 		UserSource:  string(rule.Spec.UserSource),
 		CheckClient: string(rule.Spec.CheckClient),
 		Description: rule.Spec.Description,

@@ -489,6 +489,21 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("ADDRESSMAP"))
 	})
 
+	It("rejects ChannelAuthRule USERMAP without clientUser", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-usermap", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("USERMAP"))
+	})
+
 	It("rejects AuthorityRecord with both principal and group", func() {
 		ctx := context.Background()
 		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.AuthorityRecord{
