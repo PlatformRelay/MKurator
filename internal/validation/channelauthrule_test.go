@@ -78,3 +78,32 @@ func TestValidateChannelAuthRuleSpecValid(t *testing.T) {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 }
+
+func TestValidateChannelAuthRuleSpecBlockAddrWildcardSkipsChannelRef(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "default"},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://mq.example:9443",
+			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
+		},
+	}
+	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret).Build()
+
+	errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default", "blockaddr",
+		&messagingv1alpha1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "*",
+			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockAddr,
+			Address:       "192.0.2.1",
+		})
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+}

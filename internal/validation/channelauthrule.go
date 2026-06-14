@@ -16,9 +16,13 @@ func ValidateChannelAuthRuleSpec(
 	namespace, _ string,
 	spec *messagingv1alpha1.ChannelAuthRuleSpec,
 ) field.ErrorList {
-	return append(
-		ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
-			field.NewPath("spec").Child("connectionRef").Child("name")),
+	errs := ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
+		field.NewPath("spec").Child("connectionRef").Child("name"))
+	// BLOCKADDR listener rules use channelName '*' on MQ; no managed Channel CR applies.
+	if spec.RuleType == messagingv1alpha1.ChannelAuthRuleTypeBlockAddr && spec.ChannelName == "*" {
+		return errs
+	}
+	return append(errs,
 		ValidateManagedChannelRef(ctx, reader, namespace, spec.ConnectionRef.Name, spec.ChannelName,
 			field.NewPath("spec").Child("channelName"))...,
 	)

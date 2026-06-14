@@ -17,7 +17,7 @@ properties:
     description: ChannelName is the IBM MQ channel name in SET CHLAUTH('…').
     maxLength: 48
     minLength: 1
-    pattern: ^[A-Z0-9./%&$#@]+$
+    pattern: ^[A-Z0-9./%&$#@*]+$
     type: string
     x-kubernetes-validations:
     - message: name must not have leading or trailing whitespace
