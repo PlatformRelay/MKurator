@@ -20,8 +20,10 @@ const (
 	mqQueueMaxDepthV1        = "1000"
 	mqChannelAuthCRName       = "e2e-dev-app-addressmap"
 	mqChannelBlockAddrCRName  = "e2e-blockaddr-car"
-	mqChannelUserMapCRName    = "e2e-usermap-car"
+	mqChannelUserMapCRName       = "e2e-usermap-car"
 	mqChannelUserMapPrereqCRName = "e2e-usermap-channel"
+	mqChannelSslPeerMapCRName       = "e2e-sslpeermap-car"
+	mqChannelSslPeerMapPrereqCRName = "e2e-sslpeermap-channel"
 	mqChannelPrereqCRName     = "e2e-dev-app-channel"
 	mqAuthorityCRName         = "e2e-app-orders-get-put"
 )
@@ -332,8 +334,10 @@ var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Seri
 		kubectlForceRemoveNamespaced("channelauthrule", mqChannelAuthCRName, ns)
 		kubectlForceRemoveNamespaced("channelauthrule", mqChannelBlockAddrCRName, ns)
 		kubectlForceRemoveNamespaced("channelauthrule", mqChannelUserMapCRName, ns)
+		kubectlForceRemoveNamespaced("channelauthrule", mqChannelSslPeerMapCRName, ns)
 		kubectlForceRemoveNamespaced("authorityrecord", mqAuthorityCRName, ns)
 		kubectlForceRemoveNamespaced("channel", mqChannelUserMapPrereqCRName, ns)
+		kubectlForceRemoveNamespaced("channel", mqChannelSslPeerMapPrereqCRName, ns)
 		kubectlForceRemoveNamespaced("channel", mqChannelPrereqCRName, ns)
 		kubectlForceRemoveNamespaced("queuemanagerconnection", mqConnectionName, ns)
 	})
@@ -560,6 +564,93 @@ spec:
 			ok, err := channelAuthExists(pollCtx, client, carLookup)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(ok).To(BeFalse(), "USERMAP CHLAUTH for channel %s should be removed from MQ after CR delete", channelObject)
+		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+	})
+
+	It("reconciles a SSLPEERMAP ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
+		specName := CurrentSpecReport().FullText()
+		sslPeerName := e2eSslPeerNameForTest(specName)
+		channelObject := e2eChannelNameForTest(specName)
+
+		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
+
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  type: svrconn
+  attributes:
+    trptype: tcp
+`, mqChannelSslPeerMapPrereqCRName, ns, mqConnectionName, channelObject)
+		Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
+
+		Eventually(func(g Gomega) {
+			out, runErr := runKubectl("get", "channel", mqChannelSslPeerMapPrereqCRName, "-n", ns,
+				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+			g.Expect(runErr).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before SSLPEERMAP ChannelAuthRule admission", mqChannelSslPeerMapPrereqCRName)
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+kind: ChannelAuthRule
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  ruleType: SSLPEERMAP
+  sslPeerName: "%s"
+  userSource: MAP
+  mcaUser: app
+  description: e2e sslpeermap rule
+`, mqChannelSslPeerMapCRName, ns, mqConnectionName, channelObject, sslPeerName)
+		Expect(applyWithWebhookRetry(carYAML)).To(Succeed())
+
+		Eventually(func(g Gomega) {
+			out, err := runKubectl("get", "channelauthrule", mqChannelSslPeerMapCRName, "-n", ns,
+				"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("True"))
+		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+
+		client, err := newMQClient()
+		Expect(err).NotTo(HaveOccurred())
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+
+		carSpec := mqadmin.ChannelAuthSpec{
+			ChannelName: channelObject,
+			RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+			SSLPeerName: sslPeerName,
+			UserSource:  "MAP",
+			McaUser:     "app",
+			Description: "e2e sslpeermap rule",
+		}
+		ok, err := channelAuthMatches(ctx, client, carSpec)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ok).To(BeTrue(), "SSLPEERMAP CHLAUTH for channel %s should match ChannelAuthRule spec", channelObject)
+
+		Expect(kubectlDeleteWait("channelauthrule", mqChannelSslPeerMapCRName, ns)).To(Succeed(),
+			"SSLPEERMAP ChannelAuthRule CR delete should complete within %s", kubectlWaitTimeout)
+
+		carLookup := mqadmin.ChannelAuthSpec{
+			ChannelName: channelObject,
+			RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+			SSLPeerName: sslPeerName,
+		}
+		Eventually(func(g Gomega) {
+			pollCtx, pollCancel := context.WithTimeout(context.Background(), time.Minute)
+			defer pollCancel()
+			ok, err := channelAuthExists(pollCtx, client, carLookup)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(ok).To(BeFalse(), "SSLPEERMAP CHLAUTH for channel %s should be removed from MQ after CR delete", channelObject)
 		}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
 	})
 
