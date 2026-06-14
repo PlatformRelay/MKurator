@@ -9,6 +9,22 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+### Features
+
+- **channel:** Add sslCipherSpec and sslClientAuth fields (#36) ([#36](https://github.com/conduit-ops/MKurator/pull/36), )[6dae756](https://github.com/conduit-ops/MKurator/commit/6dae7568de1cbea4494736e42d3c3d5cc89ae93d)
+
+- **channel:** Add maxInstances and maxInstancesClient fields (#35) ([#35](https://github.com/conduit-ops/MKurator/pull/35), )[3e9fa3e](https://github.com/conduit-ops/MKurator/commit/3e9fa3e9f99ac9c67734b27c88af37b663efc484)
+
+- **channel:** Add Channel.spec.mcaUser typed field (#34) ([#34](https://github.com/conduit-ops/MKurator/pull/34), )[58d3819](https://github.com/conduit-ops/MKurator/commit/58d38198d584b7f0df580ded14744b5d4668c7fb)
+
+- **api:** Add Channel.spec.shareConv typed field (#33) ([#33](https://github.com/conduit-ops/MKurator/pull/33), )[e0e685a](https://github.com/conduit-ops/MKurator/commit/e0e685ad3b6604addc4e495eea87daa884bab014)
+
+- **api:** Add Channel.spec.transportType typed field (#32) ([#32](https://github.com/conduit-ops/MKurator/pull/32), )[e16b03f](https://github.com/conduit-ops/MKurator/commit/e16b03f08abb9820f8b411d156a8623c6c8d5a6e)
+
+- **api:** Add Channel.spec.maxMsgLength typed field (#31) ([#31](https://github.com/conduit-ops/MKurator/pull/31), )[da91f99](https://github.com/conduit-ops/MKurator/commit/da91f99e22e6c61a1a5b27f27bb731337c84a0a0)
+
+## [0.9.1](https://github.com/conduit-ops/MKurator/compare/v0.9.0..v0.9.1) - 2026-06-14
+
 ### Bug Fixes
 
 - **api:** Guard Queue description CEL with has() (#23) ([#23](https://github.com/conduit-ops/MKurator/pull/23), )[27acadd](https://github.com/conduit-ops/MKurator/commit/27acaddd950da37e19c21615dd4634b0bfee2c4b)
