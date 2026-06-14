@@ -47,6 +47,13 @@ func e2eChannelNameForTest(testName string) string {
 	return fmt.Sprintf("E2E.C.%05d", h.Sum32()%100000)
 }
 
+// e2eSslPeerNameForTest returns a unique TLS DN pattern per test name.
+func e2eSslPeerNameForTest(testName string) string {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(testName))
+	return fmt.Sprintf("CN=e2ep%05d,O=MKurator,C=US", h.Sum32()%100000)
+}
+
 // mqE2EEnabled reports whether IBM MQ integration tests should run.
 func mqE2EEnabled() bool {
 	return os.Getenv("KURATOR_E2E_MQ") == "1"
