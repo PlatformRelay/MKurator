@@ -23,6 +23,15 @@ const (
 	QueueDefaultPersistenceNo  QueueDefaultPersistence = "no"
 )
 
+// QueueAccessEnabled controls whether GET or PUT is allowed on a queue (MQSC GET/PUT).
+// +kubebuilder:validation:Enum=enabled;disabled
+type QueueAccessEnabled string
+
+const (
+	QueueAccessEnabledEnabled  QueueAccessEnabled = "enabled"
+	QueueAccessEnabledDisabled QueueAccessEnabled = "disabled"
+)
+
 // QueueSpec defines a queue to maintain on a referenced queue manager.
 // +kubebuilder:validation:XValidation:rule="self.type != 'alias' || (has(self.attributes) && (('targq' in self.attributes && size(self.attributes['targq']) > 0) || ('target' in self.attributes && size(self.attributes['target']) > 0)))",message="alias queues require attribute targq (or target)"
 // +kubebuilder:validation:XValidation:rule="self.type != 'remote' || (has(self.attributes) && (('xmitq' in self.attributes && size(self.attributes['xmitq']) > 0) || ('transmissionqueue' in self.attributes && size(self.attributes['transmissionqueue']) > 0)))",message="remote queues require attribute xmitq (or transmissionqueue)"
@@ -30,6 +39,8 @@ const (
 // +kubebuilder:validation:XValidation:rule="!has(self.maxDepth) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'maxdepth')",message="maxDepth field and attributes.maxdepth are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.description) || self.description.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'descr')",message="description field and attributes.descr are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.defPersistence) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'defpsist')",message="defPersistence field and attributes.defpsist are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.get) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'get')",message="get field and attributes.get are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.put) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'put')",message="put field and attributes.put are mutually exclusive"
 type QueueSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -75,6 +86,18 @@ type QueueSpec struct {
 	// into the attribute map for mqadmin.
 	// +optional
 	DefPersistence QueueDefaultPersistence `json:"defPersistence,omitempty"`
+
+	// Get controls whether applications may retrieve messages from the queue (MQSC GET).
+	// Mutually exclusive with attributes.get; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	Get QueueAccessEnabled `json:"get,omitempty"`
+
+	// Put controls whether applications may put messages on the queue (MQSC PUT).
+	// Mutually exclusive with attributes.put; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	Put QueueAccessEnabled `json:"put,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional
