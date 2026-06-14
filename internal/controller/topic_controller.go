@@ -205,6 +205,9 @@ func toMQTopicSpec(topic *messagingv1alpha1.Topic) mqadmin.TopicSpec {
 	if topic.Spec.Subscribe != "" {
 		attrs[mqadmin.NormalizeAttrKey("sub")] = string(topic.Spec.Subscribe)
 	}
+	if topic.Spec.DefPersistence != "" {
+		attrs[mqadmin.NormalizeAttrKey("defpsist")] = string(topic.Spec.DefPersistence)
+	}
 	return mqadmin.TopicSpec{
 		Name:       topic.Spec.TopicName,
 		Attributes: attrs,

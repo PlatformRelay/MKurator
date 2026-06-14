@@ -23,6 +23,7 @@ const TopicFinalizer = "messaging.mkurator.dev/topic"
 // +kubebuilder:validation:XValidation:rule="!has(self.description) || self.description.size() == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'descr')",message="description field and attributes.descr are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.publish) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'pub')",message="publish field and attributes.pub are mutually exclusive"
 // +kubebuilder:validation:XValidation:rule="!has(self.subscribe) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'sub')",message="subscribe field and attributes.sub are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!has(self.defPersistence) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii() == 'defpsist')",message="defPersistence field and attributes.defpsist are mutually exclusive"
 type TopicSpec struct {
 	// ConnectionRef names a QueueManagerConnection in the same namespace.
 	// +kubebuilder:validation:Required
@@ -67,6 +68,12 @@ type TopicSpec struct {
 	// into the attribute map for mqadmin.
 	// +optional
 	Subscribe TopicAccessEnabled `json:"subscribe,omitempty"`
+
+	// DefPersistence is the default message persistence for new messages (MQSC DEFPSIST).
+	// Mutually exclusive with attributes.defpsist; typed field takes precedence when folded
+	// into the attribute map for mqadmin.
+	// +optional
+	DefPersistence QueueDefaultPersistence `json:"defPersistence,omitempty"`
 
 	// Suspend pauses MQ reconciliation for this object. Status shows Synced=False ReasonSuspended.
 	// +optional

@@ -197,6 +197,22 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("subscribe"))
 	})
 
+	It("rejects Topic with both defPersistence and attributes.defpsist", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Topic{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-topic-defpsist", Namespace: ns},
+			Spec: messagingv1alpha1.TopicSpec{
+				ConnectionRef:  messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				TopicName:      "RETAIL.ORDERS",
+				DefPersistence: messagingv1alpha1.QueueDefaultPersistenceYes,
+				Attributes:     map[string]string{"defpsist": "yes"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("defPersistence"))
+	})
+
 	It("rejects Channel with both description and attributes.descr", func() {
 		ctx := context.Background()
 		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Channel{
