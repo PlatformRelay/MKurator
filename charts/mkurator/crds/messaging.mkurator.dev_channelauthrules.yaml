@@ -99,6 +99,9 @@ spec:
                 - ASCHL
                 - OPTIONAL
                 type: string
+              clientUser:
+                description: ClientUser maps to CLNTUSER(...) for USERMAP rules.
+                type: string
               connectionRef:
                 description: ConnectionRef names a QueueManagerConnection in the same
                   namespace.
@@ -119,6 +122,10 @@ spec:
               description:
                 description: Description maps to DESCR(...).
                 type: string
+              mcaUser:
+                description: McaUser maps to MCAUSER(...) for USERMAP (USERSRC MAP)
+                  and ADDRESSMAP (USERSRC MAP) rules.
+                type: string
               ruleType:
                 description: RuleType maps to CHLAUTH TYPE(...).
                 enum:
@@ -137,10 +144,12 @@ spec:
                 description: UserList maps to USERLIST(...) for BLOCKUSER rules.
                 type: string
               userSource:
-                description: UserSource maps to USERSRC(...) for ADDRESSMAP rules.
+                description: UserSource maps to USERSRC(...) for ADDRESSMAP and USERMAP
+                  rules.
                 enum:
                 - CHANNEL
                 - NOACCESS
+                - MAP
                 type: string
             required:
             - channelName
@@ -157,6 +166,12 @@ spec:
             - message: userList is required for BLOCKUSER rules
               rule: self.ruleType != 'BLOCKUSER' || (has(self.userList) && size(self.userList)
                 > 0)
+            - message: clientUser is required for USERMAP rules
+              rule: self.ruleType != 'USERMAP' || (has(self.clientUser) && size(self.clientUser)
+                > 0)
+            - message: mcaUser is required when userSource is MAP
+              rule: self.ruleType != 'USERMAP' || self.userSource != 'MAP' || (has(self.mcaUser)
+                && size(self.mcaUser) > 0)
           status:
             description: ChannelAuthRuleStatus defines the observed state of ChannelAuthRule.
             properties:

@@ -16,6 +16,12 @@ func ChannelAuthNeedsUpdate(desired ChannelAuthSpec, observed *ChannelAuthState)
 	if !strings.EqualFold(strings.TrimSpace(desired.UserList), strings.TrimSpace(observed.UserList)) {
 		return true
 	}
+	if !strings.EqualFold(strings.TrimSpace(desired.ClientUser), strings.TrimSpace(observed.ClientUser)) {
+		return true
+	}
+	if !strings.EqualFold(strings.TrimSpace(desired.McaUser), strings.TrimSpace(observed.McaUser)) {
+		return true
+	}
 	if !strings.EqualFold(strings.TrimSpace(desired.UserSource), strings.TrimSpace(observed.UserSource)) {
 		return true
 	}

@@ -263,7 +263,7 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(err.Error()).To(ContainSubstring("address"))
 	})
 
-	It("allows ChannelAuthRule USERMAP when Channel exists (deferred MQSC fields)", func() {
+	It("allows ChannelAuthRule USERMAP when Channel exists", func() {
 		ctx := context.Background()
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
@@ -286,6 +286,9 @@ var _ = Describe("Validating admission webhooks", func() {
 				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+				ClientUser:    "johndoe",
+				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				McaUser:       "orders-app",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())

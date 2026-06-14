@@ -354,11 +354,12 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 
 ## Phase 9 — MQ surface depth (resequenced from Phase 5)
 
-- [ ] Additional CHLAUTH rule types: `USERMAP`, `SSLPEERMAP`, `QMGRMAP` —
-  CRD fields, mqrest SET/GET + drift, integration + e2e (daily-backlog
-  AUTH-3a…AUTH-6).
+- [ ] Additional CHLAUTH rule types: `SSLPEERMAP`, `QMGRMAP` — CRD fields,
+  mqrest SET/GET + drift, integration + e2e (daily-backlog AUTH-5…AUTH-6).
+- [x] `USERMAP` CHLAUTH — `clientUser`/`mcaUser` CRD fields, mqrest SET/DISPLAY,
+  reconciler + drift, Docker integration (AUTH-3a; e2e AUTH-4 pending).
 - [ ] AuthorityRecord channel/namelist profile parity with queue profiles.
-- [ ] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2).
+- [x] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2) — #40 Docker integration, #41 kind e2e.
 - [ ] Further channel types (SDR/RCVR) behind the same quality bar — only
   after the ARCH-06 refactor (7c) makes new kinds cheap.
 

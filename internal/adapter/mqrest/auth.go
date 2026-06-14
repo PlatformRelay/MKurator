@@ -152,6 +152,8 @@ func channelAuthStateFromAttributes(
 		RuleType:    spec.RuleType,
 		Address:     address,
 		UserList:    attrs["userlist"],
+		ClientUser:  attrs["clntuser"],
+		McaUser:     attrs["mcauser"],
 		UserSource:  attrs["usersrc"],
 		CheckClient: attrs["chckclnt"],
 		Description: attrs["descr"],
@@ -192,6 +194,8 @@ func buildDisplayChannelAuthMQSC(spec mqadmin.ChannelAuthSpec) (string, error) {
 	switch {
 	case spec.RuleType == mqadmin.ChannelAuthRuleTypeBlockAddr:
 		parts = append(parts, "ADDRLIST")
+	case spec.RuleType == mqadmin.ChannelAuthRuleTypeUserMap && spec.ClientUser != "":
+		parts = append(parts, fmt.Sprintf("CLNTUSER('%s')", mqscQuote(spec.ClientUser)))
 	case spec.Address != "":
 		parts = append(parts, fmt.Sprintf("ADDRESS('%s')", mqscQuote(spec.Address)))
 	}
@@ -255,6 +259,9 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 	if clause := channelAuthAddressClause(spec); clause != "" {
 		parts = append(parts, clause)
 	}
+	if clause := channelAuthClientUserClause(spec); clause != "" {
+		parts = append(parts, clause)
+	}
 	if action == "REMOVE" {
 		parts = append(parts, "ACTION(REMOVE)")
 		return strings.Join(parts, " "), nil
@@ -264,6 +271,9 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 	}
 	if spec.UserSource != "" {
 		parts = append(parts, fmt.Sprintf("USERSRC(%s)", spec.UserSource))
+	}
+	if spec.McaUser != "" {
+		parts = append(parts, fmt.Sprintf("MCAUSER('%s')", mqscQuote(spec.McaUser)))
 	}
 	if spec.CheckClient != "" {
 		parts = append(parts, fmt.Sprintf("CHCKCLNT(%s)", spec.CheckClient))
@@ -311,6 +321,13 @@ func buildSetAuthorityMQSC(spec mqadmin.AuthoritySpec, remove bool) (string, err
 
 func mqscQuote(s string) string {
 	return strings.ReplaceAll(s, "'", "''")
+}
+
+func channelAuthClientUserClause(spec mqadmin.ChannelAuthSpec) string {
+	if spec.ClientUser == "" || spec.RuleType != mqadmin.ChannelAuthRuleTypeUserMap {
+		return ""
+	}
+	return fmt.Sprintf("CLNTUSER('%s')", mqscQuote(spec.ClientUser))
 }
 
 func channelAuthAddressClause(spec mqadmin.ChannelAuthSpec) string {
