@@ -124,6 +124,12 @@ spec:
                 maximum: 999999999
                 minimum: 0
                 type: integer
+              mcaUser:
+                description: |-
+                  McaUser is the MCA user ID for authority checks on this channel (MQSC MCAUSER).
+                  Mutually exclusive with attributes.mcauser; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                type: string
               shareConv:
                 description: |-
                   ShareConv is the maximum number of conversations shared per TCP/IP connection (MQSC SHARECNV).
@@ -171,6 +177,9 @@ spec:
             - message: shareConv field and attributes.sharecnv are mutually exclusive
               rule: '!has(self.shareConv) || !has(self.attributes) || !self.attributes.exists(k,
                 k.lowerAscii() == ''sharecnv'')'
+            - message: mcaUser field and attributes.mcauser are mutually exclusive
+              rule: '!has(self.mcaUser) || self.mcaUser.size() == 0 || !has(self.attributes)
+                || !self.attributes.exists(k, k.lowerAscii() == ''mcauser'')'
           status:
             description: ChannelStatus defines the observed state of Channel.
             properties:
