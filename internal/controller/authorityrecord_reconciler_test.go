@@ -107,10 +107,12 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
 
+		recorder := events.NewFakeRecorder(2)
 		rec := &AuthorityRecordReconciler{
 			Client:    k8sClient,
 			Scheme:    k8sClient.Scheme(),
 			MQFactory: mockFactory,
+			Recorder:  recorder,
 		}
 
 		_, err := rec.Reconcile(ctx, reconcile.Request{
@@ -132,6 +134,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(*updated.Status.MQObjectExists).To(BeTrue())
 		Expect(updated.Status.Message).To(Equal("AuthorityRecord matches spec"))
 		Expect(updated.Status.LastSyncTime).NotTo(BeNil())
+		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)
 	})
 
 	It("applies AUTHREC for channel profile when the connection is Ready", func() {
