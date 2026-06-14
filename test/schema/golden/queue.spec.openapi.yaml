@@ -47,6 +47,15 @@ properties:
       Mutually exclusive with attributes.descr; typed field takes precedence when folded
       into the attribute map for mqadmin.
     type: string
+  get:
+    description: |-
+      Get controls whether applications may retrieve messages from the queue (MQSC GET).
+      Mutually exclusive with attributes.get; typed field takes precedence when folded
+      into the attribute map for mqadmin.
+    enum:
+    - enabled
+    - disabled
+    type: string
   maxDepth:
     description: |-
       MaxDepth is the maximum number of messages the queue can hold (MQSC MAXDEPTH).
@@ -56,6 +65,15 @@ properties:
     maximum: 999999999
     minimum: 1
     type: integer
+  put:
+    description: |-
+      Put controls whether applications may put messages on the queue (MQSC PUT).
+      Mutually exclusive with attributes.put; typed field takes precedence when folded
+      into the attribute map for mqadmin.
+    enum:
+    - enabled
+    - disabled
+    type: string
   queueName:
     description: QueueName is the IBM MQ object name.
     maxLength: 48
@@ -110,3 +128,9 @@ x-kubernetes-validations:
 - message: defPersistence field and attributes.defpsist are mutually exclusive
   rule: '!has(self.defPersistence) || !has(self.attributes) || !self.attributes.exists(k,
     k.lowerAscii() == ''defpsist'')'
+- message: get field and attributes.get are mutually exclusive
+  rule: '!has(self.get) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii()
+    == ''get'')'
+- message: put field and attributes.put are mutually exclusive
+  rule: '!has(self.put) || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii()
+    == ''put'')'

@@ -75,6 +75,25 @@ func TestToMQQueueSpecTypedDefPersistence(t *testing.T) {
 	}
 }
 
+func TestToMQQueueSpecTypedGetPut(t *testing.T) {
+	t.Parallel()
+	q := &messagingv1alpha1.Queue{
+		Spec: messagingv1alpha1.QueueSpec{
+			QueueName: "APP.ORDERS",
+			Type:      messagingv1alpha1.QueueTypeLocal,
+			Get:       messagingv1alpha1.QueueAccessEnabledEnabled,
+			Put:       messagingv1alpha1.QueueAccessEnabledDisabled,
+		},
+	}
+	spec := toMQQueueSpec(q)
+	if spec.Attributes["get"] != "enabled" {
+		t.Fatalf("get = %q", spec.Attributes["get"])
+	}
+	if spec.Attributes["put"] != "disabled" {
+		t.Fatalf("put = %q", spec.Attributes["put"])
+	}
+}
+
 func TestConnectionReady(t *testing.T) {
 	t.Parallel()
 	ready := &messagingv1alpha1.QueueManagerConnection{
