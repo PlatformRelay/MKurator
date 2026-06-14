@@ -97,6 +97,38 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("defPersistence"))
 	})
 
+	It("rejects Queue with both get and attributes.get", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-get", Namespace: ns},
+			Spec: messagingv1alpha1.QueueSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				QueueName:     "APP.ORDERS",
+				Get:           messagingv1alpha1.QueueAccessEnabledEnabled,
+				Attributes:    map[string]string{"get": "enabled"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("get"))
+	})
+
+	It("rejects Queue with both put and attributes.put", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-put", Namespace: ns},
+			Spec: messagingv1alpha1.QueueSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				QueueName:     "APP.ORDERS",
+				Put:           messagingv1alpha1.QueueAccessEnabledDisabled,
+				Attributes:    map[string]string{"put": "disabled"},
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("put"))
+	})
+
 	It("rejects ChannelAuthRule ADDRESSMAP without address", func() {
 		ctx := context.Background()
 		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{

@@ -6,7 +6,6 @@ import (
 )
 
 func TestSetMQRequestTimeout(t *testing.T) {
-	t.Parallel()
 	prev := MQRequestTimeout()
 	t.Cleanup(func() { SetMQRequestTimeout(prev) })
 	SetMQRequestTimeout(0)
@@ -20,7 +19,6 @@ func TestSetMQRequestTimeout(t *testing.T) {
 }
 
 func TestMQRequestContextDeadline(t *testing.T) {
-	t.Parallel()
 	prev := MQRequestTimeout()
 	t.Cleanup(func() { SetMQRequestTimeout(prev) })
 	SetMQRequestTimeout(50 * time.Millisecond)
