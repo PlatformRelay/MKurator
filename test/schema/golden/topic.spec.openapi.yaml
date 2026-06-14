@@ -52,7 +52,18 @@ properties:
       rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
     - message: names with prefix AMQ are reserved for IBM MQ internal use
       rule: '!self.upperAscii().startsWith(''AMQ'')'
+  topicString:
+    description: |-
+      TopicString is the IBM MQ topic string (MQSC TOPICSTR / attribute topstr).
+      Mutually exclusive with attributes.topstr and attributes.topicstr; typed field
+      takes precedence when folded into the attribute map for mqadmin.
+    type: string
 required:
 - connectionRef
 - topicName
 type: object
+x-kubernetes-validations:
+- message: topicString field and attributes.topstr (or topicstr) are mutually exclusive
+  rule: '!has(self.topicString) || self.topicString.size() == 0 || !has(self.attributes)
+    || !self.attributes.exists(k, k.lowerAscii() == ''topstr'' || k.lowerAscii() ==
+    ''topicstr'')'
