@@ -72,7 +72,14 @@ tasks:
       KIND_CLUSTER:
         sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-mkurator}}"
       KUBECONFIG:
-        sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
+          sh: |
+            ROOT="$(git rev-parse --show-toplevel)"
+            KIND_KUBECONFIG="${ROOT}/hack/kind-cluster/.state/kubeconfig.yaml"
+            if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ]; then
+              echo "${KUBECONFIG}"
+            else
+              echo "${KIND_KUBECONFIG}"
+            fi
     cmds:
       - bash hack/ci/run-e2e.sh
 
@@ -86,7 +93,14 @@ tasks:
       KIND_CLUSTER:
         sh: echo "${KIND_CLUSTER:-${CLUSTER_NAME:-mkurator}}"
       KUBECONFIG:
-        sh: echo "${KUBECONFIG:-$(git rev-parse --show-toplevel)/hack/kind-cluster/.state/kubeconfig.yaml}"
+          sh: |
+            ROOT="$(git rev-parse --show-toplevel)"
+            KIND_KUBECONFIG="${ROOT}/hack/kind-cluster/.state/kubeconfig.yaml"
+            if [ -n "${KUBECONFIG:-}" ] && [ -f "${KUBECONFIG}" ]; then
+              echo "${KUBECONFIG}"
+            else
+              echo "${KIND_KUBECONFIG}"
+            fi
     cmds:
       - bash hack/ci/run-e2e-helm.sh
 
