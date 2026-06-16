@@ -1,7 +1,7 @@
 # Observability samples
 
 User-facing artifacts for Prometheus scrape, alerting, and Grafana dashboards.
-Full guide: [docs/OBSERVABILITY.md](../../docs/OBSERVABILITY.md).
+Full guide: [docs/OBSERVABILITY.md](../../../docs/OBSERVABILITY.md).
 
 | File | Purpose |
 |------|---------|
@@ -9,7 +9,7 @@ Full guide: [docs/OBSERVABILITY.md](../../docs/OBSERVABILITY.md).
 | [`grafana-dashboard.json`](grafana-dashboard.json) | Starter Grafana dashboard (import via UI or provisioning) |
 
 **ServiceMonitor:** prefer the Helm chart (`metrics.serviceMonitor.enabled`) or
-[`charts/mkurator/samples/values-kind.yaml`](../../charts/mkurator/samples/values-kind.yaml)
+[`charts/mkurator/samples/values-kind.yaml`](../../../charts/mkurator/samples/values-kind.yaml)
 for local kind. Kustomize installs can use [`config/prometheus/monitor.yaml`](../../prometheus/monitor.yaml).
 
 **Metric names** (from `internal/metrics/metrics.go`):

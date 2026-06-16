@@ -17,7 +17,7 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/conduit-ops/mkurator)](https://pkg.go.dev/github.com/conduit-ops/mkurator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/conduit-ops/MKurator.svg)](https://pkg.go.dev/github.com/conduit-ops/mkurator)
 [![Go Report Card](https://goreportcard.com/badge/github.com/conduit-ops/mkurator)](https://goreportcard.com/report/github.com/conduit-ops/mkurator)
-[![Container](https://img.shields.io/badge/ghcr.io-conduit-ops%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/conduit-ops/MKurator/pkgs/container/mkurator)
+[![Container](https://img.shields.io/badge/ghcr.io-conduit-ops%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/conduit-ops/packages?repo_name=MKurator)
 
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
@@ -51,7 +51,7 @@ guarantees and `v1beta1` graduation path).
 
 **Repository:** [github.com/conduit-ops/MKurator](https://github.com/conduit-ops/MKurator) — Go module
 [`github.com/conduit-ops/MKurator`](https://pkg.go.dev/github.com/conduit-ops/mkurator), images
-`ghcr.io/conduit-ops/mkurator` ([ADR-0006](docs/adr/0006-project-name-mkurator.md)). Your
+`ghcr.io/conduit-ops/mkurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md), superseded by [ADR-0018](docs/adr/0018-project-rename-mkurator.md)). Your
 local clone directory may differ from the module/repo name (for example
 `IBM-Message-Queue-Operator`).
 

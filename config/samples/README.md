@@ -4,6 +4,8 @@ These YAML files are **starting points** for MKurator custom resources. Adapt
 namespaces, endpoints, TLS, and secrets for your environment before applying in
 production.
 
+Attribute API rationale: [ADR-0021](../../docs/adr/0021-attribute-api-shape.md).
+
 Full install and usage guide: [docs/INSTALL_AND_USE.md](../../docs/INSTALL_AND_USE.md).
 
 ## Preferred apply (kind / local dev)
@@ -55,6 +57,10 @@ kubectl apply -f messaging_v1alpha1_channel.yaml
 kubectl wait --for=condition=Synced channel/orders-app -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_channelauthrule.yaml
 kubectl wait --for=condition=Synced channelauthrule/dev-app-addressmap -n mkurator-system --timeout=120s
+kubectl apply -f messaging_v1alpha1_channelauthrule_blockuser.yaml
+kubectl wait --for=condition=Synced channelauthrule/dev-app-blockuser -n mkurator-system --timeout=120s
+kubectl apply -f messaging_v1alpha1_channelauthrule_blockaddr.yaml
+kubectl wait --for=condition=Synced channelauthrule/dev-app-blockaddr -n mkurator-system --timeout=120s
 kubectl apply -f messaging_v1alpha1_authorityrecord.yaml
 kubectl wait --for=condition=Synced authorityrecord/app-orders-get-put -n mkurator-system --timeout=120s
 ```
@@ -151,7 +157,7 @@ spec:
 | `connectionRef.name` | `qm1` | Must match a **Ready** `QueueManagerConnection` |
 | `queueName` | `APP.ORDERS` | Actual IBM MQ object name |
 | `type` | `local` | `QLOCAL`; see also `alias` and `remote` samples below |
-| `maxDepth` | *(optional)* | Typed alternative to `attributes.maxdepth`; mutually exclusive ([ADR-0021](../docs/adr/0021-attribute-api-shape.md)) |
+| `maxDepth` | *(optional)* | Typed alternative to `attributes.maxdepth`; mutually exclusive ([ADR-0021](../../docs/adr/0021-attribute-api-shape.md)) |
 | `attributes.maxdepth` | `"5000"` | String in YAML; sent as numeric to mqweb |
 | `attributes.descr` | Human-readable text | Mapped to MQSC `DESCR` |
 
@@ -300,9 +306,8 @@ Helm copy:
 
 ## `messaging_v1alpha1_channelauthrule_blockaddr.yaml`
 
-Optional listener-level block: `TYPE(BLOCKADDR)` on channel `*` for a single IP
-(TEST-NET-1 example). Not listed in `kustomization.yaml` by default — apply
-manually when testing BLOCKADDR.
+Listener-level block shipped with the default sample bundle: `TYPE(BLOCKADDR)` on
+channel `*` for a single IP (TEST-NET-1 documentation range).
 
 | Field | This sample | Notes |
 |-------|-------------|-------|
