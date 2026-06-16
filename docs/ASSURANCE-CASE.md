@@ -1,8 +1,8 @@
 # Security assurance case
 
 Security claims, trust boundaries, and countermeasures for MKurator. Complements
-[NFR SEC-*](../NON_FUNCTIONAL_REQUIREMENTS.md#1-security), [SECURITY.md](../SECURITY.md),
-and [ADR-0009](../adr/0009-validating-admission-webhooks.md).
+[NFR SEC-*](NON_FUNCTIONAL_REQUIREMENTS.md#1-security), [SECURITY.md](../SECURITY.md),
+and [ADR-0009](adr/0009-validating-admission-webhooks.md).
 
 **Last updated:** 2026-06-06
 
@@ -51,7 +51,7 @@ flowchart TB
 | **Operator ↔ Secrets** | Secret readable only where RBAC allows | `credentialsSecretRef` / `caSecretRef` only |
 | **Operator ↔ mqweb** | Network may be hostile | TLS verify default; custom CA; dev-only insecure skip |
 | **Admission ↔ API writers** | Webhook pod availability | `failurePolicy: Fail`; CEL migration planned |
-| **Supply chain ↔ Adopter** | Registry/releases may be tampered | cosign, SBOM, SLSA attestations ([ADR-0016](../adr/0016-release-supply-chain.md)) |
+| **Supply chain ↔ Adopter** | Registry/releases may be tampered | cosign, SBOM, SLSA attestations ([ADR-0016](adr/0016-release-supply-chain.md)) |
 
 ## Threats and countermeasures
 
@@ -76,4 +76,4 @@ flowchart TB
 
 - [SECURITY-REVIEW.md](SECURITY-REVIEW.md) — dated self-review
 - [security/sca-remediation-policy.md](security/sca-remediation-policy.md) — CVE/license SLAs
-- [ADR-0016](../adr/0016-release-supply-chain.md) — release supply chain
+- [ADR-0016](adr/0016-release-supply-chain.md) — release supply chain
