@@ -318,8 +318,8 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
 - [x] Delete dead helpers + padding tests (ARCH-09/F04); envtest gaps for
   Channel/Topic/AuthorityRecord paths (F07) — lifts `internal/controller`
   coverage (87.6%) honestly. *(v0.8.0)*
-- [ ] **E2E flake triage** (ARCH-07): 2 of last 6 main runs failed with
-  reruns green; duration variance 13–34 min (note added v0.8.0; root cause open).
+- [x] **E2E flake triage** (ARCH-07): parallel Ginkgo `AfterSuite` deploy race — fixed
+  #57 `SynchronizedAfterSuite` (v0.9.6); E2E green on `bea6b20` [27723178744](https://github.com/conduit-ops/MKurator/actions/runs/27723178744).
 - [x] Fix `task changelog` clobbering `CHANGELOG.md` (release audit P1-2:
   `cliff.toml` `output` vs preview tasks). *(v0.7.1)*
 
