@@ -469,7 +469,8 @@ func TestChannelAuthStateFromAttributes(t *testing.T) {
 			},
 			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
 				t.Helper()
-				if state.SSLPeerName != "CN=AppClient,O=MyOrg,C=US" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
+				if state.SSLPeerName != "CN=AppClient,O=MyOrg,C=US" || state.McaUser != "orders-app" ||
+					state.UserSource != "MAP" {
 					t.Fatalf("state = %+v", state)
 				}
 			},
@@ -501,7 +502,8 @@ func TestChannelAuthStateFromAttributes(t *testing.T) {
 			},
 			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
 				t.Helper()
-				if state.RemoteQueueManager != "QM_PARTNER" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
+				if state.RemoteQueueManager != "QM_PARTNER" || state.McaUser != "orders-app" ||
+					state.UserSource != "MAP" {
 					t.Fatalf("state = %+v", state)
 				}
 			},
