@@ -24,9 +24,16 @@ IBM does **not** ship a static OpenAPI file in the product download or on GitHub
 3. Run from the repository root:
 
 ```bash
-chmod +x scripts/fetch-mqweb-swagger.sh
 MQWEB_USER=admin MQWEB_PASS=changeme \
   ./scripts/fetch-mqweb-swagger.sh https://localhost:9443 docs/schemas/mqweb-swagger.json
+```
+
+Or against the Docker integration MQ:
+
+```bash
+task mq:integration:up
+task mq:integration:wait
+task mq:swagger:fetch
 ```
 
 4. Commit `mqweb-swagger.json` with a note of the IBM MQ version it was exported from (e.g. `9.4.2`).

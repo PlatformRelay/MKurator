@@ -358,7 +358,10 @@ IBM documents the API in Knowledge Center **and** as runtime Swagger 2.0.
 
 ```bash
 ./scripts/fetch-mqweb-swagger.sh https://localhost:9443 docs/schemas/mqweb-swagger.json
+# or: task mq:integration:up && task mq:integration:wait && task mq:swagger:fetch
 ```
+
+See [schemas/README.md](./schemas/README.md) for `apiDiscovery-1.0` setup and versioning notes.
 
 The Swagger document includes Liberty-wide discovery plus IBM MQ paths such as:
 

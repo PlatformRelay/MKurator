@@ -9,7 +9,7 @@ if ! command -v shellcheck >/dev/null 2>&1; then
   exit 1
 fi
 
-mapfile -t scripts < <(find "${ROOT}/hack" -name '*.sh' -type f | sort)
+mapfile -t scripts < <(find "${ROOT}/hack" "${ROOT}/scripts" -name '*.sh' -type f 2>/dev/null | sort)
 if [[ -f "${ROOT}/.devcontainer/post-install.sh" ]]; then
   scripts+=("${ROOT}/.devcontainer/post-install.sh")
 fi

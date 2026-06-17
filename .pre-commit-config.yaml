@@ -75,5 +75,5 @@ repos:
     hooks:
       - id: shellcheck
         args: [--severity=warning]
-        files: ^(hack/|\.devcontainer/).*\.sh$
+        files: ^(hack/|scripts/|\.devcontainer/).*\.sh$
         exclude: ^references/
