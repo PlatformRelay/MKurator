@@ -73,7 +73,7 @@ fields land):
 | `USERMAP` | Map `CLNTUSER` to `MCAUSER` | **Deferred** — no `clientUser` / `mcaUser` on CRD or `mqrest` builder |
 | `SSLPEERMAP` | Map TLS DN | **Deferred** — no `sslPeer` field |
 | `QMGRMAP` | Map remote QM name | **Deferred** — no `qmgrName` field |
-| `BLOCKADDR` | Block IPs at listener | `spec.address`; optional sample (not in default kustomization); no integration yet |
+| `BLOCKADDR` | Block IPs at listener | `spec.address`; default sample + Docker integration + kind e2e |
 
 Do not add unit/integration tests that assert MQSC for `USERMAP` (or other deferred
 types) until [`ChannelAuthRuleSpec`](../api/v1alpha1/channelauthrule_types.go) and

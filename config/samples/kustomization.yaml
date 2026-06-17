@@ -8,5 +8,6 @@ resources:
 - messaging_v1alpha1_channel.yaml
 - messaging_v1alpha1_channelauthrule.yaml
 - messaging_v1alpha1_channelauthrule_blockuser.yaml
+- messaging_v1alpha1_channelauthrule_blockaddr.yaml
 - messaging_v1alpha1_authorityrecord.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
