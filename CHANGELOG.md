@@ -9,6 +9,28 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.9.6](https://github.com/conduit-ops/MKurator/compare/v0.9.5..v0.9.6) - 2026-06-17
+
+### Bug Fixes
+
+- **e2e:** Serialize suite teardown on process 1 (#57) ([#57](https://github.com/conduit-ops/MKurator/pull/57), )[bea6b20](https://github.com/conduit-ops/MKurator/commit/bea6b201014087dbbef116394c94dd46b63b452a)
+
+- **task:** Prefer valid kind kubeconfig path [0e9ce20](https://github.com/conduit-ops/MKurator/commit/0e9ce2047eb6a4d08c96c481164f1426e2985ef5)
+
+
+### Refactoring
+
+- **mqrest:** Table-drive CHLAUTH auth unit tests [086996b](https://github.com/conduit-ops/MKurator/commit/086996bc82142d0039b426836f1c2bb48fb4482f)
+
+
+### Merge
+
+- Bring dependabot go minor patch fixes ([#51](https://github.com/conduit-ops/MKurator/pull/51), )[10c45b3](https://github.com/conduit-ops/MKurator/commit/10c45b365aee3dd4cecfa2086c44a2356ea9991b)
+
+- Bring task and docs fixes from chore/tst-4-blockaddr-default-samples [e39dd25](https://github.com/conduit-ops/MKurator/commit/e39dd25d087b5558cec1064c05dcd72941bb0f98)
+
+- Bring kubeconfig task fix from chore/tst-4-blockaddr-default-samples [c42194f](https://github.com/conduit-ops/MKurator/commit/c42194ffa5647992cf2be9954b9674209aee6ead)
+
 ## [0.9.5](https://github.com/conduit-ops/MKurator/compare/v0.9.4..v0.9.5) - 2026-06-14
 
 ### Bug Fixes
