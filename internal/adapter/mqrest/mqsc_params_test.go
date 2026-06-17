@@ -30,7 +30,7 @@ func TestDefineQueueParameters(t *testing.T) {
 func TestQueueDisplayParametersExcludeMaxmsglen(t *testing.T) {
 	t.Parallel()
 	for _, p := range queueLocalDisplayParameters {
-		if p == "maxmsglen" {
+		if p == attrMaxMsgLen {
 			t.Fatal("maxmsglen must not be in display parameters for mqweb 9.4")
 		}
 	}
@@ -86,7 +86,7 @@ func TestChannelDisplayParametersIncludeConnectionLimits(t *testing.T) {
 
 func TestQueueLocalDisplayParametersOmitExtendedAttrsOn94(t *testing.T) {
 	t.Parallel()
-	for _, p := range []string{"share", "defopts", "bothresh", "boqname", "usage"} {
+	for _, p := range []string{attrShare, attrDefopts, attrBothresh, attrBoqname, attrUsage} {
 		for _, q := range queueLocalDisplayParameters {
 			if q == p {
 				t.Fatalf("%q must not be in queueLocalDisplayParameters on mqweb 9.4 (MQWB0120E)", p)
