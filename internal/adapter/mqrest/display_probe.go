@@ -2,6 +2,7 @@ package mqrest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -52,6 +53,20 @@ func responseIndicatesAttributeNotDisplayable(resp *mqscResponse) bool {
 	return false
 }
 
+func errIndicatesAttributeNotDisplayable(err error) bool {
+	if err == nil {
+		return false
+	}
+	var term *mqadmin.TerminalError
+	if errors.As(err, &term) {
+		combined := strings.ToUpper(term.Message + " " + term.Reason)
+		if strings.Contains(combined, mqwbAttributeNotDisplayable) {
+			return true
+		}
+	}
+	return strings.Contains(strings.ToUpper(err.Error()), mqwbAttributeNotDisplayable)
+}
+
 // ProbeQueueLocalAttributeDisplayable issues DISPLAY QLOCAL with a single
 // responseParameter and reports whether mqweb returns the attribute.
 //
@@ -76,7 +91,7 @@ func (c *Client) ProbeQueueLocalAttributeDisplayable(
 	if err == nil {
 		return true, nil
 	}
-	if responseIndicatesAttributeNotDisplayable(resp) {
+	if responseIndicatesAttributeNotDisplayable(resp) || errIndicatesAttributeNotDisplayable(err) {
 		return false, nil
 	}
 	if resp != nil && resp.isObjectMissing() {

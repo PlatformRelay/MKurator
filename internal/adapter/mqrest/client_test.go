@@ -1210,7 +1210,25 @@ func TestClient_ProbeQueueLocalAttributeDisplayable(t *testing.T) {
 		}
 	})
 
-	t.Run("define-only attribute MQWB0120E", func(t *testing.T) {
+	t.Run("define-only attribute HTTP 400 MQWB0120E", func(t *testing.T) {
+		t.Parallel()
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":[{"msgId":"MQWB0120E","message":"Attribute not valid"}]}`))
+		}))
+		defer srv.Close()
+
+		c := newTestClient(t, srv.URL, srv.Client())
+		ok, err := c.ProbeQueueLocalAttributeDisplayable(context.Background(), "APP.Q", "maxmsglen")
+		if err != nil {
+			t.Fatalf("Probe: %v", err)
+		}
+		if ok {
+			t.Fatal("expected maxmsglen to be not displayable")
+		}
+	})
+
+	t.Run("define-only attribute MQWB0120E in command response", func(t *testing.T) {
 		t.Parallel()
 		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			_ = json.NewEncoder(w).Encode(map[string]any{

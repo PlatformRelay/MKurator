@@ -2,6 +2,8 @@ package mqrest
 
 import (
 	"testing"
+
+	"github.com/conduit-ops/mkurator/internal/mqadmin"
 )
 
 func TestQueueAttributeDisplayProbeRequest(t *testing.T) {
@@ -70,6 +72,20 @@ func TestResponseIndicatesAttributeNotDisplayable(t *testing.T) {
 				t.Fatalf("got %v want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestErrIndicatesAttributeNotDisplayable(t *testing.T) {
+	t.Parallel()
+	if !errIndicatesAttributeNotDisplayable(&mqadmin.TerminalError{
+		Message: `mqweb returned HTTP 400: {"error":[{"msgId":"MQWB0120E"}]}`,
+	}) {
+		t.Fatal("expected HTTP 400 MQWB0120E terminal error to indicate not displayable")
+	}
+	if errIndicatesAttributeNotDisplayable(&mqadmin.TerminalError{
+		Message: "mqweb returned HTTP 400: invalid queue name",
+	}) {
+		t.Fatal("unexpected match for unrelated bad request")
 	}
 }
 
