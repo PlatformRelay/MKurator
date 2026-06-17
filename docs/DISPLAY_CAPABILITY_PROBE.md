@@ -40,19 +40,22 @@ Interpretation:
 Implementation: `Client.ProbeQueueLocalAttributeDisplayable` in
 `internal/adapter/mqrest/display_probe.go`.
 
-## Spike result: `share` on mqweb 9.4
+## Spike result: `share` and `maxmsglen` on mqweb 9.4.x
 
-Pilot attribute: **`share`** (representative of the DEFINE-only group in
-ATTRIBUTE_RECONCILIATION).
+Pilot attributes:
 
-| Environment | DISPLAY `share` | Notes |
-|-------------|-----------------|-------|
-| IBM MQ 9.4.x mqweb (Docker integration) | **Not displayable** (`MQWB0120E`) | Confirms static omission in `queueLocalDisplayParameters` |
-| Unit httptest | Simulated `MQWB0120E` | `TestClient_ProbeQueueLocalAttributeDisplayable` |
+| Attribute | Static table (9.4.x) | Probe outcome |
+|-----------|---------------------|---------------|
+| **`maxmsglen`** | DEFINE-only (`MQWB0120E`) | **Not displayable** on Docker MQ `9.4.5.1-r1` (integration CI) — confirms static omission |
+| **`share`** | DEFINE-only (`MQWB0120E`) | **Displayable** on Docker MQ `9.4.5.1-r1` — static safe list is stale for this fix level |
 
-`define share` on QLOCAL still succeeds; only DISPLAY via `responseParameters`
-is blocked. Drift for `share` remains deferred until a probe (or manual test)
-shows DISPLAY support on the target mqweb level.
+The `share` result is why ADR-0024 §4 favours runtime probing over hand-maintained
+`queueLocalDisplayParameters`: mqweb fix packs can enable DISPLAY for keywords
+that older docs and tables still list as define-only.
+
+`define share` / `define maxmsglen` on QLOCAL still succeed when DISPLAY via
+`responseParameters` is blocked. Drift for blocked keys remains deferred until
+probe (or manual test) shows DISPLAY support on the target mqweb level.
 
 ## Future wiring (not in this spike)
 
@@ -75,5 +78,5 @@ go test ./internal/adapter/mqrest/... -run Probe -count=1
 
 # Live mqweb (optional)
 KURATOR_INTEGRATION_MQ=1 task mq:integration:up
-go test -tags=integration ./test/integration/mq/... -run ProbeQueueLocalAttribute_share -count=1
+go test -tags=integration ./test/integration/mq/... -run ProbeQueueLocalAttribute_DisplayProbeMechanism -count=1
 ```

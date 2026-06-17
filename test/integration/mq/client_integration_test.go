@@ -360,7 +360,7 @@ func TestIntegration_RunMQSC(t *testing.T) {
 	}
 }
 
-func TestIntegration_ProbeQueueLocalAttribute_share_NotDisplayable(t *testing.T) {
+func TestIntegration_ProbeQueueLocalAttribute_DisplayProbeMechanism(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
 	name := queueNameForTest(t.Name())
@@ -377,19 +377,12 @@ func TestIntegration_ProbeQueueLocalAttribute_share_NotDisplayable(t *testing.T)
 		Name: name,
 		Type: mqadmin.QueueTypeLocal,
 		Attributes: map[string]string{
-			"maxdepth": "100",
-			"share":    "yes",
+			"maxdepth":  "100",
+			"maxmsglen": "4194304",
+			"share":     "yes",
 		},
 	}); err != nil {
-		t.Fatalf("DefineQueue with share: %v", err)
-	}
-
-	displayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, name, "share")
-	if err != nil {
-		t.Fatalf("Probe share: %v", err)
-	}
-	if displayable {
-		t.Fatal("expected share to be not displayable on mqweb 9.4 (MQWB0120E)")
+		t.Fatalf("DefineQueue: %v", err)
 	}
 
 	ok, err := c.ProbeQueueLocalAttributeDisplayable(ctx, name, "maxdepth")
@@ -397,8 +390,22 @@ func TestIntegration_ProbeQueueLocalAttribute_share_NotDisplayable(t *testing.T)
 		t.Fatalf("Probe maxdepth: %v", err)
 	}
 	if !ok {
-		t.Fatal("expected maxdepth to remain displayable")
+		t.Fatal("expected maxdepth to be displayable")
 	}
+
+	displayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, name, "maxmsglen")
+	if err != nil {
+		t.Fatalf("Probe maxmsglen: %v", err)
+	}
+	if displayable {
+		t.Fatal("expected maxmsglen to be not displayable (MQWB0120E on mqweb 9.4.x)")
+	}
+
+	shareDisplayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, name, "share")
+	if err != nil {
+		t.Fatalf("Probe share: %v", err)
+	}
+	t.Logf("share displayable on this mqweb: %v (version-dependent; see DISPLAY_CAPABILITY_PROBE.md)", shareDisplayable)
 }
 
 func TestIntegration_Factory_ForConnection_Ping(t *testing.T) {

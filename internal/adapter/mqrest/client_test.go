@@ -1216,7 +1216,9 @@ func TestClient_ProbeQueueLocalAttributeDisplayable(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				testKeyCommandResponse: []map[string]any{{
 					testKeyCompletionCode: 2,
-					"message":             []string{"MQWB0120E: Attribute SHARE is not valid for the requested command."},
+					"message": []string{
+						"MQWB0120E: Attribute SHARE is not valid for the requested command.",
+					},
 				}},
 				testKeyOverallCompletionCode: 2,
 			})
