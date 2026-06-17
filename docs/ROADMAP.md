@@ -348,7 +348,8 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
   webhook, deprecation policy).
 - [ ] Optional: DISPLAY **capability probing** per
   [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4, replacing
-  hand-maintained per-version safe lists.
+  hand-maintained per-version safe lists. **Spike:** probe helper + `share` pilot
+  — [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
 - [ ] `v1beta1` graduation of all six kinds with conversion webhook once 8a/8b
   are stable for one minor release.
 
