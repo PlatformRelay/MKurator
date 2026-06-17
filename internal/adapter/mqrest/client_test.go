@@ -1184,3 +1184,91 @@ func TestClient_GetAuthorityEmptyAuthListNotFound(t *testing.T) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
+
+func TestClient_ProbeQueueLocalAttributeDisplayable(t *testing.T) {
+	t.Parallel()
+	t.Run("displayable attribute", func(t *testing.T) {
+		t.Parallel()
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 0,
+					"parameters":          map[string]any{"maxdepth": "5000"},
+				}},
+				testKeyOverallCompletionCode: 0,
+			})
+		}))
+		defer srv.Close()
+
+		c := newTestClient(t, srv.URL, srv.Client())
+		ok, err := c.ProbeQueueLocalAttributeDisplayable(context.Background(), "APP.Q", "maxdepth")
+		if err != nil {
+			t.Fatalf("Probe: %v", err)
+		}
+		if !ok {
+			t.Fatal("expected maxdepth to be displayable")
+		}
+	})
+
+	t.Run("define-only attribute MQWB0120E", func(t *testing.T) {
+		t.Parallel()
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 2,
+					"message":             []string{"MQWB0120E: Attribute SHARE is not valid for the requested command."},
+				}},
+				testKeyOverallCompletionCode: 2,
+			})
+		}))
+		defer srv.Close()
+
+		c := newTestClient(t, srv.URL, srv.Client())
+		ok, err := c.ProbeQueueLocalAttributeDisplayable(context.Background(), "APP.Q", "share")
+		if err != nil {
+			t.Fatalf("Probe: %v", err)
+		}
+		if ok {
+			t.Fatal("expected share to be not displayable")
+		}
+	})
+
+	t.Run("missing queue", func(t *testing.T) {
+		t.Parallel()
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				testKeyCommandResponse: []map[string]any{{
+					testKeyCompletionCode: 2,
+					"message":             []string{"AMQ8147E: IBM MQ object APP.MISSING not found."},
+				}},
+				testKeyOverallCompletionCode: 2,
+			})
+		}))
+		defer srv.Close()
+
+		c := newTestClient(t, srv.URL, srv.Client())
+		_, err := c.ProbeQueueLocalAttributeDisplayable(context.Background(), "APP.MISSING", "maxdepth")
+		if err == nil {
+			t.Fatal("expected not found error")
+		}
+		if !errors.Is(err, mqadmin.ErrNotFound) {
+			t.Fatalf("expected ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("validation", func(t *testing.T) {
+		t.Parallel()
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer srv.Close()
+
+		c := newTestClient(t, srv.URL, srv.Client())
+		if _, err := c.ProbeQueueLocalAttributeDisplayable(context.Background(), "", "share"); err == nil {
+			t.Fatal("expected error for empty queue name")
+		}
+		if _, err := c.ProbeQueueLocalAttributeDisplayable(context.Background(), "APP.Q", ""); err == nil {
+			t.Fatal("expected error for empty attribute")
+		}
+	})
+}

@@ -17,6 +17,12 @@ See [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) for MQSC semantics.
 | **Drift** | For each desired key, observed DISPLAY value must match (`AttributeValueMatches` — case-insensitive for policies, numeric-normalized for counters). |
 | **`Synced=True`** | Object exists and every **desired** key that we can observe matches; define-only keys are not verified after apply. |
 
+### Capability probing (spike)
+
+ADR-0024 §4 direction: probe DISPLAY per attribute instead of static safe lists.
+Spike helper and `share` pilot results: [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
+Full QMC-ready probing is Phase 8c / ROADMAP optional work.
+
 ## Typed spec fields (Phase 8a)
 
 Per [ADR-0021](adr/0021-attribute-api-shape.md), drift-checked MQ parameters are

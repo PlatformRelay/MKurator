@@ -12,6 +12,12 @@ const attrMaxDepth = "maxdepth"
 const attrDescr = "descr"
 const attrTargq = "targq"
 const attrMaxMsgl = "maxmsgl"
+const attrMaxMsgLen = "maxmsglen"
+const attrShare = "share"
+const attrDefopts = "defopts"
+const attrBothresh = "bothresh"
+const attrBoqname = "boqname"
+const attrUsage = "usage"
 const attrTopstr = "topstr"
 const attrTopicStr = "topicStr" // mqweb runCommandJSON name for TOPSTR
 const attrReplace = "replace"
@@ -37,8 +43,8 @@ var queueRemoteDisplayParameters = []string{
 
 // queueNumericParameters are coerced to JSON numbers for runCommandJSON DEFINE.
 var queueNumericParameters = map[string]struct{}{
-	attrMaxDepth: {},
-	"maxmsglen":  {},
+	attrMaxDepth:  {},
+	attrMaxMsgLen: {},
 }
 
 const (
