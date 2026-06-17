@@ -8,4 +8,4 @@ spec:
   channelName: "*"
   ruleType: BLOCKADDR
   address: 192.0.2.1
-  description: Example listener IP block (TEST-NET-1; optional sample)
+  description: Example listener IP block (TEST-NET-1 documentation range)
