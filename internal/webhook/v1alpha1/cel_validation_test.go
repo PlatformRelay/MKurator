@@ -489,100 +489,84 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("ADDRESSMAP"))
 	})
 
-	It("rejects ChannelAuthRule USERMAP without clientUser", func() {
+	It("rejects ChannelAuthRule new CHLAUTH field CEL violations", func() {
 		ctx := context.Background()
-		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
-			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-usermap", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+		cases := []struct {
+			crName     string
+			spec       messagingv1alpha1.ChannelAuthRuleSpec
+			wantSubstr string
+		}{
+			{
+				crName: "cel-car-usermap-no-client",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+				},
+				wantSubstr: "clientUser",
 			},
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("USERMAP"))
-	})
+			{
+				crName: "cel-car-usermap-map-no-mca",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+					ClientUser:    "johndoe",
+					UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				},
+				wantSubstr: "mcaUser",
+			},
+			{
+				crName: "cel-car-sslpeermap-no-peer",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+				},
+				wantSubstr: "sslPeerName",
+			},
+			{
+				crName: "cel-car-sslpeermap-map-no-mca",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+					SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
+					UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				},
+				wantSubstr: "mcaUser",
+			},
+			{
+				crName: "cel-car-qmgrmap-no-rqm",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+				},
+				wantSubstr: "remoteQueueManager",
+			},
+			{
+				crName: "cel-car-qmgrmap-map-no-mca",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:        "ORDERS.APP",
+					RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+					RemoteQueueManager: "QM_PARTNER",
+					UserSource:         messagingv1alpha1.ChannelAuthUserSourceMap,
+				},
+				wantSubstr: "mcaUser",
+			},
+		}
 
-	It("rejects ChannelAuthRule USERMAP with userSource MAP without mcaUser", func() {
-		ctx := context.Background()
-		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
-			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-usermap-map", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
-				ClientUser:    "johndoe",
-				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("mcaUser"))
-	})
-
-	It("rejects ChannelAuthRule SSLPEERMAP without sslPeerName", func() {
-		ctx := context.Background()
-		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
-			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-sslpeermap", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("SSLPEERMAP"))
-	})
-
-	It("rejects ChannelAuthRule SSLPEERMAP with userSource MAP without mcaUser", func() {
-		ctx := context.Background()
-		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
-			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-sslpeermap-map", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
-				SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
-				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("mcaUser"))
-	})
-
-	It("rejects ChannelAuthRule QMGRMAP without remoteQueueManager", func() {
-		ctx := context.Background()
-		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
-			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-qmgrmap", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("QMGRMAP"))
-	})
-
-	It("rejects ChannelAuthRule QMGRMAP with userSource MAP without mcaUser", func() {
-		ctx := context.Background()
-		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
-			ObjectMeta: metav1.ObjectMeta{Name: "cel-car-qmgrmap-map", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-				ChannelName:        "ORDERS.APP",
-				RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
-				RemoteQueueManager: "QM_PARTNER",
-				UserSource:         messagingv1alpha1.ChannelAuthUserSourceMap,
-			},
-		})
-		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring("mcaUser"))
+		for _, tc := range cases {
+			err := webhookK8sClient.Create(ctx, &messagingv1alpha1.ChannelAuthRule{
+				ObjectMeta: metav1.ObjectMeta{Name: tc.crName, Namespace: ns},
+				Spec:       tc.spec,
+			})
+			Expect(err).To(HaveOccurred(), tc.crName)
+			Expect(apierrors.IsInvalid(err)).To(BeTrue(), tc.crName)
+			Expect(err.Error()).To(ContainSubstring(tc.wantSubstr), tc.crName)
+		}
 	})
 
 	It("rejects AuthorityRecord with both principal and group", func() {

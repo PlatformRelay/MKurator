@@ -79,6 +79,105 @@ func TestValidateChannelAuthRuleSpecValid(t *testing.T) {
 	}
 }
 
+func TestValidateChannelAuthRuleSpecNewRuleTypesTable(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		spec messagingv1alpha1.ChannelAuthRuleSpec
+	}{
+		{
+			name: "usermap map",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+				ClientUser:    "johndoe",
+				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				McaUser:       "orders-app",
+			},
+		},
+		{
+			name: "usermap channel userSource",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+				ClientUser:    "johndoe",
+				UserSource:    messagingv1alpha1.ChannelAuthUserSourceChannel,
+			},
+		},
+		{
+			name: "sslpeermap map",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+				SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
+				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				McaUser:       "orders-app",
+			},
+		},
+		{
+			name: "sslpeermap channel userSource",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+				SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
+				UserSource:    messagingv1alpha1.ChannelAuthUserSourceChannel,
+			},
+		},
+		{
+			name: "qmgrmap map",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:        "ORDERS.APP",
+				RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+				UserSource:         messagingv1alpha1.ChannelAuthUserSourceMap,
+				McaUser:            "orders-app",
+			},
+		},
+		{
+			name: "qmgrmap channel userSource",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:        "ORDERS.APP",
+				RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+				UserSource:         messagingv1alpha1.ChannelAuthUserSourceChannel,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			scheme := runtime.NewScheme()
+			_ = messagingv1alpha1.AddToScheme(scheme)
+			_ = corev1.AddToScheme(scheme)
+
+			conn := &messagingv1alpha1.QueueManagerConnection{
+				ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "default"},
+				Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+					QueueManager:         "QM1",
+					Endpoint:             "https://mq.example:9443",
+					CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
+				},
+			}
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "default"}}
+			ch := sampleManagedChannel("default", "orders-app", "qm1", "ORDERS.APP")
+			cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, secret, ch).Build()
+
+			errs := ValidateChannelAuthRuleSpec(context.Background(), cl, "default", "car-new-type",
+				&tt.spec)
+			if len(errs) > 0 {
+				t.Fatalf("unexpected errors: %v", errs)
+			}
+		})
+	}
+}
+
 func TestValidateChannelAuthRuleSpecBlockAddrWildcardSkipsChannelRef(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()

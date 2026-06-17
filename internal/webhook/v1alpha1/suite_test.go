@@ -356,6 +356,68 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
 	})
 
+	It("allows ChannelAuthRule USERMAP/SSLPEERMAP/QMGRMAP with userSource CHANNEL when Channel exists", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnection(ns, "qm1")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+
+		ch := &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+
+		cases := []struct {
+			name string
+			spec messagingv1alpha1.ChannelAuthRuleSpec
+		}{
+			{
+				name: "car-usermap-channel",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+					ClientUser:    "johndoe",
+					UserSource:    messagingv1alpha1.ChannelAuthUserSourceChannel,
+				},
+			},
+			{
+				name: "car-sslpeermap-channel",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "ORDERS.APP",
+					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+					SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
+					UserSource:    messagingv1alpha1.ChannelAuthUserSourceChannel,
+				},
+			},
+			{
+				name: "car-qmgrmap-channel",
+				spec: messagingv1alpha1.ChannelAuthRuleSpec{
+					ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:        "ORDERS.APP",
+					RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+					RemoteQueueManager: "QM_PARTNER",
+					UserSource:         messagingv1alpha1.ChannelAuthUserSourceChannel,
+				},
+			},
+		}
+
+		for _, tc := range cases {
+			rule := &messagingv1alpha1.ChannelAuthRule{
+				ObjectMeta: metav1.ObjectMeta{Name: tc.name, Namespace: ns},
+				Spec:       tc.spec,
+			}
+			Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed(), tc.name)
+		}
+	})
+
 	It("allows ChannelAuthRule when Channel and connection exist", func() {
 		ctx := context.Background()
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{

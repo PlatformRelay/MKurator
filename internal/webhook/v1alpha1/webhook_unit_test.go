@@ -395,6 +395,29 @@ func TestChannelAuthRuleWebhookValidateCreateRuleTypeTable(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "qmgrmap valid",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:        "ORDERS.APP",
+				RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+				UserSource:         messagingv1alpha1.ChannelAuthUserSourceMap,
+				McaUser:            "orders-app",
+			},
+			wantErr: false,
+		},
+		{
+			name: "qmgrmap userSource channel valid",
+			spec: messagingv1alpha1.ChannelAuthRuleSpec{
+				ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:        "ORDERS.APP",
+				RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+				UserSource:         messagingv1alpha1.ChannelAuthUserSourceChannel,
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
