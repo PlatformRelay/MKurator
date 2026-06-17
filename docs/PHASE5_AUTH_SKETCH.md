@@ -19,8 +19,8 @@ CRD reconciles `DEFINE CHANNEL` … `CHLTYPE(SVRCONN)` with drift detection. See
 - Samples: [`config/samples/`](../config/samples/) · integration tests in
   [`test/integration/mq/`](../test/integration/mq/)
 
-**Remaining:** extended CHLAUTH rule types, CI proof on release tag, and optional
-integration coverage for additional rule/object types — see
+**Remaining:** optional integration breadth for additional AUTHREC profiles, CI proof
+on release tag, and roadmap items outside Phase 5 — see
 [ROADMAP.md](ROADMAP.md#phase-5--user--authority-management).
 
 MKurator reconciles Phase 5 objects via the existing **mqweb `/mqsc`** path
@@ -60,25 +60,18 @@ The `DEFINE CHANNEL` portion is covered by the shipped `Channel` CRD. The
 
 **Reconcile:** `SET CHLAUTH(...) ACTION(REPLACE)`; **delete:** `SET CHLAUTH(...) ACTION(REMOVE)`.
 
-**Samples and CI today:** `ADDRESSMAP` (config/Helm samples, kind e2e, Docker
-integration GET/replace) and `BLOCKUSER` (blockuser sample, kind e2e, Docker
-integration GET). See [README.md#what-ci-proves](../README.md#what-ci-proves).
-
-Additional rule types in the OpenAPI enum (schema + admission only until API/MQ
-fields land):
+**Samples and CI today:** `ADDRESSMAP`, `BLOCKUSER`, and `BLOCKADDR` in config/Helm
+default samples; all six `ruleType` values exercised in Docker integration GET/delete
+and kind e2e (see [README.md#what-ci-proves](../README.md#what-ci-proves)).
 
 | `ruleType` | Typical use | MKurator today |
 |------------|-------------|---------------|
+| `ADDRESSMAP` | Map client address to user source | Shipped — `spec.address`, `userSource`, `checkClient`; samples + tests |
 | `BLOCKUSER` | `USERLIST` — deny privileged IDs | Shipped — `spec.userList`; samples + tests |
-| `USERMAP` | Map `CLNTUSER` to `MCAUSER` | **Deferred** — no `clientUser` / `mcaUser` on CRD or `mqrest` builder |
-| `SSLPEERMAP` | Map TLS DN | **Deferred** — no `sslPeer` field |
-| `QMGRMAP` | Map remote QM name | **Deferred** — no `qmgrName` field |
-| `BLOCKADDR` | Block IPs at listener | `spec.address`; default sample + Docker integration + kind e2e |
-
-Do not add unit/integration tests that assert MQSC for `USERMAP` (or other deferred
-types) until [`ChannelAuthRuleSpec`](../api/v1alpha1/channelauthrule_types.go) and
-[`buildSetChannelAuthMQSC`](../internal/adapter/mqrest/auth.go) expose the MQSC
-keywords. Admission accepts the enum; MQ validates unknown combinations at apply time.
+| `USERMAP` | Map `CLNTUSER` to `MCAUSER` | Shipped — `spec.clientUser`, `userSource`, `mcaUser`; integration + kind e2e |
+| `SSLPEERMAP` | Map TLS DN | Shipped — `spec.sslPeerName`, `userSource`, `mcaUser`; integration + kind e2e |
+| `QMGRMAP` | Map remote QM name | Shipped — `spec.remoteQueueManager`, `userSource`, `mcaUser`; integration + kind e2e |
+| `BLOCKADDR` | Block IPs at listener | Shipped — `spec.address` (`ADDRLIST` on SET); default sample + integration + kind e2e |
 
 ### `AuthorityRecord` (OAM — `SET AUTHREC`)
 
@@ -108,9 +101,11 @@ via `RunMQSC` / `runCommand`.
 **GET paths (shipped):** `GetChannelAuth` and `GetAuthority` run `DISPLAY CHLAUTH` /
 `DISPLAY AUTHREC`. Reconcilers **replace-on-diff** when observed state differs from
 `spec` (unless `messaging.mkurator.dev/drift-policy=observe-only`). Parsed CHLAUTH
-fields today: `address`, `userlist`, `usersrc`, `chckclnt`, `descr` — not
-`clntuser` / `mcauser` / `sslpeer`. See
-[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy).
+fields: `address` / `addrlist`, `userlist`, `clntuser`, `sslpeer`, `qmname`,
+`mcauser`, `usersrc`, `chckclnt`, `descr` (rule-type-specific; see
+[ATTRIBUTE_RECONCILIATION.md#channelauthrule--chlauth-get](ATTRIBUTE_RECONCILIATION.md#channelauthrule--chlauth-get)).
+Observe-only behaviour:
+[ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy).
 
 ## What we are not copying from IBM samples
 
