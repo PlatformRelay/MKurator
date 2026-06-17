@@ -17,6 +17,36 @@ See [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) for MQSC semantics.
 | **Drift** | For each desired key, observed DISPLAY value must match (`AttributeValueMatches` — case-insensitive for policies, numeric-normalized for counters). |
 | **`Synced=True`** | Object exists and every **desired** key that we can observe matches; define-only keys are not verified after apply. |
 
+## Typed spec fields (Phase 8a)
+
+Per [ADR-0021](adr/0021-attribute-api-shape.md), drift-checked MQ parameters are
+also exposed as typed `spec` fields on `Queue`, `Topic`, and `Channel`.
+Reconcilers fold non-empty typed fields into the same attribute map before
+calling `mqadmin` (`toMQQueueSpec`, `toMQTopicSpec`, `toMQChannelSpec` in
+`internal/controller/`). CEL admission rejects setting both the typed field and
+the same key in `spec.attributes`.
+
+| CRD | Typed `spec` field | MQ attribute key | Drift (DISPLAY) |
+|-----|-------------------|------------------|-----------------|
+| `Queue` | `maxDepth` | `maxdepth` | yes |
+| `Queue` | `description` | `descr` | yes |
+| `Queue` | `defPersistence` | `defpsist` | yes |
+| `Queue` | `get`, `put` | `get`, `put` | yes |
+| `Queue` | `targetQueue` | `targq` | yes (alias only) |
+| `Queue` | `xmitQueue`, `remoteQueueManager` | `xmitq`, `rqmname` | yes (remote only) |
+| `Topic` | `topicString` | `topstr` | yes |
+| `Topic` | `description` | `descr` | yes |
+| `Topic` | `publish`, `subscribe` | `pub`, `sub` | yes |
+| `Topic` | `defPersistence` | `defpsist` | yes |
+| `Topic` | `publishScope`, `subscribeScope` | `pubscope`, `subscope` | yes |
+| `Channel` | `description` | `descr` | yes |
+| `Channel` | `maxMsgLength` | `maxmsgl` | yes |
+| `Channel` | `transportType` | `trptype` | yes |
+| `Channel` | `shareConv` | `sharecnv` | yes |
+| `Channel` | `mcaUser` | `mcauser` | yes |
+| `Channel` | `maxInstances`, `maxInstancesClient` | `maxinst`, `maxinstc` | yes |
+| `Channel` | `sslCipherSpec`, `sslClientAuth` | `sslciph`, `sslcauth` | yes |
+
 ## Reconciled object types (v1alpha1)
 
 | CRD | MQ object | `spec.type` |
@@ -27,10 +57,11 @@ See [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) for MQSC semantics.
 | `QueueManagerConnection` | (connectivity, not MQSC) | n/a |
 
 Shipped: `SET AUTHREC` via `AuthorityRecord` and `SET CHLAUTH` via
-`ChannelAuthRule`. Auth reconcilers compare desired `spec` to mqweb **GET**
-(`DISPLAY CHLAUTH` / `DISPLAY AUTHREC`) and apply **replace-on-diff** (not the
-DISPLAY attribute matrices below). Extended CHLAUTH rule types (`USERMAP`,
-`SSLPEERMAP`, …) remain roadmap — see [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
+`ChannelAuthRule` (all enum `ruleType` values: `ADDRESSMAP`, `BLOCKUSER`,
+`USERMAP`, `SSLPEERMAP`, `QMGRMAP`, `BLOCKADDR`). Auth reconcilers compare
+desired `spec` to mqweb **GET** (`DISPLAY CHLAUTH` / `DISPLAY AUTHREC`) and
+apply **replace-on-diff** (not the DISPLAY attribute matrices below). Field
+matrices and CI coverage: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 
 ## Attribute coverage by object
 
@@ -104,7 +135,10 @@ parsing), `internal/mqadmin/authmatch.go` (desired vs observed).
 |-----------------|-------------------------|-----------------|------------------------------|
 | `ADDRESSMAP` | `DISPLAY CHLAUTH('<channel>') TYPE(ADDRESSMAP)`; appends `ADDRESS('…')` when `spec.address` is non-empty | `address`, `usersrc`, `chckclnt`, `descr` | `address`, `userSource`, `checkClient`, `description` |
 | `BLOCKUSER` | `DISPLAY CHLAUTH('<channel>') TYPE(BLOCKUSER)` | `userlist`, `descr` | `userList`, `description` |
-| `BLOCKADDR` | `DISPLAY CHLAUTH('<channel>') TYPE(BLOCKADDR)`; appends `ADDRESS('…')` when `spec.address` is non-empty | `address`, `descr` | `address`, `description` |
+| `BLOCKADDR` | `DISPLAY CHLAUTH('<channel>') TYPE(BLOCKADDR) ADDLIST` | `addrlist` → `address`, `descr` | `address`, `description` |
+| `USERMAP` | `DISPLAY CHLAUTH('<channel>') TYPE(USERMAP)`; appends `CLNTUSER('…')` when `spec.clientUser` is non-empty | `clntuser`, `mcauser`, `usersrc`, `chckclnt`, `descr` | `clientUser`, `mcaUser` (when set), `userSource` (when set), `description` |
+| `SSLPEERMAP` | `DISPLAY CHLAUTH('<channel>') TYPE(SSLPEERMAP)`; appends `SSLPEER('…')` when `spec.sslPeerName` is non-empty | `sslpeer`, `mcauser`, `usersrc`, `chckclnt`, `descr` | `sslPeerName`, `mcaUser` (when set), `userSource` (when set), `description` |
+| `QMGRMAP` | `DISPLAY CHLAUTH('<channel>') TYPE(QMGRMAP)`; appends `QMNAME('…')` when `spec.remoteQueueManager` is non-empty | `qmname`, `mcauser`, `usersrc`, `chckclnt`, `descr` | `remoteQueueManager`, `mcaUser` (when set), `userSource` (when set), `description` |
 
 Notes:
 
@@ -112,9 +146,11 @@ Notes:
   re-read from DISPLAY for drift (the CR is the source of truth for identity).
 - `ADDRESSMAP`-only SET fields (`userSource`, `checkClient`) are ignored on GET
   for `BLOCKUSER` / `BLOCKADDR` (empty desired vs empty observed matches).
-- Other enum values (`USERMAP`, `SSLPEERMAP`, `QMGRMAP`) are schema-valid but
-  lack CRD fields and GET parsing until extended — see
-  [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
+- For `USERMAP` / `SSLPEERMAP` / `QMGRMAP`, `mcaUser`, `userSource`, and
+  `checkClient` are compared only when non-empty in `spec` (DISPLAY may surface
+  MQ defaults such as `CHCKCLNT(ASQMGR)` that the operator does not manage).
+- `BLOCKADDR` SET uses MQSC `ADDRLIST(...)`; DISPLAY returns `addrlist`, mapped
+  to `spec.address` in the adapter.
 
 ### `AuthorityRecord` — AUTHREC GET
 

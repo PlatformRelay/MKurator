@@ -42,10 +42,10 @@ The operator translates desired state into MQSC via `mqweb`, reports **condition
 on each resource, and removes MQ objects when you delete a CR (finalizers).
 
 **v1alpha1 scope:** queue `spec.type` supports `local` (default), `alias`, and
-`remote`. `ChannelAuthRule` samples cover `ADDRESSMAP` and `BLOCKUSER`; other
-`ruleType` values are accepted by the API and validated at MQ apply time.
-Auth drift uses GET/replace (not queue/topic/channel DISPLAY matrices) — see
-[ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
+`remote`. `ChannelAuthRule` default samples cover `ADDRESSMAP`, `BLOCKUSER`, and
+`BLOCKADDR`; `USERMAP`, `SSLPEERMAP`, and `QMGRMAP` are exercised in integration
+and kind e2e. Auth drift uses GET/replace (not queue/topic/channel DISPLAY
+matrices) — see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
 
@@ -356,7 +356,8 @@ safely on IBM MQ 9.4.x (see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATI
 - **Drift-checked** — changes off-cluster are detected and re-applied; `Synced=True`
   means these keys match MQ.
 - **Define-only** — applied on create/update, but not read back (e.g. `maxmsglen` on
-  queues, `sslciph` on channels). Manual MQ edits to these keys are not detected.
+  queues when only in `spec.attributes` without the typed `maxMsgLength` field).
+  Manual MQ edits to define-only keys are not detected.
 
 **Auth CRs (`ChannelAuthRule`, `AuthorityRecord`):** reconcilers **GET** the rule
 from mqweb and **SET … REPLACE** when `spec` differs (default). Annotation
