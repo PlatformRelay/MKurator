@@ -9,200 +9,166 @@ import (
 )
 
 func TestBuildSetChannelAuthMQSC(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "DEV.APP.SVRCONN.0TLS",
-		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
-		Address:     "*",
-		UserSource:  "CHANNEL",
-		CheckClient: "REQUIRED",
-		Description: "Allows connection via APP channel",
-	}, "REPLACE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+	cases := []struct {
+		name   string
+		spec   mqadmin.ChannelAuthSpec
+		action string
+		want   string
+	}{
+		{
+			name: "addressmap replace",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "DEV.APP.SVRCONN.0TLS",
+				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+				Address:     "*",
+				UserSource:  "CHANNEL",
+				CheckClient: "REQUIRED",
+				Description: "Allows connection via APP channel",
+			},
+			action: mqscActionReplace,
+			want: "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') " +
+				"USERSRC(CHANNEL) CHCKCLNT(REQUIRED) DESCR('Allows connection via APP channel') ACTION(REPLACE)",
+		},
+		{
+			name: "addressmap remove",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "DEV.APP.SVRCONN.0TLS",
+				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+				Address:     "*",
+				UserSource:  "CHANNEL",
+				CheckClient: "REQUIRED",
+				Description: "ignored on remove",
+			},
+			action: mqscActionRemove,
+			want:   "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') ACTION(REMOVE)",
+		},
+		{
+			name: "blockaddr replace",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "*",
+				RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
+				Address:     "192.0.2.1",
+				Description: "block TEST-NET-1",
+			},
+			action: mqscActionReplace,
+			want: "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST('192.0.2.1') " +
+				"DESCR('block TEST-NET-1') ACTION(REPLACE)",
+		},
+		{
+			name: "blockaddr remove",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "*",
+				RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
+				Address:     "192.0.2.1",
+				Description: "ignored on remove",
+			},
+			action: mqscActionRemove,
+			want:   "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST('192.0.2.1') ACTION(REMOVE)",
+		},
+		{
+			name: "blockuser replace",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+				UserList:    "nobody",
+				Description: "deny nobody",
+			},
+			action: mqscActionReplace,
+			want: "SET CHLAUTH('ORDERS.APP') TYPE(BLOCKUSER) USERLIST('nobody') " +
+				"DESCR('deny nobody') ACTION(REPLACE)",
+		},
+		{
+			name: "usermap replace",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
+				ClientUser:  "johndoe",
+				UserSource:  "MAP",
+				McaUser:     "orders-app",
+				Description: "map johndoe to orders-app",
+			},
+			action: mqscActionReplace,
+			want: "SET CHLAUTH('ORDERS.APP') TYPE(USERMAP) CLNTUSER('johndoe') " +
+				"USERSRC(MAP) MCAUSER('orders-app') DESCR('map johndoe to orders-app') ACTION(REPLACE)",
+		},
+		{
+			name: "usermap remove",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
+				ClientUser:  "johndoe",
+				UserSource:  "MAP",
+				McaUser:     "orders-app",
+				Description: "ignored on remove",
+			},
+			action: mqscActionRemove,
+			want:   "SET CHLAUTH('ORDERS.APP') TYPE(USERMAP) CLNTUSER('johndoe') ACTION(REMOVE)",
+		},
+		{
+			name: "sslpeermap replace",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+				SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+				UserSource:  "MAP",
+				McaUser:     "orders-app",
+				Description: "map cert DN to orders-app",
+			},
+			action: mqscActionReplace,
+			want: "SET CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US') " +
+				"USERSRC(MAP) MCAUSER('orders-app') DESCR('map cert DN to orders-app') ACTION(REPLACE)",
+		},
+		{
+			name: "sslpeermap remove",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+				SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+				UserSource:  "MAP",
+				McaUser:     "orders-app",
+				Description: "ignored on remove",
+			},
+			action: mqscActionRemove,
+			want:   "SET CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US') ACTION(REMOVE)",
+		},
+		{
+			name: "qmgrmap replace",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName:        "ORDERS.APP",
+				RuleType:           mqadmin.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+				UserSource:         "MAP",
+				McaUser:            "orders-app",
+				Description:        "map partner QM to orders-app",
+			},
+			action: mqscActionReplace,
+			want: "SET CHLAUTH('ORDERS.APP') TYPE(QMGRMAP) QMNAME('QM_PARTNER') " +
+				"USERSRC(MAP) MCAUSER('orders-app') DESCR('map partner QM to orders-app') ACTION(REPLACE)",
+		},
+		{
+			name: "qmgrmap remove",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName:        "ORDERS.APP",
+				RuleType:           mqadmin.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+				UserSource:         "MAP",
+				McaUser:            "orders-app",
+				Description:        "ignored on remove",
+			},
+			action: mqscActionRemove,
+			want:   "SET CHLAUTH('ORDERS.APP') TYPE(QMGRMAP) QMNAME('QM_PARTNER') ACTION(REMOVE)",
+		},
 	}
-	want := "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') " +
-		"USERSRC(CHANNEL) CHCKCLNT(REQUIRED) DESCR('Allows connection via APP channel') ACTION(REPLACE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCBlockAddr(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "*",
-		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
-		Address:     "192.0.2.1",
-		Description: "block TEST-NET-1",
-	}, "REPLACE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST('192.0.2.1') " +
-		"DESCR('block TEST-NET-1') ACTION(REPLACE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCBlockAddrRemove(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "*",
-		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
-		Address:     "192.0.2.1",
-		Description: "ignored on remove",
-	}, "REMOVE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST('192.0.2.1') ACTION(REMOVE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCBlockUser(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
-		UserList:    "nobody",
-		Description: "deny nobody",
-	}, "REPLACE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(BLOCKUSER) USERLIST('nobody') " +
-		"DESCR('deny nobody') ACTION(REPLACE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCUserMap(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
-		ClientUser:  "johndoe",
-		UserSource:  "MAP",
-		McaUser:     "orders-app",
-		Description: "map johndoe to orders-app",
-	}, "REPLACE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(USERMAP) CLNTUSER('johndoe') " +
-		"USERSRC(MAP) MCAUSER('orders-app') DESCR('map johndoe to orders-app') ACTION(REPLACE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCUserMapRemove(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
-		ClientUser:  "johndoe",
-		UserSource:  "MAP",
-		McaUser:     "orders-app",
-		Description: "ignored on remove",
-	}, "REMOVE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(USERMAP) CLNTUSER('johndoe') ACTION(REMOVE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCSSLPeerMap(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
-		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
-		UserSource:  "MAP",
-		McaUser:     "orders-app",
-		Description: "map cert DN to orders-app",
-	}, "REPLACE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US') " +
-		"USERSRC(MAP) MCAUSER('orders-app') DESCR('map cert DN to orders-app') ACTION(REPLACE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCSSLPeerMapRemove(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
-		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
-		UserSource:  "MAP",
-		McaUser:     "orders-app",
-		Description: "ignored on remove",
-	}, "REMOVE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US') ACTION(REMOVE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCQMGRMap(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName:        "ORDERS.APP",
-		RuleType:           mqadmin.ChannelAuthRuleTypeQMGRMap,
-		RemoteQueueManager: "QM_PARTNER",
-		UserSource:         "MAP",
-		McaUser:            "orders-app",
-		Description:        "map partner QM to orders-app",
-	}, "REPLACE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(QMGRMAP) QMNAME('QM_PARTNER') " +
-		"USERSRC(MAP) MCAUSER('orders-app') DESCR('map partner QM to orders-app') ACTION(REPLACE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCQMGRMapRemove(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName:        "ORDERS.APP",
-		RuleType:           mqadmin.ChannelAuthRuleTypeQMGRMap,
-		RemoteQueueManager: "QM_PARTNER",
-		UserSource:         "MAP",
-		McaUser:            "orders-app",
-		Description:        "ignored on remove",
-	}, "REMOVE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('ORDERS.APP') TYPE(QMGRMAP) QMNAME('QM_PARTNER') ACTION(REMOVE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildSetChannelAuthMQSCRemove(t *testing.T) {
-	cmd, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "DEV.APP.SVRCONN.0TLS",
-		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
-		Address:     "*",
-		UserSource:  "CHANNEL",
-		CheckClient: "REQUIRED",
-		Description: "ignored on remove",
-	}, "REMOVE")
-	if err != nil {
-		t.Fatalf("buildSetChannelAuthMQSC: %v", err)
-	}
-	want := "SET CHLAUTH('DEV.APP.SVRCONN.0TLS') TYPE(ADDRESSMAP) ADDRESS('*') ACTION(REMOVE)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd, err := buildSetChannelAuthMQSC(tc.spec, tc.action)
+			if err != nil {
+				t.Fatalf("buildSetChannelAuthMQSC: %v", err)
+			}
+			if cmd != tc.want {
+				t.Fatalf("got %q, want %q", cmd, tc.want)
+			}
+		})
 	}
 }
 
@@ -271,11 +237,11 @@ func TestBuildSetAuthorityMQSCObjectTypes(t *testing.T) {
 }
 
 func TestBuildSetChannelAuthMQSCValidation(t *testing.T) {
-	_, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{}, "REPLACE")
+	_, err := buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{}, mqscActionReplace)
 	if err == nil {
 		t.Fatal("expected error for empty channel name")
 	}
-	_, err = buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{ChannelName: "CH1"}, "REPLACE")
+	_, err = buildSetChannelAuthMQSC(mqadmin.ChannelAuthSpec{ChannelName: "CH1"}, mqscActionReplace)
 	if err == nil {
 		t.Fatal("expected error for empty rule type")
 	}
@@ -328,31 +294,75 @@ func TestMqscQuote(t *testing.T) {
 }
 
 func TestBuildDisplayChannelAuthMQSC(t *testing.T) {
-	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "DEV.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
-	})
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		name string
+		spec mqadmin.ChannelAuthSpec
+		want string
+	}{
+		{
+			name: "addressmap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "DEV.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+			},
+			want: "DISPLAY CHLAUTH('DEV.APP') TYPE(ADDRESSMAP)",
+		},
+		{
+			name: "addressmap with address",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "DEV.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+				Address:     "*",
+			},
+			want: "DISPLAY CHLAUTH('DEV.APP') TYPE(ADDRESSMAP) ADDRESS('*')",
+		},
+		{
+			name: "sslpeermap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+				SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
+			},
+			want: "DISPLAY CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US')",
+		},
+		{
+			name: "usermap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "ORDERS.APP",
+				RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
+				ClientUser:  "johndoe",
+			},
+			want: "DISPLAY CHLAUTH('ORDERS.APP') TYPE(USERMAP) CLNTUSER('johndoe')",
+		},
+		{
+			name: "qmgrmap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName:        "ORDERS.APP",
+				RuleType:           mqadmin.ChannelAuthRuleTypeQMGRMap,
+				RemoteQueueManager: "QM_PARTNER",
+			},
+			want: "DISPLAY CHLAUTH('ORDERS.APP') TYPE(QMGRMAP) QMNAME('QM_PARTNER')",
+		},
+		{
+			name: "blockaddr",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "*",
+				RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
+				Address:     "192.0.2.1",
+			},
+			want: "DISPLAY CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST",
+		},
 	}
-	want := "DISPLAY CHLAUTH('DEV.APP') TYPE(ADDRESSMAP)"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestBuildDisplayChannelAuthMQSCWithAddress(t *testing.T) {
-	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "DEV.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
-		Address:     "*",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "DISPLAY CHLAUTH('DEV.APP') TYPE(ADDRESSMAP) ADDRESS('*')"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd, err := buildDisplayChannelAuthMQSC(tc.spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cmd != tc.want {
+				t.Fatalf("got %q, want %q", cmd, tc.want)
+			}
+		})
 	}
 }
 
@@ -426,139 +436,115 @@ func TestBuildDisplayAuthorityMQSCValidation(t *testing.T) {
 }
 
 func TestChannelAuthStateFromAttributes(t *testing.T) {
-	spec := mqadmin.ChannelAuthSpec{
-		ChannelName: "CH1",
-		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+	cases := []struct {
+		name   string
+		spec   mqadmin.ChannelAuthSpec
+		attrs  map[string]string
+		assert func(t *testing.T, state *mqadmin.ChannelAuthState)
+	}{
+		{
+			name: "addressmap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "CH1",
+				RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
+			},
+			attrs: map[string]string{
+				"address": "*", "usersrc": "CHANNEL", "chckclnt": "REQUIRED", "descr": "d",
+			},
+			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
+				t.Helper()
+				if state.Description != "d" {
+					t.Fatalf("state = %+v", state)
+				}
+			},
+		},
+		{
+			name: "sslpeermap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "CH1",
+				RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
+			},
+			attrs: map[string]string{
+				attrSslPeer: "CN=AppClient,O=MyOrg,C=US", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
+			},
+			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
+				t.Helper()
+				if state.SSLPeerName != "CN=AppClient,O=MyOrg,C=US" || state.McaUser != "orders-app" ||
+					state.UserSource != "MAP" {
+					t.Fatalf("state = %+v", state)
+				}
+			},
+		},
+		{
+			name: "usermap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "CH1",
+				RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
+			},
+			attrs: map[string]string{
+				"clntuser": "johndoe", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
+			},
+			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
+				t.Helper()
+				if state.ClientUser != "johndoe" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
+					t.Fatalf("state = %+v", state)
+				}
+			},
+		},
+		{
+			name: "qmgrmap",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "CH1",
+				RuleType:    mqadmin.ChannelAuthRuleTypeQMGRMap,
+			},
+			attrs: map[string]string{
+				attrQmName: "QM_PARTNER", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
+			},
+			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
+				t.Helper()
+				if state.RemoteQueueManager != "QM_PARTNER" || state.McaUser != "orders-app" ||
+					state.UserSource != "MAP" {
+					t.Fatalf("state = %+v", state)
+				}
+			},
+		},
+		{
+			name: "blockaddr",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "*",
+				RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
+			},
+			attrs: map[string]string{
+				"addrlist": "192.0.2.1", "descr": "block",
+			},
+			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
+				t.Helper()
+				if state.Address != "192.0.2.1" || state.Description != "block" {
+					t.Fatalf("state = %+v", state)
+				}
+			},
+		},
+		{
+			name: "blockuser",
+			spec: mqadmin.ChannelAuthSpec{
+				ChannelName: "CH1",
+				RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
+			},
+			attrs: map[string]string{
+				"userlist": "nobody", "descr": "block",
+			},
+			assert: func(t *testing.T, state *mqadmin.ChannelAuthState) {
+				t.Helper()
+				if state.UserList != "nobody" || state.Description != "block" {
+					t.Fatalf("state = %+v", state)
+				}
+			},
+		},
 	}
-	state := channelAuthStateFromAttributes(spec, map[string]string{
-		"address": "*", "usersrc": "CHANNEL", "chckclnt": "REQUIRED", "descr": "d",
-	})
-	if state.Description != "d" {
-		t.Fatalf("state = %+v", state)
-	}
-}
-
-func TestBuildDisplayChannelAuthMQSCSSLPeerMap(t *testing.T) {
-	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
-		SSLPeerName: "CN=AppClient,O=MyOrg,C=US",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "DISPLAY CHLAUTH('ORDERS.APP') TYPE(SSLPEERMAP) SSLPEER('CN=AppClient,O=MyOrg,C=US')"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestChannelAuthStateFromAttributesSSLPeerMap(t *testing.T) {
-	spec := mqadmin.ChannelAuthSpec{
-		ChannelName: "CH1",
-		RuleType:    mqadmin.ChannelAuthRuleTypeSSLPeerMap,
-	}
-	state := channelAuthStateFromAttributes(spec, map[string]string{
-		attrSslPeer: "CN=AppClient,O=MyOrg,C=US", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
-	})
-	if state.SSLPeerName != "CN=AppClient,O=MyOrg,C=US" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
-		t.Fatalf("state = %+v", state)
-	}
-}
-
-func TestBuildDisplayChannelAuthMQSCUserMap(t *testing.T) {
-	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "ORDERS.APP",
-		RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
-		ClientUser:  "johndoe",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "DISPLAY CHLAUTH('ORDERS.APP') TYPE(USERMAP) CLNTUSER('johndoe')"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestChannelAuthStateFromAttributesUserMap(t *testing.T) {
-	spec := mqadmin.ChannelAuthSpec{
-		ChannelName: "CH1",
-		RuleType:    mqadmin.ChannelAuthRuleTypeUserMap,
-	}
-	state := channelAuthStateFromAttributes(spec, map[string]string{
-		"clntuser": "johndoe", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
-	})
-	if state.ClientUser != "johndoe" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
-		t.Fatalf("state = %+v", state)
-	}
-}
-
-func TestBuildDisplayChannelAuthMQSCQMGRMap(t *testing.T) {
-	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName:        "ORDERS.APP",
-		RuleType:           mqadmin.ChannelAuthRuleTypeQMGRMap,
-		RemoteQueueManager: "QM_PARTNER",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "DISPLAY CHLAUTH('ORDERS.APP') TYPE(QMGRMAP) QMNAME('QM_PARTNER')"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestChannelAuthStateFromAttributesQMGRMap(t *testing.T) {
-	spec := mqadmin.ChannelAuthSpec{
-		ChannelName: "CH1",
-		RuleType:    mqadmin.ChannelAuthRuleTypeQMGRMap,
-	}
-	state := channelAuthStateFromAttributes(spec, map[string]string{
-		attrQmName: "QM_PARTNER", attrMcaUser: "orders-app", "usersrc": "MAP", "descr": "map",
-	})
-	if state.RemoteQueueManager != "QM_PARTNER" || state.McaUser != "orders-app" || state.UserSource != "MAP" {
-		t.Fatalf("state = %+v", state)
-	}
-}
-
-func TestBuildDisplayChannelAuthMQSCBlockAddr(t *testing.T) {
-	cmd, err := buildDisplayChannelAuthMQSC(mqadmin.ChannelAuthSpec{
-		ChannelName: "*",
-		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
-		Address:     "192.0.2.1",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "DISPLAY CHLAUTH('*') TYPE(BLOCKADDR) ADDRLIST"
-	if cmd != want {
-		t.Fatalf("got %q, want %q", cmd, want)
-	}
-}
-
-func TestChannelAuthStateFromAttributesBlockAddr(t *testing.T) {
-	spec := mqadmin.ChannelAuthSpec{
-		ChannelName: "*",
-		RuleType:    mqadmin.ChannelAuthRuleTypeBlockAddr,
-	}
-	state := channelAuthStateFromAttributes(spec, map[string]string{
-		"addrlist": "192.0.2.1", "descr": "block",
-	})
-	if state.Address != "192.0.2.1" || state.Description != "block" {
-		t.Fatalf("state = %+v", state)
-	}
-}
-
-func TestChannelAuthStateFromAttributesBlockUser(t *testing.T) {
-	spec := mqadmin.ChannelAuthSpec{
-		ChannelName: "CH1",
-		RuleType:    mqadmin.ChannelAuthRuleTypeBlockUser,
-	}
-	state := channelAuthStateFromAttributes(spec, map[string]string{
-		"userlist": "nobody", "descr": "block",
-	})
-	if state.UserList != "nobody" || state.Description != "block" {
-		t.Fatalf("state = %+v", state)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			state := channelAuthStateFromAttributes(tc.spec, tc.attrs)
+			tc.assert(t, state)
+		})
 	}
 }

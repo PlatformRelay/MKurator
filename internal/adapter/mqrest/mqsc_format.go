@@ -21,7 +21,7 @@ func FormatDefineQueueMQSC(spec mqadmin.QueueSpec) (string, error) {
 
 	parts := []string{
 		fmt.Sprintf("DEFINE %s('%s')", keyword, mqscQuote(spec.Name)),
-		"REPLACE",
+		mqscActionReplace,
 	}
 
 	keys := make([]string, 0, len(params))
@@ -57,7 +57,7 @@ func FormatDefineChannelMQSC(spec mqadmin.ChannelSpec) (string, error) {
 // FormatSetChannelAuthMQSC renders the SET CHLAUTH ... ACTION(REPLACE) line the
 // mqrest adapter applies.
 func FormatSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec) (string, error) {
-	return buildSetChannelAuthMQSC(spec, "REPLACE")
+	return buildSetChannelAuthMQSC(spec, mqscActionReplace)
 }
 
 // FormatSetAuthorityMQSC renders the SET AUTHREC ... AUTHADD(...) line the mqrest
@@ -79,7 +79,7 @@ func formatDefineObjectMQSC(objectType, name string, params map[string]any) stri
 	parts := make([]string, 0, 2+len(keys))
 	parts = append(parts,
 		fmt.Sprintf("DEFINE %s('%s')", objectType, mqscQuote(name)),
-		"REPLACE",
+		mqscActionReplace,
 	)
 
 	for _, key := range keys {

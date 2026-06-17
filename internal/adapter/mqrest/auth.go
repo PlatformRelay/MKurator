@@ -10,14 +10,18 @@ import (
 	"github.com/conduit-ops/mkurator/internal/mqadmin"
 )
 
-const invalidSpecReason = "InvalidSpec"
+const (
+	invalidSpecReason = "InvalidSpec"
+	mqscActionReplace = "REPLACE"
+	mqscActionRemove  = "REMOVE"
+)
 
 // SetChannelAuth applies SET CHLAUTH ... ACTION(REPLACE).
 func (c *Client) SetChannelAuth(ctx context.Context, spec mqadmin.ChannelAuthSpec) error {
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpSetChannelAuth, err) }()
 
-	cmd, buildErr := buildSetChannelAuthMQSC(spec, "REPLACE")
+	cmd, buildErr := buildSetChannelAuthMQSC(spec, mqscActionReplace)
 	if buildErr != nil {
 		err = buildErr
 		return err
@@ -31,7 +35,7 @@ func (c *Client) DeleteChannelAuth(ctx context.Context, spec mqadmin.ChannelAuth
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpDeleteChannelAuth, err) }()
 
-	cmd, buildErr := buildSetChannelAuthMQSC(spec, "REMOVE")
+	cmd, buildErr := buildSetChannelAuthMQSC(spec, mqscActionRemove)
 	if buildErr != nil {
 		err = buildErr
 		return err
@@ -274,7 +278,7 @@ func buildSetChannelAuthMQSC(spec mqadmin.ChannelAuthSpec, action string) (strin
 	if clause := channelAuthRemoteQueueManagerClause(spec); clause != "" {
 		parts = append(parts, clause)
 	}
-	if action == "REMOVE" {
+	if action == mqscActionRemove {
 		parts = append(parts, "ACTION(REMOVE)")
 		return strings.Join(parts, " "), nil
 	}
