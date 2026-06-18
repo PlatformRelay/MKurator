@@ -36,10 +36,12 @@ metrics:
     labels:
       release: kube-prometheus-stack
 
-# Custom metrics scraped from /metrics (see internal/metrics/metrics.go):
+# Custom metrics scraped from /metrics (see docs/OBSERVABILITY.md for full inventory):
 #   mkurator_reconcile_total{controller,result}
 #   mkurator_reconcile_errors_total{controller}
 #   mkurator_mq_operations_total{operation,result}
+#   mkurator_drift_detected_total{controller}
+#   mkurator_mq_circuit_breaker_transitions_total{from,to}
 #
 # Controller labels: queue, topic, channel, channelauthrule, authorityrecord,
 # queuemanagerconnection.
