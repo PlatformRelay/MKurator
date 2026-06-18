@@ -21,11 +21,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 	"github.com/conduit-ops/mkurator/internal/adapter/mqrest"
 	"github.com/conduit-ops/mkurator/internal/cacheconfig"
 	"github.com/conduit-ops/mkurator/internal/controller"
 	"github.com/conduit-ops/mkurator/internal/health"
 	"github.com/conduit-ops/mkurator/internal/logging"
+	webhookconversion "github.com/conduit-ops/mkurator/internal/webhook/conversion"
 	webhookv1alpha1 "github.com/conduit-ops/mkurator/internal/webhook/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
@@ -38,6 +40,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(messagingv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(messagingv1beta1.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -292,6 +295,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := webhookconversion.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup conversion webhook")
+		os.Exit(1)
+	}
 	if err := webhookv1alpha1.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup webhooks")
 		os.Exit(1)

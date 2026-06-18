@@ -156,7 +156,7 @@ tasks:
   install:crds:
     desc: Apply CRD manifests to the cluster (e2e/local)
     cmds:
-      - kubectl apply --server-side -f config/crd/bases
+      - kubectl apply --server-side -k config/crd
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
@@ -177,7 +177,7 @@ tasks:
           kubectl delete queues,topics,channels,channelauthrules,authorityrecords,queuemanagerconnections --all -n "$ns" --ignore-not-found --wait=false || true
         done
       - kubectl delete --ignore-not-found -k config/default --wait=false --timeout=2m
-      - kubectl delete --ignore-not-found -f config/crd/bases --wait=false --timeout=2m
+      - kubectl delete --ignore-not-found -k config/crd --wait=false --timeout=2m
     env:
       KUBECONFIG: "{{.KUBECONFIG}}"
 
