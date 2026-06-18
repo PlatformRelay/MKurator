@@ -64,24 +64,31 @@ Before **`v1beta1` graduation**, `v1alpha1` will gain ([ROADMAP.md](ROADMAP.md#p
 | **8a** | Typed fields for drift-checked MQ attributes + `spec.attributes` escape hatch; mutual exclusivity (CEL); internal fold into the attribute map before `mqadmin` | [ADR-0021](adr/0021-attribute-api-shape.md) |
 | **8b** | This stability statement (published) | — |
 | **8c** | Optional DISPLAY capability probing | [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4 |
-| **8d** | `v1beta1` for all six kinds + conversion webhook | [ADR-0009](adr/0009-validating-admission-webhooks.md) |
+| **8d** | `v1beta1` for all six kinds + conversion webhook | [ADR-0026](adr/0026-v1beta1-graduation-plan.md) (plan); [ADR-0009](adr/0009-validating-admission-webhooks.md) (validating posture) |
 
 During **8a**, existing manifests that use only `spec.attributes` remain valid.
 New typed fields are optional; setting both a typed field and the same key in
 `attributes` is rejected at admission (no silent merge). The first promoted field
 is `Queue.spec.maxDepth` (alternative to `attributes.maxdepth`).
 
-## Graduation to `v1beta1` (future)
+## Graduation to `v1beta1` (planned)
+
+The graduation plan is recorded in **[ADR-0026](adr/0026-v1beta1-graduation-plan.md)**
+(hub-spoke conversion, storage migration, deprecation timeline, implementation
+slices 8d-0–8d-6). Slice **8d-0** (this ADR) is accepted; conversion webhook
+code is not yet implemented.
 
 `v1beta1` will **not** be cut until:
 
 1. **Hybrid attribute surface (8a)** has shipped on `v1alpha1` and baked for at
-   least **one minor release** without schema churn on promoted fields.
+   least **one minor release** without schema churn on promoted fields — **met**
+   by `v0.11.0` + `v0.11.1`.
 2. A **conversion webhook** converts stored objects between `v1alpha1` and
-   `v1beta1` for all six kinds (today there is none).
+   `v1beta1` for all six kinds per ADR-0026 (today there is none).
 3. **Deprecation policy** for map keys that have typed equivalents is documented
    in UPGRADE.md (map key still accepted via conversion during deprecation;
-   removal only in a later version with notice).
+   removal only in a later version with notice) — policy fixed in ADR-0026;
+   UPGRADE.md migration steps ship in slice 8d-5.
 4. CI proves conversion + reconcile parity (envtest/e2e), and [UPGRADE.md](UPGRADE.md)
    documents migration paths.
 
@@ -116,5 +123,6 @@ No deprecations of map keys are active while the project ships **map-only**
 | [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) | Drift-checked vs define-only MQ keys (today's contract) |
 | [adr/0021-attribute-api-shape.md](adr/0021-attribute-api-shape.md) | Typed fields + escape hatch decision |
 | [adr/0025-cel-first-admission-validation.md](adr/0025-cel-first-admission-validation.md) | CEL vs webhook split |
+| [adr/0026-v1beta1-graduation-plan.md](adr/0026-v1beta1-graduation-plan.md) | `v1beta1` hub-spoke conversion and deprecation policy |
 | [UPGRADE.md](UPGRADE.md) | Release-to-release migration steps |
 | [FAQ.md](FAQ.md) | Short pointers for operators |
