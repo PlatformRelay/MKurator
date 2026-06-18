@@ -89,16 +89,18 @@ func TestErrIndicatesAttributeNotDisplayable(t *testing.T) {
 	}
 }
 
-func TestQueueLocalDefineOnlyCandidatesIncludesShare(t *testing.T) {
+func TestQueueLocalDefineOnlyCandidates(t *testing.T) {
 	t.Parallel()
-	found := false
-	for _, attr := range QueueLocalDefineOnlyCandidates {
-		if attr == attrShare {
-			found = true
-			break
+	want := []string{attrShare, attrDefopts, attrBothresh, attrBoqname, attrUsage, attrMaxMsgLen}
+	if len(QueueLocalDefineOnlyCandidates) != len(want) {
+		t.Fatalf("candidates = %v, want %v", QueueLocalDefineOnlyCandidates, want)
+	}
+	for i, attr := range want {
+		if QueueLocalDefineOnlyCandidates[i] != attr {
+			t.Fatalf("candidates[%d] = %q, want %q", i, QueueLocalDefineOnlyCandidates[i], attr)
 		}
 	}
-	if !found {
-		t.Fatalf("expected share in candidates, got %v", QueueLocalDefineOnlyCandidates)
+	if len(queueLocalProbedDisplayCandidates) != len(QueueLocalDefineOnlyCandidates) {
+		t.Fatalf("probed candidates = %v, want all define-only candidates", queueLocalProbedDisplayCandidates)
 	}
 }

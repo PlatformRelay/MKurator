@@ -11,6 +11,56 @@ import (
 	"github.com/conduit-ops/mkurator/internal/mqadmin"
 )
 
+func TestResolveQueueDriftCheckKeys_LocalProbesAllDefineOnlyCandidates(t *testing.T) {
+	t.Parallel()
+	var probeAttrs []string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body["command"] != "display" || body["name"] != defaultQueueLocalDisplayProbeObject {
+			t.Fatalf("unexpected request: %+v", body)
+		}
+		params, _ := body["responseParameters"].([]any)
+		if len(params) != 1 {
+			t.Fatalf("responseParameters = %v", params)
+		}
+		attr, _ := params[0].(string)
+		probeAttrs = append(probeAttrs, attr)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"commandResponse": []map[string]any{{
+				"completionCode": 0,
+				"parameters":     map[string]any{attr: "yes"},
+			}},
+			"overallCompletionCode": 0,
+		})
+	}))
+	defer srv.Close()
+
+	c := newProbeTestClient(t, srv.URL, srv.Client())
+	keys, err := ResolveQueueDriftCheckKeys(context.Background(), c, mqadmin.QueueTypeLocal)
+	if err != nil {
+		t.Fatalf("ResolveQueueDriftCheckKeys: %v", err)
+	}
+	if len(probeAttrs) != len(QueueLocalDefineOnlyCandidates) {
+		t.Fatalf("probe calls = %v, want %d", probeAttrs, len(QueueLocalDefineOnlyCandidates))
+	}
+	for _, attr := range QueueLocalDefineOnlyCandidates {
+		if !containsString(probeAttrs, attr) {
+			t.Fatalf("expected probe for %q, got %v", attr, probeAttrs)
+		}
+		if !containsString(keys, attr) {
+			t.Fatalf("expected %q in drift keys when displayable, got %v", attr, keys)
+		}
+	}
+}
+
 func TestResolveQueueDriftCheckKeys_LocalIncludesShareWhenProbeSucceeds(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -51,7 +51,7 @@ func TestClient_DefineAndGetQueue(t *testing.T) {
 			return
 		}
 		if lastBody["command"] == "display" {
-			if respondLocalQueueShareProbe(w, lastBody, true) {
+			if respondLocalQueueAttributeProbe(w, lastBody, true) {
 				return
 			}
 			rp, _ := lastBody["responseParameters"].([]any)
@@ -117,7 +117,7 @@ func TestClient_GetQueueNotFound(t *testing.T) {
 			return
 		}
 		if body["command"] == "display" {
-			if respondLocalQueueShareProbe(w, body, true) {
+			if respondLocalQueueAttributeProbe(w, body, true) {
 				return
 			}
 		}
@@ -1312,27 +1312,39 @@ func TestClient_ProbeQueueLocalAttributeDisplayable(t *testing.T) {
 
 const localQueueDisplayProbeObject = "SYSTEM.DEFAULT.LOCAL.QUEUE"
 
-// respondLocalQueueShareProbe handles DISPLAY probes for the share attribute on the
-// stable probe queue used by GetQueue drift resolution.
-func respondLocalQueueShareProbe(w http.ResponseWriter, body map[string]any, displayable bool) bool {
+// respondLocalQueueAttributeProbe handles DISPLAY capability probes on the stable
+// probe queue. share is reported displayable when shareDisplayable is true; other
+// define-only candidates return MQWB0120E (mqweb 9.4.x test fixture).
+func respondLocalQueueAttributeProbe(w http.ResponseWriter, body map[string]any, shareDisplayable bool) bool {
 	if body["command"] != "display" || body["name"] != localQueueDisplayProbeObject {
 		return false
 	}
 	rp, _ := body["responseParameters"].([]any)
-	if len(rp) != 1 || rp[0] != "share" {
+	if len(rp) != 1 {
 		return false
 	}
-	if !displayable {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"error":[{"msgId":"MQWB0120E","message":"Attribute not valid"}]}`))
+	attr, _ := rp[0].(string)
+	if attr == "share" {
+		if !shareDisplayable {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":[{"msgId":"MQWB0120E","message":"Attribute not valid"}]}`))
+			return true
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			testKeyCommandResponse: []map[string]any{{
+				testKeyCompletionCode: 0,
+				"parameters":          map[string]any{"share": "yes"},
+			}},
+			testKeyOverallCompletionCode: 0,
+		})
 		return true
 	}
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		testKeyCommandResponse: []map[string]any{{
-			testKeyCompletionCode: 0,
-			"parameters":          map[string]any{"share": "yes"},
-		}},
-		testKeyOverallCompletionCode: 0,
-	})
-	return true
+	for _, candidate := range []string{"defopts", "bothresh", "boqname", "usage", "maxmsglen"} {
+		if attr == candidate {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":[{"msgId":"MQWB0120E","message":"Attribute not valid"}]}`))
+			return true
+		}
+	}
+	return false
 }
