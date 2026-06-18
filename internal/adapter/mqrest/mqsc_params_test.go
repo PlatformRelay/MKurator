@@ -210,7 +210,10 @@ func TestDefineObjectParameters_InvalidNumericStaysString(t *testing.T) {
 
 func TestQueueDisplayRequestUsesQualifier(t *testing.T) {
 	t.Parallel()
-	req := queueDisplayRequest(mqadmin.QueueSpec{Name: "APP.ALIAS", Type: mqadmin.QueueTypeAlias})
+	req := queueDisplayRequest(
+		mqadmin.QueueSpec{Name: "APP.ALIAS", Type: mqadmin.QueueTypeAlias},
+		queueDisplayParameters(mqadmin.QueueTypeAlias),
+	)
 	if req.Qualifier != "qalias" || req.Name != "APP.ALIAS" {
 		t.Fatalf("request = %+v", req)
 	}

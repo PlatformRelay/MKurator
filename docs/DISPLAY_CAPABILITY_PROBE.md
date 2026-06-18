@@ -57,16 +57,15 @@ that older docs and tables still list as define-only.
 `responseParameters` is blocked. Drift for blocked keys remains deferred until
 probe (or manual test) shows DISPLAY support on the target mqweb level.
 
-## Future wiring (not in this spike)
+## Future wiring
 
-Per ADR-0024 §4, a full implementation would:
+Per ADR-0024 §4, remaining work:
 
-1. Run probes once per `QueueManagerConnection` at Ready (using a stable probe
-   queue, e.g. `SYSTEM.DEFAULT.LOCAL.QUEUE` or a dedicated operator probe object).
-2. Cache displayable attribute sets on QMC status (or in-memory on the adapter
-   factory).
-3. Build DISPLAY `responseParameters` dynamically from desired keys ∩ displayable
-   set instead of `queueLocalDisplayParameters`.
+1. Probe additional candidates from `QueueLocalDefineOnlyCandidates` (`defopts`,
+   `bothresh`, `boqname`, `usage`, `maxmsglen`) using the same client cache.
+2. Optionally run probes once per `QueueManagerConnection` at Ready and surface
+   displayable sets on QMC status (today: lazy probe on first local `GetQueue`).
+3. Build DISPLAY `responseParameters` from desired keys ∩ displayable set.
 
 Candidates for bulk probe: `QueueLocalDefineOnlyCandidates` in `display_probe.go`.
 

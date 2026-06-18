@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/conduit-ops/mkurator/internal/metrics"
@@ -55,6 +56,9 @@ type Client struct {
 	password     string
 	retry        retryPolicy
 	breaker      *circuitBreaker
+
+	displayProbeMu    sync.Mutex
+	displayProbeCache map[string]bool
 }
 
 // NewClient builds an mqrest client from Config.
@@ -154,7 +158,12 @@ func (c *Client) GetQueue(ctx context.Context, spec mqadmin.QueueSpec) (*mqadmin
 		return nil, err
 	}
 
-	resp, err := c.runCommandJSON(ctx, queueDisplayRequest(spec))
+	displayParams, err := c.queueDisplayParametersForGet(ctx, spec.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.runCommandJSON(ctx, queueDisplayRequest(spec, displayParams))
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +176,13 @@ func (c *Client) GetQueue(ctx context.Context, spec mqadmin.QueueSpec) (*mqadmin
 	}
 	normalizeQueueAttributes(attrs, spec.Type)
 	return &mqadmin.QueueState{Name: spec.Name, Attributes: attrs}, nil
+}
+
+func (c *Client) queueDisplayParametersForGet(ctx context.Context, qType mqadmin.QueueType) ([]string, error) {
+	if mqadmin.NormalizeQueueType(qType) != mqadmin.QueueTypeLocal {
+		return queueDisplayParameters(qType), nil
+	}
+	return c.queueLocalDisplayParametersResolved(ctx)
 }
 
 // DefineQueue creates or updates a local queue (REPLACE).

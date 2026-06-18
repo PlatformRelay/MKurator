@@ -172,13 +172,13 @@ func queueDisplayParameters(qType mqadmin.QueueType) []string {
 	}
 }
 
-func queueDisplayRequest(spec mqadmin.QueueSpec) runCommandJSONRequest {
+func queueDisplayRequest(spec mqadmin.QueueSpec, responseParameters []string) runCommandJSONRequest {
 	return runCommandJSONRequest{
 		Type:               mqscType,
 		Command:            mqscCommandDisplay,
 		Qualifier:          queueQualifier(spec.Type),
 		Name:               spec.Name,
-		ResponseParameters: queueDisplayParameters(spec.Type),
+		ResponseParameters: responseParameters,
 	}
 }
 

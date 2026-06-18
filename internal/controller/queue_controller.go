@@ -155,6 +155,11 @@ func (r *QueueReconciler) ensureQueue(
 	if observed != nil {
 		observedAttrs = observed.Attributes
 	}
+	driftKeys, err := mqrest.ResolveQueueDriftCheckKeys(mqCtx, admin, spec.Type)
+	if err != nil {
+		return false, "", err
+	}
+
 	return reconcileMQObjectState(
 		observeOnly,
 		workloadAdoptionPolicy(q),
@@ -162,7 +167,7 @@ func (r *QueueReconciler) ensureQueue(
 		exists,
 		observedAttrs,
 		spec.Attributes,
-		mqrest.QueueDriftCheckKeys(spec.Type),
+		driftKeys,
 		fmt.Sprintf("queue %q", spec.Name),
 		func() error { return admin.DefineQueue(mqCtx, spec) },
 	)

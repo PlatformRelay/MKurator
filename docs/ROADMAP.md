@@ -151,10 +151,10 @@ before access-control work.
 - [x] **Alias** and **remote** queue types (`QALIAS`, `QREMOTE`) with drift detection.
 - [x] TLS channel attrs (`sslciph`, `sslcauth`) drift-checked (shipped; see
   [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md)).
-- [ ] Queue attrs `share`, `defopts`, `bothresh`, `boqname`, `usage` remain
-  DEFINE-only on mqweb 9.4 (`MQWB0120E` on DISPLAY); drift for those deferred
-  until mqweb allows it (capability probing direction:
-  [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md)).
+- [ ] Queue attrs `defopts`, `bothresh`, `boqname`, `usage` remain DEFINE-only on
+  mqweb 9.4 (`MQWB0120E` on DISPLAY); drift deferred until probed.
+  **`share`** drift wired via runtime DISPLAY probe (Day 27 MQ-3;
+  [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md)).
 
 Exit criteria: at least **Topic** and one **Channel** kind reconcile end-to-end on
 kind with the same quality bar as Phase 2 (`verify`, ≥90% `internal/` coverage,
@@ -346,10 +346,11 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 - [x] Published **API stability statement**: [API_STABILITY.md](API_STABILITY.md) —
   what `v1alpha1` guarantees, what graduation to `v1beta1` requires (conversion
   webhook, deprecation policy).
-- [ ] Optional: DISPLAY **capability probing** per
-  [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4, replacing
-  hand-maintained per-version safe lists. **Spike:** probe helper + `share` pilot
-  — [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
+- [x] Optional: DISPLAY **capability probing** per
+  [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4 — **`share` wired**
+  into local-queue DISPLAY/drift via runtime probe + client cache (Day 27 MQ-3).
+  Extend to remaining `QueueLocalDefineOnlyCandidates` incrementally.
+  Spike + pilot: [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
 - [ ] `v1beta1` graduation of all six kinds with conversion webhook once 8a/8b
   are stable for one minor release.
 

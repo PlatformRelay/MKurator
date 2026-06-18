@@ -72,8 +72,8 @@ func errIndicatesAttributeNotDisplayable(err error) bool {
 //
 // Requires an existing local queue (probe object). Returns (true, nil) when
 // DISPLAY succeeds, (false, nil) when mqweb responds with MQWB0120E, or an
-// error for missing queues and other MQ failures. Spike helper for ADR-0024 §4;
-// not wired into reconcilers yet.
+// error for missing queues and other MQ failures. Used by ADR-0024 §4 display
+// capability cache when building local-queue DISPLAY for drift.
 func (c *Client) ProbeQueueLocalAttributeDisplayable(
 	ctx context.Context,
 	queueName, attribute string,

@@ -407,6 +407,62 @@ func TestIntegration_ProbeQueueLocalAttribute_DisplayProbeMechanism(t *testing.T
 	t.Logf("share displayable on this mqweb: %v (version-dependent; see DISPLAY_CAPABILITY_PROBE.md)", shareDisplayable)
 }
 
+func TestIntegration_GetQueue_LocalShareDriftWhenDisplayable(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	name := queueNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteQueue(context.Background(), mqadmin.QueueSpec{Name: name, Type: mqadmin.QueueTypeLocal})
+	})
+
+	shareDisplayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, "SYSTEM.DEFAULT.LOCAL.QUEUE", "share")
+	if err != nil {
+		t.Fatalf("Probe share: %v", err)
+	}
+	if !shareDisplayable {
+		t.Skip("share not displayable on this mqweb; see DISPLAY_CAPABILITY_PROBE.md")
+	}
+
+	if err := c.DefineQueue(ctx, mqadmin.QueueSpec{
+		Name: name,
+		Type: mqadmin.QueueTypeLocal,
+		Attributes: map[string]string{
+			"maxdepth": "100",
+			"share":    "yes",
+		},
+	}); err != nil {
+		t.Fatalf("DefineQueue: %v", err)
+	}
+
+	state, err := c.GetQueue(ctx, mqadmin.QueueSpec{Name: name, Type: mqadmin.QueueTypeLocal})
+	if err != nil {
+		t.Fatalf("GetQueue: %v", err)
+	}
+	if !mqadmin.AttributeValueMatches("share", state.Attributes["share"], "yes") {
+		t.Fatalf("share = %q, want yes (DISPLAY should include probed attribute)", state.Attributes["share"])
+	}
+
+	keys, err := mqrest.ResolveQueueDriftCheckKeys(ctx, c, mqadmin.QueueTypeLocal)
+	if err != nil {
+		t.Fatalf("ResolveQueueDriftCheckKeys: %v", err)
+	}
+	foundShare := false
+	for _, k := range keys {
+		if k == "share" {
+			foundShare = true
+			break
+		}
+	}
+	if !foundShare {
+		t.Fatalf("expected share in drift keys, got %v", keys)
+	}
+}
+
 func TestIntegration_Factory_ForConnection_Ping(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)

@@ -51,6 +51,9 @@ func TestClient_DefineAndGetQueue(t *testing.T) {
 			return
 		}
 		if lastBody["command"] == "display" {
+			if respondLocalQueueShareProbe(w, lastBody, true) {
+				return
+			}
 			rp, _ := lastBody["responseParameters"].([]any)
 			for _, p := range rp {
 				if p == "maxmsglen" {
@@ -103,7 +106,21 @@ func TestClient_DefineAndGetQueue(t *testing.T) {
 
 func TestClient_GetQueueNotFound(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if body["command"] == "display" {
+			if respondLocalQueueShareProbe(w, body, true) {
+				return
+			}
+		}
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			testKeyCommandResponse: []map[string]any{{
 				testKeyCompletionCode: 2,
@@ -1291,4 +1308,31 @@ func TestClient_ProbeQueueLocalAttributeDisplayable(t *testing.T) {
 			t.Fatal("expected error for empty attribute")
 		}
 	})
+}
+
+const localQueueDisplayProbeObject = "SYSTEM.DEFAULT.LOCAL.QUEUE"
+
+// respondLocalQueueShareProbe handles DISPLAY probes for the share attribute on the
+// stable probe queue used by GetQueue drift resolution.
+func respondLocalQueueShareProbe(w http.ResponseWriter, body map[string]any, displayable bool) bool {
+	if body["command"] != "display" || body["name"] != localQueueDisplayProbeObject {
+		return false
+	}
+	rp, _ := body["responseParameters"].([]any)
+	if len(rp) != 1 || rp[0] != "share" {
+		return false
+	}
+	if !displayable {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":[{"msgId":"MQWB0120E","message":"Attribute not valid"}]}`))
+		return true
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		testKeyCommandResponse: []map[string]any{{
+			testKeyCompletionCode: 0,
+			"parameters":          map[string]any{"share": "yes"},
+		}},
+		testKeyOverallCompletionCode: 0,
+	})
+	return true
 }

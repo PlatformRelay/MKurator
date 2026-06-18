@@ -17,11 +17,13 @@ See [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) for MQSC semantics.
 | **Drift** | For each desired key, observed DISPLAY value must match (`AttributeValueMatches` — case-insensitive for policies, numeric-normalized for counters). |
 | **`Synced=True`** | Object exists and every **desired** key that we can observe matches; define-only keys are not verified after apply. |
 
-### Capability probing (spike)
+### Capability probing (ADR-0024 §4)
 
-ADR-0024 §4 direction: probe DISPLAY per attribute instead of static safe lists.
-Spike helper and `share` pilot results: [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
-Full QMC-ready probing is Phase 8c / ROADMAP optional work.
+Runtime DISPLAY probing for define-only local-queue attributes is wired for
+**`share`**: `GetQueue` and `ResolveQueueDriftCheckKeys` probe
+`SYSTEM.DEFAULT.LOCAL.QUEUE` once per mqrest client and include the attribute
+when mqweb allows it. See [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
+Remaining candidates (`defopts`, `bothresh`, …) stay static-deferred until probed.
 
 ## Typed spec fields (Phase 8a)
 
@@ -79,7 +81,8 @@ matrices and CI coverage: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 | `descr` | yes | yes | |
 | `defpsist` | yes | yes | Case-insensitive match |
 | `get`, `put` | yes | yes | Case-insensitive |
-| `share`, `defopts`, `bothresh`, `boqname`, `usage` | yes | **no** | DEFINE-only on mqweb 9.4 (`MQWB0120E` on DISPLAY); drift deferred |
+| `share` | yes | **probed** | Included in DISPLAY/drift when mqweb reports displayable (see [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md)) |
+| `defopts`, `bothresh`, `boqname`, `usage` | yes | **no** | DEFINE-only on mqweb 9.4 (`MQWB0120E` on DISPLAY); drift deferred |
 | `maxmsglen` | yes | **no** | mqweb 9.4 rejects on DISPLAY (`MQWB0120E`) |
 | trigger fields | yes | **no** | Passthrough; not in safe DISPLAY list |
 | `cluster`, `clusnl` | yes | **no** | Clustering — future work |
