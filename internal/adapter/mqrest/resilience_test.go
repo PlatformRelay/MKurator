@@ -237,10 +237,11 @@ func TestRoundTripContextCancelledDuringRequest(t *testing.T) {
 }
 
 func TestSleepWithContextCancelled(t *testing.T) {
-	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if err := sleepWithContext(ctx, func(time.Duration) {}, time.Hour); !errors.Is(err, context.Canceled) {
+	// Block forever so select always observes ctx.Done() (no-op sleepFn races with done).
+	block := func(time.Duration) { select {} }
+	if err := sleepWithContext(ctx, block, time.Hour); !errors.Is(err, context.Canceled) {
 		t.Fatalf("got %v", err)
 	}
 }
