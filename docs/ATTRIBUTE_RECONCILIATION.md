@@ -127,6 +127,19 @@ matrices and CI coverage: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md).
 | `maxinst`, `maxinstc` | yes | yes | Numeric |
 | `sslciph`, `sslcauth` | yes | yes | TLS — Phase 4 DISPLAY drift; `sslcauth` case-insensitive |
 
+### Channel (`CHLTYPE(RCVR)`)
+
+| Attribute | DEFINE | Drift (DISPLAY) | Notes |
+|-----------|--------|-----------------|-------|
+| `trptype` | yes | yes | Case-insensitive |
+| `descr` | yes | yes | |
+| `maxmsgl` | yes | yes | Numeric |
+| `mcauser` | yes | yes | |
+| `sslciph` | yes | yes | TLS cipher spec |
+
+RCVR channels do not support `conname` or `xmitq` (unlike SDR); the partner SDR
+dials the listener address configured on the receiving queue manager.
+
 ### Channel (`CHLTYPE(SDR)`)
 
 | Attribute | DEFINE | Drift (DISPLAY) | Notes |
@@ -190,7 +203,7 @@ for GET; only `authorities` is drift-checked after the rule exists.
 |------------|------|-------|
 | Durable subscription | `DEFINE SUB` | Later |
 | Model queue | `QMODEL` | Later |
-| Message channels | `CHLTYPE(RCVR\|…)` | Later |
+| Message channels | `CHLTYPE(SVR\|RQSTR\|CLUS*)` | Later |
 | Connection auth | `AUTHINFO`, `ALTER QMGR CONNAUTH` | Platform |
 
 **Shipped (Phase 5):** OAM via `AuthorityRecord` (`SET AUTHREC`); channel auth via

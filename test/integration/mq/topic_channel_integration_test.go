@@ -138,6 +138,52 @@ func TestIntegration_DeleteTopic_Idempotent(t *testing.T) {
 	}
 }
 
+func TestIntegration_Channel_Rcvr_CreateGetDelete(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	name := channelNameForTest("RCVR." + t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := mqadmin.ChannelSpec{
+		Name: name,
+		Type: mqadmin.ChannelTypeRcvr,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+			"descr":   "mkurator integration rcvr channel",
+		},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteChannel(context.Background(), mqadmin.ChannelSpec{
+			Name: name,
+			Type: mqadmin.ChannelTypeRcvr,
+		})
+	})
+
+	if err := c.DefineChannel(ctx, spec); err != nil {
+		t.Fatalf("DefineChannel: %v", err)
+	}
+
+	state, err := c.GetChannel(ctx, spec)
+	if err != nil {
+		t.Fatalf("GetChannel: %v", err)
+	}
+	if state.Attributes["descr"] != "mkurator integration rcvr channel" {
+		t.Fatalf("descr = %q", state.Attributes["descr"])
+	}
+
+	if err := c.DeleteChannel(ctx, spec); err != nil {
+		t.Fatalf("DeleteChannel: %v", err)
+	}
+
+	_, err = c.GetChannel(ctx, spec)
+	if !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected not found after delete, got %v", err)
+	}
+}
+
 func TestIntegration_Channel_Sdr_CreateGetDelete(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
@@ -332,7 +378,7 @@ func TestIntegration_DefineChannel_UnsupportedType(t *testing.T) {
 
 	err = c.DefineChannel(ctx, mqadmin.ChannelSpec{
 		Name: name,
-		Type: mqadmin.ChannelType("rcvr"),
+		Type: mqadmin.ChannelType("clusrcv"),
 	})
 	if !errors.Is(err, mqadmin.ErrTerminal) {
 		t.Fatalf("expected terminal error, got %v", err)

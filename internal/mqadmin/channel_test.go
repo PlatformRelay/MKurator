@@ -10,6 +10,9 @@ func TestNormalizeChannelType(t *testing.T) {
 	if got := NormalizeChannelType(ChannelTypeSdr); got != ChannelTypeSdr {
 		t.Fatalf("sdr = %q", got)
 	}
+	if got := NormalizeChannelType(ChannelTypeRcvr); got != ChannelTypeRcvr {
+		t.Fatalf("rcvr = %q", got)
+	}
 }
 
 func TestChannelTypeSupported(t *testing.T) {
@@ -21,7 +24,8 @@ func TestChannelTypeSupported(t *testing.T) {
 		{"", true},
 		{ChannelTypeSvrconn, true},
 		{ChannelTypeSdr, true},
-		{ChannelType("rcvr"), false},
+		{ChannelTypeRcvr, true},
+		{ChannelType("clusrcv"), false},
 	} {
 		if got := ChannelTypeSupported(tc.in); got != tc.want {
 			t.Fatalf("ChannelTypeSupported(%q) = %v, want %v", tc.in, got, tc.want)

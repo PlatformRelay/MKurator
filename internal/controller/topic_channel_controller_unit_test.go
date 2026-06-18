@@ -356,6 +356,28 @@ func TestToMQChannelSpecTypedSslClientAuth(t *testing.T) {
 	}
 }
 
+func TestToMQChannelSpecTypedRcvrAttrs(t *testing.T) {
+	t.Parallel()
+	channel := &messagingv1alpha1.Channel{
+		Spec: messagingv1alpha1.ChannelSpec{
+			ChannelName:   "QM2.FROM.QM1",
+			Type:          messagingv1alpha1.ChannelTypeRcvr,
+			TransportType: messagingv1alpha1.ChannelTransportTypeTCP,
+			Description:   "inbound partner",
+		},
+	}
+	spec := toMQChannelSpec(channel)
+	if spec.Type != mqadmin.ChannelTypeRcvr {
+		t.Fatalf("type = %q", spec.Type)
+	}
+	if spec.Attributes["trptype"] != "tcp" {
+		t.Fatalf("trptype = %v", spec.Attributes)
+	}
+	if spec.Attributes["descr"] != "inbound partner" {
+		t.Fatalf("descr = %v", spec.Attributes)
+	}
+}
+
 func TestToMQChannelSpecTypedSdrConnectionAttrs(t *testing.T) {
 	t.Parallel()
 	channel := &messagingv1alpha1.Channel{

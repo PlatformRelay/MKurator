@@ -100,6 +100,47 @@ func TestChannelSdrDisplayParametersIncludeConnectionAttrs(t *testing.T) {
 	}
 }
 
+func TestChannelRcvrDisplayParametersOmitConnectionAttrs(t *testing.T) {
+	t.Parallel()
+	for _, k := range []string{attrDescr, attrTrptype, attrMaxMsgl, attrMcaUser, attrSslCiph} {
+		found := false
+		for _, p := range channelRcvrDisplayParameters {
+			if p == k {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("%q missing from channelRcvrDisplayParameters", k)
+		}
+	}
+	for _, k := range []string{attrConname, attrXmitq} {
+		for _, p := range channelRcvrDisplayParameters {
+			if p == k {
+				t.Fatalf("%q must not be in channelRcvrDisplayParameters", k)
+			}
+		}
+	}
+}
+
+func TestDefineChannelParametersRcvr(t *testing.T) {
+	t.Parallel()
+	params := defineChannelParameters(mqadmin.ChannelSpec{
+		Name: "QM2.FROM.QM1",
+		Type: mqadmin.ChannelTypeRcvr,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+			"descr":   "inbound",
+		},
+	})
+	if params["chltype"] != "rcvr" {
+		t.Fatalf("chltype = %v", params["chltype"])
+	}
+	if params["trptype"] != "tcp" {
+		t.Fatalf("trptype = %v", params["trptype"])
+	}
+}
+
 func TestDefineChannelParametersSdr(t *testing.T) {
 	t.Parallel()
 	params := defineChannelParameters(mqadmin.ChannelSpec{
@@ -127,8 +168,11 @@ func TestValidateChannelType(t *testing.T) {
 	if err := validateChannelType(mqadmin.ChannelTypeSdr); err != nil {
 		t.Fatalf("sdr: %v", err)
 	}
-	if err := validateChannelType(mqadmin.ChannelType("rcvr")); err == nil {
-		t.Fatal("expected error for rcvr")
+	if err := validateChannelType(mqadmin.ChannelTypeRcvr); err != nil {
+		t.Fatalf("rcvr: %v", err)
+	}
+	if err := validateChannelType(mqadmin.ChannelType("clusrcv")); err == nil {
+		t.Fatal("expected error for clusrcv")
 	}
 }
 
@@ -156,6 +200,9 @@ func TestDriftCheckKeyExports(t *testing.T) {
 	}
 	if len(ChannelDriftCheckKeys(mqadmin.ChannelTypeSdr)) == 0 {
 		t.Fatal("expected sdr channel drift keys")
+	}
+	if len(ChannelDriftCheckKeys(mqadmin.ChannelTypeRcvr)) == 0 {
+		t.Fatal("expected rcvr channel drift keys")
 	}
 }
 

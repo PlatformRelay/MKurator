@@ -28,17 +28,19 @@ func validateChannelTypeRequirements(
 	spec *messagingv1alpha1.ChannelSpec,
 	path *field.Path,
 ) field.ErrorList {
-	if mqadmin.NormalizeChannelType(mqadmin.ChannelType(spec.Type)) != mqadmin.ChannelTypeSdr {
-		return nil
-	}
+	chType := mqadmin.NormalizeChannelType(mqadmin.ChannelType(spec.Type))
 	var errs field.ErrorList
-	if spec.ConnName == "" && attrValue(spec.Attributes, "conname") == "" {
-		errs = append(errs, field.Required(path.Child("connName"),
-			"SDR channels require connName or attributes.conname"))
-	}
-	if spec.XmitQueue == "" && attrValue(spec.Attributes, "xmitq") == "" {
-		errs = append(errs, field.Required(path.Child("xmitQueue"),
-			"SDR channels require xmitQueue or attributes.xmitq"))
+	switch chType {
+	case mqadmin.ChannelTypeSdr:
+		if spec.ConnName == "" && attrValue(spec.Attributes, "conname") == "" {
+			errs = append(errs, field.Required(path.Child("connName"),
+				"SDR channels require connName or attributes.conname"))
+		}
+		if spec.XmitQueue == "" && attrValue(spec.Attributes, "xmitq") == "" {
+			errs = append(errs, field.Required(path.Child("xmitQueue"),
+				"SDR channels require xmitQueue or attributes.xmitq"))
+		}
+	default:
 	}
 	return errs
 }

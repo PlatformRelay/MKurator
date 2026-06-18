@@ -5,7 +5,7 @@ import (
 )
 
 // ChannelType is the IBM MQ channel object type to manage.
-// +kubebuilder:validation:Enum=svrconn;sdr
+// +kubebuilder:validation:Enum=svrconn;sdr;rcvr
 type ChannelType string
 
 const (
@@ -13,6 +13,8 @@ const (
 	ChannelTypeSvrconn ChannelType = "svrconn"
 	// ChannelTypeSdr is a sender message channel (outbound to a remote queue manager).
 	ChannelTypeSdr ChannelType = "sdr"
+	// ChannelTypeRcvr is a receiver message channel (inbound from a remote sender).
+	ChannelTypeRcvr ChannelType = "rcvr"
 )
 
 // ChannelTransportType is the channel transport protocol (MQSC TRPTYPE).
@@ -72,7 +74,7 @@ type ChannelSpec struct {
 	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('AMQ')",message="names with prefix AMQ are reserved for IBM MQ internal use"
 	ChannelName string `json:"channelName"`
 
-	// Type is the channel kind to define. svrconn and sdr are reconciled in v1alpha1.
+	// Type is the channel kind to define. svrconn, sdr, and rcvr are reconciled in v1alpha1.
 	// +kubebuilder:default=svrconn
 	// +optional
 	Type ChannelType `json:"type,omitempty"`
@@ -148,6 +150,7 @@ type ChannelSpec struct {
 
 	// ConnName is the remote connection name for sender channels (MQSC CONNAME), e.g.
 	// qm2.example.com(1414). Required for type sdr when not set via attributes.conname.
+	// Not valid on RCVR channels (IBM MQ rejects CONNAME on CHLTYPE(RCVR)).
 	// Mutually exclusive with attributes.conname; typed field takes precedence when folded
 	// into the attribute map for mqadmin.
 	// +kubebuilder:validation:MinLength=1
