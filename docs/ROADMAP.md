@@ -151,10 +151,11 @@ before access-control work.
 - [x] **Alias** and **remote** queue types (`QALIAS`, `QREMOTE`) with drift detection.
 - [x] TLS channel attrs (`sslciph`, `sslcauth`) drift-checked (shipped; see
   [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md)).
-- [ ] Queue attrs `defopts`, `bothresh`, `boqname`, `usage` remain DEFINE-only on
-  mqweb 9.4 (`MQWB0120E` on DISPLAY); drift deferred until probed.
-  **`share`** drift wired via runtime DISPLAY probe (Day 27 MQ-3;
+- [x] **`share`** drift wired via runtime DISPLAY probe (#62 MQ-3;
   [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md)).
+- [ ] Queue attrs `defopts`, `bothresh`, `boqname`, `usage` remain DEFINE-only on
+  mqweb 9.4 (`MQWB0120E` on DISPLAY); drift deferred until capability probe extends
+  beyond `share`.
 
 Exit criteria: at least **Topic** and one **Channel** kind reconcile end-to-end on
 kind with the same quality bar as Phase 2 (`verify`, ≥90% `internal/` coverage,
@@ -339,18 +340,31 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 
 ## Phase 8 — API maturation (v1beta1 readiness)
 
+### 8a — Typed attribute fields
+
 - [x] **Typed attribute fields + escape hatch** per
   [ADR-0021](adr/0021-attribute-api-shape.md): promote drift-checked keys to
   typed, CEL-validated spec fields; exclusivity rule; schema goldens.
   Queue/Topic/Channel drift keys complete (v0.9.3).
+
+### 8b — API stability statement
+
 - [x] Published **API stability statement**: [API_STABILITY.md](API_STABILITY.md) —
   what `v1alpha1` guarantees, what graduation to `v1beta1` requires (conversion
   webhook, deprecation policy).
-- [x] Optional: DISPLAY **capability probing** per
-  [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4 — **`share` wired**
-  into local-queue DISPLAY/drift via runtime probe + client cache (Day 27 MQ-3).
-  Extend to remaining `QueueLocalDefineOnlyCandidates` incrementally.
-  Spike + pilot: [DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
+
+### 8c — DISPLAY capability probing (optional, partial)
+
+Per [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4;
+[DISPLAY_CAPABILITY_PROBE.md](DISPLAY_CAPABILITY_PROBE.md).
+
+- [x] Spike: `ProbeQueueLocalAttributeDisplayable` + client cache (#58 MQ-1).
+- [x] **`share` wired** into local-queue DISPLAY/drift via runtime probe (#62 MQ-3).
+- [ ] Extend probe to remaining `QueueLocalDefineOnlyCandidates` (`defopts`,
+  `bothresh`, `boqname`, `usage`) incrementally.
+
+### 8d — `v1beta1` graduation
+
 - [ ] `v1beta1` graduation of all six kinds with conversion webhook once 8a/8b
   are stable for one minor release.
 
@@ -368,9 +382,13 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 - [x] AuthorityRecord channel/namelist profile parity with queue profiles (AUTH-9).
 - [x] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2) — #40 Docker integration, #41 kind e2e.
 - [x] `SDR` sender channel — `connName`/`xmitQueue` CRD fields, mqrest SET/DISPLAY/DELETE,
-  reconciler + drift, Docker integration (AUTH-8a), kind e2e (Day 31).
+  reconciler + drift, Docker integration (AUTH-8a #63), kind e2e (#66 Day 31).
 - [x] `RCVR` receiver channel — mqrest SET/DISPLAY/DELETE,
-  reconciler + drift, Docker integration (AUTH-8b), kind e2e (Day 31).
+  reconciler + drift, Docker integration (AUTH-8b #64), kind e2e (#66 Day 31).
+
+Exit criteria: CHLAUTH breadth (USERMAP/SSLPEERMAP/QMGRMAP/BLOCKADDR), SDR/RCVR
+channels, AUTHREC channel/namelist profile parity, and kind e2e for new surface —
+**met** (`v0.11.0`, #62–#66). Extended CHLAUTH rule types remain in Phase 5 backlog.
 
 ## Later / candidate work
 
