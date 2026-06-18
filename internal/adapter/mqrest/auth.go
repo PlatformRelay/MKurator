@@ -225,8 +225,9 @@ func buildDisplayAuthorityMQSC(spec mqadmin.AuthoritySpec) (string, error) {
 	if spec.Principal != "" && spec.Group != "" {
 		return "", &mqadmin.TerminalError{Reason: invalidSpecReason, Message: "specify principal or group, not both"}
 	}
+	objType := authorityObjectTypeMQSC(spec.ObjectType)
 	parts := []string{
-		fmt.Sprintf("DISPLAY AUTHREC PROFILE('%s') OBJTYPE(%s)", mqscQuote(spec.Profile), spec.ObjectType),
+		fmt.Sprintf("DISPLAY AUTHREC PROFILE('%s') OBJTYPE(%s)", mqscQuote(spec.Profile), objType),
 	}
 	if spec.Principal != "" {
 		parts = append(parts, fmt.Sprintf("PRINCIPAL('%s')", mqscQuote(spec.Principal)))
@@ -315,8 +316,9 @@ func buildSetAuthorityMQSC(spec mqadmin.AuthoritySpec, remove bool) (string, err
 		return "", &mqadmin.TerminalError{Reason: invalidSpecReason, Message: "specify principal or group, not both"}
 	}
 
+	objType := authorityObjectTypeMQSC(spec.ObjectType)
 	parts := []string{
-		fmt.Sprintf("SET AUTHREC PROFILE('%s') OBJTYPE(%s)", mqscQuote(spec.Profile), spec.ObjectType),
+		fmt.Sprintf("SET AUTHREC PROFILE('%s') OBJTYPE(%s)", mqscQuote(spec.Profile), objType),
 	}
 	if spec.Principal != "" {
 		parts = append(parts, fmt.Sprintf("PRINCIPAL('%s')", mqscQuote(spec.Principal)))
@@ -337,6 +339,14 @@ func buildSetAuthorityMQSC(spec mqadmin.AuthoritySpec, remove bool) (string, err
 
 func mqscQuote(s string) string {
 	return strings.ReplaceAll(s, "'", "''")
+}
+
+// authorityObjectTypeMQSC maps domain OBJTYPE values to MQSC spellings.
+func authorityObjectTypeMQSC(objectType mqadmin.AuthorityObjectType) string {
+	if objectType == mqadmin.AuthorityObjectTypeNList {
+		return "NAMELIST"
+	}
+	return string(objectType)
 }
 
 func channelAuthClientUserClause(spec mqadmin.ChannelAuthSpec) string {

@@ -214,7 +214,7 @@ func TestBuildSetAuthorityMQSCObjectTypes(t *testing.T) {
 		{"QMGR", mqadmin.AuthorityObjectTypeQMGR, "QMGR"},
 		{"NAMESPAC", mqadmin.AuthorityObjectTypeNamespace, "NAMESPAC"},
 		{"PROCESS", mqadmin.AuthorityObjectTypeProcess, "PROCESS"},
-		{"NLIST", mqadmin.AuthorityObjectTypeNList, "NLIST"},
+		{"NLIST", mqadmin.AuthorityObjectTypeNList, "NAMELIST"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -411,6 +411,36 @@ func TestBuildDisplayAuthorityMQSCTopicObject(t *testing.T) {
 	}
 	if !strings.Contains(cmd, "OBJTYPE(TOPIC)") {
 		t.Fatalf("cmd = %q", cmd)
+	}
+}
+
+func TestBuildDisplayAuthorityMQSCChannelObject(t *testing.T) {
+	cmd, err := buildDisplayAuthorityMQSC(mqadmin.AuthoritySpec{
+		Profile:    "ORDERS.APP",
+		ObjectType: mqadmin.AuthorityObjectTypeChannel,
+		Principal:  "app",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "DISPLAY AUTHREC PROFILE('ORDERS.APP') OBJTYPE(CHANNEL) PRINCIPAL('app')"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
+	}
+}
+
+func TestBuildDisplayAuthorityMQSCNListObject(t *testing.T) {
+	cmd, err := buildDisplayAuthorityMQSC(mqadmin.AuthoritySpec{
+		Profile:    "APP.NLIST",
+		ObjectType: mqadmin.AuthorityObjectTypeNList,
+		Principal:  "app",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "DISPLAY AUTHREC PROFILE('APP.NLIST') OBJTYPE(NAMELIST) PRINCIPAL('app')"
+	if cmd != want {
+		t.Fatalf("got %q, want %q", cmd, want)
 	}
 }
 

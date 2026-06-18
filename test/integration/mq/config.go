@@ -114,6 +114,10 @@ func channelNameForTest(tName string) string {
 	return fmt.Sprintf("KIT.C.%05d", testNameHash(tName)%100000)
 }
 
+func namelistNameForTest(tName string) string {
+	return fmt.Sprintf("KIT.NL.%05d", testNameHash(tName)%100000)
+}
+
 func testNameHash(tName string) uint32 {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(tName))

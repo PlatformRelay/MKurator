@@ -750,6 +750,157 @@ func TestIntegration_GetAuthority_Topic_NotFound(t *testing.T) {
 	}
 }
 
+func TestIntegration_GetAuthority_NList(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	profile := namelistNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authSpec := mqadmin.AuthoritySpec{
+		Profile:     profile,
+		ObjectType:  mqadmin.AuthorityObjectTypeNList,
+		Principal:   "app",
+		Authorities: []string{"CHG", "DSP"},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteAuthority(context.Background(), authSpec)
+		_ = deleteNamelist(context.Background(), c, profile)
+	})
+
+	if err := defineNamelist(ctx, c, profile); err != nil {
+		t.Fatalf("defineNamelist: %v", err)
+	}
+	if err := c.SetAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("SetAuthority: %v", err)
+	}
+
+	state, err := c.GetAuthority(ctx, authSpec)
+	if err != nil {
+		t.Fatalf("GetAuthority: %v", err)
+	}
+	if !authoritySetEqual(state.Authorities, []string{"CHG", "DSP"}) {
+		t.Fatalf("authorities = %v", state.Authorities)
+	}
+}
+
+func TestIntegration_GetAuthority_NList_NotFound(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = c.GetAuthority(ctx, mqadmin.AuthoritySpec{
+		Profile:    namelistNameForTest(t.Name() + ".missing"),
+		ObjectType: mqadmin.AuthorityObjectTypeNList,
+		Principal:  "nobody",
+	})
+	if err == nil || !errors.Is(err, mqadmin.ErrNotFound) {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestIntegration_DeleteAuthority_Channel(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	profile := channelNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	chSpec := mqadmin.ChannelSpec{
+		Name: profile,
+		Type: mqadmin.ChannelTypeSvrconn,
+		Attributes: map[string]string{
+			"trptype": "tcp",
+		},
+	}
+	authSpec := mqadmin.AuthoritySpec{
+		Profile:     profile,
+		ObjectType:  mqadmin.AuthorityObjectTypeChannel,
+		Principal:   "app",
+		Authorities: []string{"CHG", "DSP"},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteAuthority(context.Background(), authSpec)
+		_ = c.DeleteChannel(context.Background(), chSpec)
+	})
+
+	if err := c.DefineChannel(ctx, chSpec); err != nil {
+		t.Fatalf("DefineChannel: %v", err)
+	}
+	if err := c.SetAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("SetAuthority: %v", err)
+	}
+
+	if err := c.DeleteAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("DeleteAuthority: %v", err)
+	}
+
+	state, err := c.GetAuthority(ctx, authSpec)
+	if err != nil {
+		if errors.Is(err, mqadmin.ErrNotFound) {
+			return
+		}
+		t.Fatalf("GetAuthority: %v", err)
+	}
+	if !authorityRemoved(state.Authorities) {
+		t.Fatalf("expected authority removed after delete, got %v", state.Authorities)
+	}
+}
+
+func TestIntegration_DeleteAuthority_NList(t *testing.T) {
+	requireIntegration(t)
+	ctx := testContext(t)
+	profile := namelistNameForTest(t.Name())
+
+	c, err := newIntegrationClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authSpec := mqadmin.AuthoritySpec{
+		Profile:     profile,
+		ObjectType:  mqadmin.AuthorityObjectTypeNList,
+		Principal:   "app",
+		Authorities: []string{"CHG", "DSP"},
+	}
+	t.Cleanup(func() {
+		_ = c.DeleteAuthority(context.Background(), authSpec)
+		_ = deleteNamelist(context.Background(), c, profile)
+	})
+
+	if err := defineNamelist(ctx, c, profile); err != nil {
+		t.Fatalf("defineNamelist: %v", err)
+	}
+	if err := c.SetAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("SetAuthority: %v", err)
+	}
+
+	if err := c.DeleteAuthority(ctx, authSpec); err != nil {
+		t.Fatalf("DeleteAuthority: %v", err)
+	}
+
+	state, err := c.GetAuthority(ctx, authSpec)
+	if err != nil {
+		if errors.Is(err, mqadmin.ErrNotFound) {
+			return
+		}
+		t.Fatalf("GetAuthority: %v", err)
+	}
+	if !authorityRemoved(state.Authorities) {
+		t.Fatalf("expected authority removed after delete, got %v", state.Authorities)
+	}
+}
+
 func TestIntegration_DeleteChannelAuth(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
@@ -1023,6 +1174,24 @@ func TestIntegration_DeleteAuthority_Idempotent(t *testing.T) {
 	if err := c.DeleteAuthority(ctx, authSpec); err != nil {
 		t.Fatalf("DeleteAuthority second on missing record: %v", err)
 	}
+}
+
+func defineNamelist(ctx context.Context, c interface {
+	RunMQSC(context.Context, string) error
+}, name string) error {
+	cmd := fmt.Sprintf("DEFINE NAMELIST('%s') REPLACE", mqscQuoteIntegration(name))
+	return c.RunMQSC(ctx, cmd)
+}
+
+func deleteNamelist(ctx context.Context, c interface {
+	RunMQSC(context.Context, string) error
+}, name string) error {
+	cmd := fmt.Sprintf("DELETE NAMELIST('%s')", mqscQuoteIntegration(name))
+	return c.RunMQSC(ctx, cmd)
+}
+
+func mqscQuoteIntegration(s string) string {
+	return strings.ReplaceAll(s, "'", "''")
 }
 
 func authorityRemoved(authorities []string) bool {

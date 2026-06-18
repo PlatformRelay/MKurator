@@ -297,18 +297,47 @@ func TestAuthorityRecordWebhookValidateCreate(t *testing.T) {
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sampleWebhookConn("ns")).Build()
 	v := &authorityRecordCustomValidator{Client: cl}
 
-	auth := &messagingv1alpha1.AuthorityRecord{
-		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
-			Principal:     "app",
-			Authorities:   []string{"GET", "PUT"},
+	cases := []struct {
+		name        string
+		objectType  messagingv1alpha1.AuthorityObjectType
+		profile     string
+		authorities []string
+	}{
+		{
+			name:        "queue profile",
+			objectType:  messagingv1alpha1.AuthorityObjectTypeQueue,
+			profile:     "APP.ORDERS",
+			authorities: []string{"GET", "PUT"},
+		},
+		{
+			name:        "channel profile",
+			objectType:  messagingv1alpha1.AuthorityObjectTypeChannel,
+			profile:     "ORDERS.APP",
+			authorities: []string{"CHG", "DSP"},
+		},
+		{
+			name:        "namelist profile",
+			objectType:  messagingv1alpha1.AuthorityObjectTypeNList,
+			profile:     "APP.NLIST",
+			authorities: []string{"CHG", "DSP"},
 		},
 	}
-	if _, err := v.ValidateCreate(context.Background(), auth); err != nil {
-		t.Fatalf("ValidateCreate: %v", err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			auth := &messagingv1alpha1.AuthorityRecord{
+				ObjectMeta: metav1.ObjectMeta{Name: "auth-" + tc.name, Namespace: "ns"},
+				Spec: messagingv1alpha1.AuthorityRecordSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					Profile:       tc.profile,
+					ObjectType:    tc.objectType,
+					Principal:     "app",
+					Authorities:   tc.authorities,
+				},
+			}
+			if _, err := v.ValidateCreate(context.Background(), auth); err != nil {
+				t.Fatalf("ValidateCreate: %v", err)
+			}
+		})
 	}
 }
 
