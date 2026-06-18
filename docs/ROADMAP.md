@@ -365,8 +365,14 @@ Per [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4;
 
 ### 8d — `v1beta1` graduation
 
-- [ ] `v1beta1` graduation of all six kinds with conversion webhook once 8a/8b
-  are stable for one minor release.
+Per [ADR-0026](adr/0026-v1beta1-graduation-plan.md); bake criterion met (`v0.11.x`).
+
+- [x] **8d-0** graduation plan ADR — conversion scope, hub-spoke storage, deprecation
+  policy (docs only; no webhook code).
+- [ ] **8d-1..8d-6** `v1beta1` types, conversion webhook, tests, samples, UPGRADE.md,
+  e2e migration proof.
+- [ ] `v1beta1` graduation of all six kinds with conversion webhook (exit when
+  8d-1..8d-6 complete; target minor e.g. `v0.12.0`).
 
 ## Phase 9 — MQ surface depth (resequenced from Phase 5)
 
