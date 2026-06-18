@@ -9,6 +9,16 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.11.1](https://github.com/conduit-ops/MKurator/compare/v0.11.0..v0.11.1) - 2026-06-18
+
+### Features
+
+- **mqrest:** Probe all QLOCAL define-only candidates (#69) ([#69](https://github.com/conduit-ops/MKurator/pull/69), )[a26127d](https://github.com/conduit-ops/MKurator/commit/a26127d86d6a8a8b022536f197ad8b60d038758a)
+
+### Documentation
+
+- **install:** Bump version pins to v0.11.0 (Day 33 DOC-5) (#68) ([#68](https://github.com/conduit-ops/MKurator/pull/68), )[0287e41](https://github.com/conduit-ops/MKurator/commit/0287e41)
+
 ## [0.11.0](https://github.com/conduit-ops/MKurator/compare/v0.10.0..v0.11.0) - 2026-06-18
 
 ### Features
