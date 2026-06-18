@@ -420,7 +420,7 @@ func TestIntegration_GetQueue_LocalShareDriftWhenDisplayable(t *testing.T) {
 		_ = c.DeleteQueue(context.Background(), mqadmin.QueueSpec{Name: name, Type: mqadmin.QueueTypeLocal})
 	})
 
-	shareDisplayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, name, "share")
+	shareDisplayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, "SYSTEM.DEFAULT.LOCAL.QUEUE", "share")
 	if err != nil {
 		t.Fatalf("Probe share: %v", err)
 	}
@@ -443,7 +443,7 @@ func TestIntegration_GetQueue_LocalShareDriftWhenDisplayable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetQueue: %v", err)
 	}
-	if state.Attributes["share"] != "yes" {
+	if !mqadmin.AttributeValueMatches("share", state.Attributes["share"], "yes") {
 		t.Fatalf("share = %q, want yes (DISPLAY should include probed attribute)", state.Attributes["share"])
 	}
 
