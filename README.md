@@ -26,10 +26,10 @@ more later.
 **Full documentation:** [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/) — install
 guides, examples, ADRs, and engineering standards.
 
-> Status: **Phase 5 (auth) shipped on `main`** — `ChannelAuthRule` and
-> `AuthorityRecord` reconcile via mqweb MQSC, with Docker integration and kind e2e
-> coverage. Latest release: **`v0.7.0`**. Remaining Phase 5 items (extended
-> CHLAUTH rule types) are in the
+> Status: **Phase 9 breadth shipped on `main`** — SDR/RCVR channels, AUTHREC
+> channel/namelist profiles, DISPLAY capability probing for local queues, with
+> Docker integration and kind e2e coverage. Latest release: **`v0.11.0`**. Extended
+> CHLAUTH rule types remain in the
 > [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
 
 ## What ships in v1alpha1 (today)
