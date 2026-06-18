@@ -409,6 +409,22 @@ var _ = Describe("CEL validation parity", func() {
 		Expect(err.Error()).To(ContainSubstring("connName"))
 	})
 
+	It("rejects SDR Channel without xmitQueue or attributes.xmitq", func() {
+		ctx := context.Background()
+		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "cel-channel-sdr-xmitq", Namespace: ns},
+			Spec: messagingv1alpha1.ChannelSpec{
+				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				ChannelName:   "QM1.TO.QM2",
+				Type:          messagingv1alpha1.ChannelTypeSdr,
+				ConnName:      "qm2.example.com(1414)",
+			},
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("xmitQueue"))
+	})
+
 	It("rejects Channel with both connName and attributes.conname", func() {
 		ctx := context.Background()
 		err := webhookK8sClient.Create(ctx, &messagingv1alpha1.Channel{

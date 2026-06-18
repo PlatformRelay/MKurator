@@ -131,6 +131,119 @@ var _ = Describe("ChannelReconciler", func() {
 			To(Equal(metav1.ConditionTrue))
 	})
 
+	It("defines an SDR channel when the connection is Ready", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		channel := sampleSdrChannel(ns, "qm1-to-qm2", "qm1", "QM1.TO.QM2")
+		Expect(k8sClient.Create(ctx, channel)).To(Succeed())
+
+		desired := mqadmin.ChannelSpec{
+			Name: "QM1.TO.QM2",
+			Type: mqadmin.ChannelTypeSdr,
+			Attributes: map[string]string{
+				"trptype": "tcp",
+				"conname": "qm2.example.com(1414)",
+				"xmitq":   "SYSTEM.DEFAULT.XMIT.QUEUE",
+			},
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().GetChannel(mock.Anything, desired).Return(nil, &mqadmin.NotFoundError{Object: "QM1.TO.QM2"})
+		mockAdmin.EXPECT().DefineChannel(mock.Anything, desired).Return(nil)
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &ChannelReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: "qm1-to-qm2"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		result, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: "qm1-to-qm2"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		expectDriftResyncRequeue(result)
+
+		updated := &messagingv1alpha1.Channel{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "qm1-to-qm2"}, updated)).To(Succeed())
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+			To(Equal(metav1.ConditionTrue))
+	})
+
+	It("defines an RCVR channel when the connection is Ready", func() {
+		conn := readyConnection(ns, "qm1")
+		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
+		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		}
+		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
+
+		channel := sampleRcvrChannel(ns, "qm2-from-qm1", "qm1", "QM2.FROM.QM1")
+		Expect(k8sClient.Create(ctx, channel)).To(Succeed())
+
+		desired := mqadmin.ChannelSpec{
+			Name: "QM2.FROM.QM1",
+			Type: mqadmin.ChannelTypeRcvr,
+			Attributes: map[string]string{
+				"trptype": "tcp",
+				"descr":   "inbound partner",
+			},
+		}
+
+		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
+		mockAdmin.EXPECT().
+			GetChannel(mock.Anything, desired).
+			Return(nil, &mqadmin.NotFoundError{Object: "QM2.FROM.QM1"})
+		mockAdmin.EXPECT().DefineChannel(mock.Anything, desired).Return(nil)
+
+		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
+		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+		rec := &ChannelReconciler{
+			Client:    k8sClient,
+			Scheme:    k8sClient.Scheme(),
+			MQFactory: mockFactory,
+		}
+
+		_, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: "qm2-from-qm1"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		result, err := rec.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{Namespace: ns, Name: "qm2-from-qm1"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		expectDriftResyncRequeue(result)
+
+		updated := &messagingv1alpha1.Channel{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "qm2-from-qm1"}, updated)).To(Succeed())
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+			To(Equal(metav1.ConditionTrue))
+	})
+
 	It("emits a warning event when define channel fails terminally", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
@@ -318,6 +431,37 @@ func sampleChannel(ns, name, connName, channelName string) *messagingv1alpha1.Ch
 			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
 			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Attributes: map[string]string{
+				"trptype": "tcp",
+			},
+		},
+	}
+}
+
+func sampleSdrChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
+	return &messagingv1alpha1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: messagingv1alpha1.ChannelSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+			ChannelName:   channelName,
+			Type:          messagingv1alpha1.ChannelTypeSdr,
+			ConnName:      "qm2.example.com(1414)",
+			XmitQueue:     "SYSTEM.DEFAULT.XMIT.QUEUE",
+			Attributes: map[string]string{
+				"trptype": "tcp",
+			},
+		},
+	}
+}
+
+func sampleRcvrChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
+	return &messagingv1alpha1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: messagingv1alpha1.ChannelSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+			ChannelName:   channelName,
+			Type:          messagingv1alpha1.ChannelTypeRcvr,
+			Description:   "inbound partner",
 			Attributes: map[string]string{
 				"trptype": "tcp",
 			},

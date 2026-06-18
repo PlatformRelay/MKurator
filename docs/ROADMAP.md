@@ -368,9 +368,9 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 - [x] AuthorityRecord channel/namelist profile parity with queue profiles (AUTH-9).
 - [x] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2) — #40 Docker integration, #41 kind e2e.
 - [x] `SDR` sender channel — `connName`/`xmitQueue` CRD fields, mqrest SET/DISPLAY/DELETE,
-  reconciler + drift, Docker integration (AUTH-8a).
+  reconciler + drift, Docker integration (AUTH-8a), kind e2e (Day 31).
 - [x] `RCVR` receiver channel — mqrest SET/DISPLAY/DELETE,
-  reconciler + drift, Docker integration (AUTH-8b).
+  reconciler + drift, Docker integration (AUTH-8b), kind e2e (Day 31).
 
 ## Later / candidate work
 
