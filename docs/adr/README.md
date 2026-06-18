@@ -51,3 +51,4 @@ supersedes the old one rather than editing history.
 | [0023](0023-connection-client-cache-lifecycle.md) | Connection client cache lifecycle and Secret handling | Accepted |
 | [0024](0024-mqsc-command-construction-hygiene.md) | MQSC command construction hygiene (structured-first) | Accepted |
 | [0025](0025-cel-first-admission-validation.md) | CEL-first admission validation; webhooks for stateful checks | Accepted |
+| [0026](0026-v1beta1-graduation-plan.md) | `v1beta1` graduation plan — conversion scope and deprecation policy | Accepted |
