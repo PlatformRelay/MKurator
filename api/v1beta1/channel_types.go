@@ -1,4 +1,4 @@
-package v1alpha1
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +74,7 @@ type ChannelSpec struct {
 	// +kubebuilder:validation:XValidation:rule="!self.upperAscii().startsWith('AMQ')",message="names with prefix AMQ are reserved for IBM MQ internal use"
 	ChannelName string `json:"channelName"`
 
-	// Type is the channel kind to define. svrconn, sdr, and rcvr are reconciled in v1alpha1.
+	// Type is the channel kind to define. svrconn, sdr, and rcvr are reconciled in v1beta1.
 	// +kubebuilder:default=svrconn
 	// +optional
 	Type ChannelType `json:"type,omitempty"`
@@ -197,7 +197,6 @@ type ChannelStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=chl
 // +kubebuilder:printcolumn:name="Synced",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Synced")].reason`

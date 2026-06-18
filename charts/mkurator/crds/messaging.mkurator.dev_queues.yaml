@@ -337,3 +337,324 @@ spec:
     storage: true
     subresources:
       status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Synced")].status
+      name: Synced
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Synced")].reason
+      name: Reason
+      type: string
+    - jsonPath: .spec.queueName
+      name: Queue
+      type: string
+    - jsonPath: .status.desiredMQSC
+      name: Desired MQSC
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Queue maintains an IBM MQ queue on a referenced queue manager.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: QueueSpec defines a queue to maintain on a referenced queue
+              manager.
+            properties:
+              adoptionPolicy:
+                default: Adopt
+                description: AdoptionPolicy controls behaviour when the MQ object
+                  already exists on first reconcile.
+                enum:
+                - Adopt
+                - AdoptIfMatching
+                - FailIfExists
+                type: string
+              attributes:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
+                  Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
+                type: object
+              connectionRef:
+                description: ConnectionRef names a QueueManagerConnection in the same
+                  namespace.
+                properties:
+                  name:
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
+              defPersistence:
+                description: |-
+                  DefPersistence is the default message persistence for new messages (MQSC DEFPSIST).
+                  Mutually exclusive with attributes.defpsist; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                enum:
+                - "yes"
+                - "no"
+                type: string
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy controls MQ cleanup when the CR is deleted.
+                enum:
+                - Delete
+                - Orphan
+                type: string
+              description:
+                description: |-
+                  Description is the queue description (MQSC DESCR).
+                  Mutually exclusive with attributes.descr; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                type: string
+              get:
+                description: |-
+                  Get controls whether applications may retrieve messages from the queue (MQSC GET).
+                  Mutually exclusive with attributes.get; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                enum:
+                - enabled
+                - disabled
+                type: string
+              maxDepth:
+                description: |-
+                  MaxDepth is the maximum number of messages the queue can hold (MQSC MAXDEPTH).
+                  Mutually exclusive with attributes.maxdepth; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                format: int32
+                maximum: 999999999
+                minimum: 1
+                type: integer
+              put:
+                description: |-
+                  Put controls whether applications may put messages on the queue (MQSC PUT).
+                  Mutually exclusive with attributes.put; typed field takes precedence when folded
+                  into the attribute map for mqadmin.
+                enum:
+                - enabled
+                - disabled
+                type: string
+              queueName:
+                description: QueueName is the IBM MQ object name.
+                maxLength: 48
+                minLength: 1
+                pattern: ^[A-Z0-9./%&$#@]+$
+                type: string
+                x-kubernetes-validations:
+                - message: name must not have leading or trailing whitespace
+                  rule: self == self.trim()
+                - message: name must not start or end with '.'
+                  rule: '!self.startsWith(''.'') && !self.endsWith(''.'')'
+                - message: names with prefix SYSTEM. are reserved for queue manager
+                    objects
+                  rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
+                - message: names with prefix AMQ are reserved for IBM MQ internal
+                    use
+                  rule: '!self.upperAscii().startsWith(''AMQ'')'
+              remoteQueueManager:
+                description: |-
+                  RemoteQueueManager is the name of the remote queue manager (MQSC RQMNAME).
+                  Required for type remote when not set via attributes.rqmname (or attributes.remotemanager).
+                  Mutually exclusive with attributes.rqmname and attributes.remotemanager; typed field takes
+                  precedence when folded into the attribute map for mqadmin.
+                maxLength: 48
+                minLength: 1
+                pattern: ^[A-Z0-9./%&$#@]+$
+                type: string
+              suspend:
+                description: Suspend pauses MQ reconciliation for this object. Status
+                  shows Synced=False ReasonSuspended.
+                type: boolean
+              targetQueue:
+                description: |-
+                  TargetQueue is the local or remote queue name an alias resolves to (MQSC TARGQ).
+                  Required for type alias when not set via attributes.targq (or attributes.target).
+                  Mutually exclusive with attributes.targq and attributes.target; typed field takes
+                  precedence when folded into the attribute map for mqadmin.
+                maxLength: 48
+                minLength: 1
+                pattern: ^[A-Z0-9./%&$#@]+$
+                type: string
+              type:
+                default: local
+                description: 'Type is the queue kind to define: local (QLOCAL), alias
+                  (QALIAS), or remote (QREMOTE).'
+                enum:
+                - local
+                - alias
+                - remote
+                type: string
+              xmitQueue:
+                description: |-
+                  XmitQueue is the transmission queue used to reach the remote queue manager (MQSC XMITQ).
+                  Required for type remote when not set via attributes.xmitq (or attributes.transmissionqueue).
+                  Mutually exclusive with attributes.xmitq and attributes.transmissionqueue; typed field takes
+                  precedence when folded into the attribute map for mqadmin.
+                maxLength: 48
+                minLength: 1
+                pattern: ^[A-Z0-9./%&$#@]+$
+                type: string
+            required:
+            - connectionRef
+            - queueName
+            type: object
+            x-kubernetes-validations:
+            - message: alias queues require targetQueue or attribute targq (or target)
+              rule: self.type != 'alias' || (has(self.targetQueue) && size(self.targetQueue)
+                > 0) || (has(self.attributes) && (('targq' in self.attributes && size(self.attributes['targq'])
+                > 0) || ('target' in self.attributes && size(self.attributes['target'])
+                > 0)))
+            - message: remote queues require xmitQueue or attribute xmitq (or transmissionqueue)
+              rule: self.type != 'remote' || (has(self.xmitQueue) && size(self.xmitQueue)
+                > 0) || (has(self.attributes) && (('xmitq' in self.attributes && size(self.attributes['xmitq'])
+                > 0) || ('transmissionqueue' in self.attributes && size(self.attributes['transmissionqueue'])
+                > 0)))
+            - message: remote queues require remoteQueueManager or attribute rqmname
+                (or remotemanager)
+              rule: self.type != 'remote' || (has(self.remoteQueueManager) && size(self.remoteQueueManager)
+                > 0) || (has(self.attributes) && (('rqmname' in self.attributes &&
+                size(self.attributes['rqmname']) > 0) || ('remotemanager' in self.attributes
+                && size(self.attributes['remotemanager']) > 0)))
+            - message: maxDepth field and attributes.maxdepth are mutually exclusive
+              rule: '!has(self.maxDepth) || !has(self.attributes) || !self.attributes.exists(k,
+                k.lowerAscii() == ''maxdepth'')'
+            - message: description field and attributes.descr are mutually exclusive
+              rule: '!has(self.description) || self.description.size() == 0 || !has(self.attributes)
+                || !self.attributes.exists(k, k.lowerAscii() == ''descr'')'
+            - message: defPersistence field and attributes.defpsist are mutually exclusive
+              rule: '!has(self.defPersistence) || !has(self.attributes) || !self.attributes.exists(k,
+                k.lowerAscii() == ''defpsist'')'
+            - message: get field and attributes.get are mutually exclusive
+              rule: '!has(self.get) || !has(self.attributes) || !self.attributes.exists(k,
+                k.lowerAscii() == ''get'')'
+            - message: put field and attributes.put are mutually exclusive
+              rule: '!has(self.put) || !has(self.attributes) || !self.attributes.exists(k,
+                k.lowerAscii() == ''put'')'
+            - message: targetQueue field and attributes.targq (or target) are mutually
+                exclusive
+              rule: '!has(self.targetQueue) || self.targetQueue.size() == 0 || !has(self.attributes)
+                || !self.attributes.exists(k, k.lowerAscii() == ''targq'' || k.lowerAscii()
+                == ''target'')'
+            - message: xmitQueue field and attributes.xmitq (or transmissionqueue)
+                are mutually exclusive
+              rule: '!has(self.xmitQueue) || self.xmitQueue.size() == 0 || !has(self.attributes)
+                || !self.attributes.exists(k, k.lowerAscii() == ''xmitq'' || k.lowerAscii()
+                == ''transmissionqueue'')'
+            - message: remoteQueueManager field and attributes.rqmname (or remotemanager)
+                are mutually exclusive
+              rule: '!has(self.remoteQueueManager) || self.remoteQueueManager.size()
+                == 0 || !has(self.attributes) || !self.attributes.exists(k, k.lowerAscii()
+                == ''rqmname'' || k.lowerAscii() == ''remotemanager'')'
+          status:
+            description: QueueStatus defines the observed state of Queue.
+            properties:
+              conditions:
+                description: Conditions represent the current state of the queue.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              desiredMQSC:
+                description: |-
+                  DesiredMQSC is a debug/GitOps aid: the DEFINE QLOCAL|QALIAS|QREMOTE REPLACE
+                  line equivalent to what the operator applies via mqweb. Not authoritative;
+                  do not use this field to drive cluster apply or drift detection.
+                type: string
+              lastSyncTime:
+                description: LastSyncTime is set when the object last reconciled successfully.
+                format: date-time
+                type: string
+              message:
+                description: Message is a short, user-facing summary of reconcile
+                  state (especially when Synced=False).
+                type: string
+              mqObjectExists:
+                description: MQObjectExists is true when the IBM MQ object was last
+                  observed on the queue manager.
+                type: boolean
+              observedGeneration:
+                description: ObservedGeneration reflects the generation last successfully
+                  synced.
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}

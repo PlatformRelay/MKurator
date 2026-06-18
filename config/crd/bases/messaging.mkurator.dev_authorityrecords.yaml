@@ -240,3 +240,227 @@ spec:
     storage: true
     subresources:
       status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Synced")].status
+      name: Synced
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Synced")].reason
+      name: Reason
+      type: string
+    - jsonPath: .spec.profile
+      name: Profile
+      type: string
+    - jsonPath: .status.desiredMQSC
+      name: Desired MQSC
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: AuthorityRecord maintains IBM MQ OAM authority on a referenced
+          queue manager.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AuthorityRecordSpec defines a SET AUTHREC rule on a referenced
+              queue manager.
+            properties:
+              adoptionPolicy:
+                default: Adopt
+                description: AdoptionPolicy controls behaviour when the MQ object
+                  already exists on first reconcile.
+                enum:
+                - Adopt
+                - AdoptIfMatching
+                - FailIfExists
+                type: string
+              authorities:
+                description: Authorities maps to AUTHADD(...) — e.g. GET, PUT, CONNECT.
+                items:
+                  pattern: ^[A-Za-z0-9+_]+$
+                  type: string
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              connectionRef:
+                description: ConnectionRef names a QueueManagerConnection in the same
+                  namespace.
+                properties:
+                  name:
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy controls MQ cleanup when the CR is deleted.
+                enum:
+                - Delete
+                - Orphan
+                type: string
+              group:
+                description: Group maps to GROUP('…'). Mutually exclusive with Principal.
+                type: string
+              objectType:
+                description: ObjectType maps to OBJTYPE(...).
+                enum:
+                - QUEUE
+                - CHANNEL
+                - TOPIC
+                - QMGR
+                - NAMESPAC
+                - PROCESS
+                - NLIST
+                type: string
+              principal:
+                description: Principal maps to PRINCIPAL('…'). Mutually exclusive
+                  with Group.
+                type: string
+              profile:
+                description: Profile maps to PROFILE('…') — queue, channel, or other
+                  object name.
+                maxLength: 48
+                minLength: 1
+                pattern: ^[A-Z0-9./%&$#@]+$
+                type: string
+                x-kubernetes-validations:
+                - message: name must not have leading or trailing whitespace
+                  rule: self == self.trim()
+                - message: name must not start or end with '.'
+                  rule: '!self.startsWith(''.'') && !self.endsWith(''.'')'
+                - message: names with prefix SYSTEM. are reserved for queue manager
+                    objects
+                  rule: '!self.upperAscii().startsWith(''SYSTEM.'')'
+                - message: names with prefix AMQ are reserved for IBM MQ internal
+                    use
+                  rule: '!self.upperAscii().startsWith(''AMQ'')'
+              suspend:
+                description: Suspend pauses MQ reconciliation for this object. Status
+                  shows Synced=False ReasonSuspended.
+                type: boolean
+            required:
+            - authorities
+            - connectionRef
+            - objectType
+            - profile
+            type: object
+            x-kubernetes-validations:
+            - message: principal or group is required
+              rule: (has(self.principal) && size(self.principal) > 0) || (has(self.group)
+                && size(self.group) > 0)
+            - message: specify principal or group, not both
+              rule: '!(has(self.principal) && size(self.principal) > 0 && has(self.group)
+                && size(self.group) > 0)'
+          status:
+            description: AuthorityRecordStatus defines the observed state of AuthorityRecord.
+            properties:
+              conditions:
+                description: Conditions represent the current state of the authority
+                  record.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              desiredMQSC:
+                description: |-
+                  DesiredMQSC is a debug/GitOps aid: the SET AUTHREC AUTHADD(...) line equivalent
+                  to what the operator applies via mqweb. Not authoritative; do not use this
+                  field to drive cluster apply or drift detection.
+                type: string
+              lastSyncTime:
+                description: LastSyncTime is set when the object last reconciled successfully.
+                format: date-time
+                type: string
+              message:
+                description: Message is a short, user-facing summary of reconcile
+                  state (especially when Synced=False).
+                type: string
+              mqObjectExists:
+                description: MQObjectExists is true when the IBM MQ object was last
+                  observed on the queue manager.
+                type: boolean
+              observedGeneration:
+                description: ObservedGeneration reflects the generation last successfully
+                  synced.
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
