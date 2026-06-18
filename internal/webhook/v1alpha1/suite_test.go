@@ -651,6 +651,36 @@ var _ = Describe("Validating admission webhooks", func() {
 			Expect(warningClient.Create(ctx, ch)).To(Succeed())
 			expectUnknownAttributeWarning(capture, "unknownattr")
 		})
+
+		It("allows SDR Channel create when connName and xmitQueue are set", func() {
+			ctx := context.Background()
+			ch := &messagingv1alpha1.Channel{
+				ObjectMeta: metav1.ObjectMeta{Name: "sdr-channel", Namespace: ns},
+				Spec: messagingv1alpha1.ChannelSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "QM1.TO.QM2",
+					Type:          messagingv1alpha1.ChannelTypeSdr,
+					ConnName:      "qm2.example.com(1414)",
+					XmitQueue:     "SYSTEM.DEFAULT.XMIT.QUEUE",
+					Attributes:    map[string]string{"trptype": "tcp"},
+				},
+			}
+			Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+		})
+
+		It("allows RCVR Channel create without connName or xmitQueue", func() {
+			ctx := context.Background()
+			ch := &messagingv1alpha1.Channel{
+				ObjectMeta: metav1.ObjectMeta{Name: "rcvr-channel", Namespace: ns},
+				Spec: messagingv1alpha1.ChannelSpec{
+					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+					ChannelName:   "QM2.FROM.QM1",
+					Type:          messagingv1alpha1.ChannelTypeRcvr,
+					Attributes:    map[string]string{"trptype": "tcp"},
+				},
+			}
+			Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
+		})
 	})
 })
 

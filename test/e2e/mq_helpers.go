@@ -167,7 +167,19 @@ func topicExists(ctx context.Context, client *mqrest.Client, name string) (bool,
 }
 
 func svrconnChannelExists(ctx context.Context, client *mqrest.Client, name string) (bool, error) {
-	_, err := client.GetChannel(ctx, mqadmin.ChannelSpec{Name: name, Type: mqadmin.ChannelTypeSvrconn})
+	return channelExistsByType(ctx, client, name, mqadmin.ChannelTypeSvrconn)
+}
+
+func sdrChannelExists(ctx context.Context, client *mqrest.Client, name string) (bool, error) {
+	return channelExistsByType(ctx, client, name, mqadmin.ChannelTypeSdr)
+}
+
+func rcvrChannelExists(ctx context.Context, client *mqrest.Client, name string) (bool, error) {
+	return channelExistsByType(ctx, client, name, mqadmin.ChannelTypeRcvr)
+}
+
+func channelExistsByType(ctx context.Context, client *mqrest.Client, name string, chType mqadmin.ChannelType) (bool, error) {
+	_, err := client.GetChannel(ctx, mqadmin.ChannelSpec{Name: name, Type: chType})
 	if err == nil {
 		return true, nil
 	}

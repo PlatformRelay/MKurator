@@ -258,28 +258,35 @@ spec:
 
 	Describe("channels", Label("mq-channel"), func() {
 		var (
-			ns            string
-			prefix        string
-			channelObject string
-			channelCR     string
+			ns     string
+			prefix string
 		)
 
 		BeforeEach(func() {
 			ns = namespaceChannels
 			ensureE2ENamespace(ns)
 			prefix = mqObjectPrefix()
-			channelObject = mqChannelObjectName(prefix)
-			channelCR = mqCRName("e2e-orders-app", prefix)
 			ensureMQCredentialsSecret(ns)
-			DeferCleanup(func() {
-				cleanupMQSpec(ns, "channel", channelCR)
-			})
 		})
 
-		It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
-			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
-			eventuallyExpectQMCReady(ns)
-			channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		Context("SVRCONN", func() {
+			var (
+				channelObject string
+				channelCR     string
+			)
+
+			BeforeEach(func() {
+				channelObject = mqChannelObjectName(prefix)
+				channelCR = mqCRName("e2e-orders-app", prefix)
+				DeferCleanup(func() {
+					cleanupMQSpec(ns, "channel", channelCR)
+				})
+			})
+
+			It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
+				Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
+				eventuallyExpectQMCReady(ns)
+				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Channel
 metadata:
   name: %s
@@ -293,31 +300,159 @@ spec:
     descr: e2e app channel
     trptype: tcp
 `, channelCR, ns, mqConnectionName, channelObject)
-			Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
+				Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
 
-			Eventually(func(g Gomega) {
-				out, err := runKubectl("get", "channel", channelCR, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+				Eventually(func(g Gomega) {
+					out, err := runKubectl("get", "channel", channelCR, "-n", ns,
+						"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(Equal("True"))
+				}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-			client, err := newMQClient()
-			Expect(err).NotTo(HaveOccurred())
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
+				client, err := newMQClient()
+				Expect(err).NotTo(HaveOccurred())
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cancel()
 
-			ok, err := svrconnChannelExists(ctx, client, channelObject)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ok).To(BeTrue())
-
-			Expect(kubectlDeleteNoWait("channel", channelCR, ns)).To(Succeed())
-
-			Eventually(func(g Gomega) {
 				ok, err := svrconnChannelExists(ctx, client, channelObject)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(ok).To(BeFalse(), "channel %s should be removed from MQ after CR delete", channelObject)
-			}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ok).To(BeTrue())
+
+				Expect(kubectlDeleteNoWait("channel", channelCR, ns)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					ok, err := svrconnChannelExists(ctx, client, channelObject)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(ok).To(BeFalse(), "channel %s should be removed from MQ after CR delete", channelObject)
+				}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+			})
+		})
+
+		Context("SDR", func() {
+			var (
+				channelObject string
+				channelCR     string
+			)
+
+			BeforeEach(func() {
+				channelObject = mqSdrChannelObjectName(prefix)
+				channelCR = mqCRName("e2e-sender", prefix)
+				DeferCleanup(func() {
+					cleanupMQSpec(ns, "channel", channelCR)
+				})
+			})
+
+			It("reconciles an SDR Channel CR against the kind IBM MQ queue manager", func() {
+				Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
+				eventuallyExpectQMCReady(ns)
+				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  type: sdr
+  connName: 127.0.0.1(1414)
+  xmitQueue: SYSTEM.DEFAULT.XMIT.QUEUE
+  attributes:
+    descr: e2e sender channel
+    trptype: tcp
+`, channelCR, ns, mqConnectionName, channelObject)
+				Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					out, err := runKubectl("get", "channel", channelCR, "-n", ns,
+						"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(Equal("True"))
+				}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+
+				client, err := newMQClient()
+				Expect(err).NotTo(HaveOccurred())
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cancel()
+
+				state, err := client.GetChannel(ctx, mqadmin.ChannelSpec{
+					Name: channelObject,
+					Type: mqadmin.ChannelTypeSdr,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(state.Attributes["xmitq"]).To(Equal("SYSTEM.DEFAULT.XMIT.QUEUE"))
+				Expect(state.Attributes["conname"]).NotTo(BeEmpty())
+
+				Expect(kubectlDeleteNoWait("channel", channelCR, ns)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					ok, err := sdrChannelExists(ctx, client, channelObject)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(ok).To(BeFalse(), "SDR channel %s should be removed from MQ after CR delete", channelObject)
+				}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+			})
+		})
+
+		Context("RCVR", func() {
+			var (
+				channelObject string
+				channelCR     string
+			)
+
+			BeforeEach(func() {
+				channelObject = mqRcvrChannelObjectName(prefix)
+				channelCR = mqCRName("e2e-receiver", prefix)
+				DeferCleanup(func() {
+					cleanupMQSpec(ns, "channel", channelCR)
+				})
+			})
+
+			It("reconciles an RCVR Channel CR against the kind IBM MQ queue manager", func() {
+				Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
+				eventuallyExpectQMCReady(ns)
+				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+kind: Channel
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  connectionRef:
+    name: %s
+  channelName: %s
+  type: rcvr
+  attributes:
+    descr: e2e receiver channel
+    trptype: tcp
+`, channelCR, ns, mqConnectionName, channelObject)
+				Expect(applyWithWebhookRetry(channelYAML)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					out, err := runKubectl("get", "channel", channelCR, "-n", ns,
+						"-o", "jsonpath={.status.conditions[?(@.type==\"Synced\")].status}")
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(out).To(Equal("True"))
+				}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+
+				client, err := newMQClient()
+				Expect(err).NotTo(HaveOccurred())
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cancel()
+
+				state, err := client.GetChannel(ctx, mqadmin.ChannelSpec{
+					Name: channelObject,
+					Type: mqadmin.ChannelTypeRcvr,
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(state.Attributes["descr"]).To(Equal("e2e receiver channel"))
+
+				Expect(kubectlDeleteNoWait("channel", channelCR, ns)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					ok, err := rcvrChannelExists(ctx, client, channelObject)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(ok).To(BeFalse(), "RCVR channel %s should be removed from MQ after CR delete", channelObject)
+				}).WithTimeout(KubectlWaitDuration).WithPolling(3 * time.Second).Should(Succeed())
+			})
 		})
 	})
 

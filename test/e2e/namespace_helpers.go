@@ -47,6 +47,14 @@ func mqChannelObjectName(prefix string) string {
 	return fmt.Sprintf("E2E.%s.ORDERS.APP", prefix)
 }
 
+func mqSdrChannelObjectName(prefix string) string {
+	return fmt.Sprintf("E2E.%s.TO.QM", prefix)
+}
+
+func mqRcvrChannelObjectName(prefix string) string {
+	return fmt.Sprintf("E2E.%s.FROM.QM", prefix)
+}
+
 func mqCRName(base, prefix string) string {
 	return fmt.Sprintf("%s-%s", base, strings.ToLower(prefix))
 }
