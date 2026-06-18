@@ -11,7 +11,7 @@ func NormalizeChannelType(t ChannelType) ChannelType {
 // ChannelTypeSupported reports whether the operator reconciles this channel kind.
 func ChannelTypeSupported(t ChannelType) bool {
 	switch NormalizeChannelType(t) {
-	case ChannelTypeSvrconn, ChannelTypeSdr:
+	case ChannelTypeSvrconn, ChannelTypeSdr, ChannelTypeRcvr:
 		return true
 	default:
 		return false

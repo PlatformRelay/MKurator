@@ -369,7 +369,8 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
 - [x] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2) — #40 Docker integration, #41 kind e2e.
 - [x] `SDR` sender channel — `connName`/`xmitQueue` CRD fields, mqrest SET/DISPLAY/DELETE,
   reconciler + drift, Docker integration (AUTH-8a).
-- [ ] `RCVR` receiver channel — behind the same quality bar as SDR (AUTH-8b).
+- [x] `RCVR` receiver channel — mqrest SET/DISPLAY/DELETE,
+  reconciler + drift, Docker integration (AUTH-8b).
 
 ## Later / candidate work
 

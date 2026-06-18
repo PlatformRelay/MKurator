@@ -74,6 +74,10 @@ var channelSdrDisplayParameters = []string{
 	attrDescr, attrTrptype, attrConname, attrXmitq, attrMaxMsgl, attrMcaUser, attrSslCiph,
 }
 
+var channelRcvrDisplayParameters = []string{
+	attrDescr, attrTrptype, attrMaxMsgl, attrMcaUser, attrSslCiph,
+}
+
 // topicDisplayParameters lists attributes safe for DISPLAY topic on IBM MQ 9.4.x
 // mqweb. pubscope/subscope are included for drift on 9.4; omit from this slice if
 // your QM returns MQWB0120E (see docs/ATTRIBUTE_RECONCILIATION.md).
@@ -87,6 +91,8 @@ func channelDisplayParametersForType(chlType mqadmin.ChannelType) []string {
 	switch mqadmin.NormalizeChannelType(chlType) {
 	case mqadmin.ChannelTypeSdr:
 		return append([]string(nil), channelSdrDisplayParameters...)
+	case mqadmin.ChannelTypeRcvr:
+		return append([]string(nil), channelRcvrDisplayParameters...)
 	default:
 		return append([]string(nil), channelSvrconnDisplayParameters...)
 	}

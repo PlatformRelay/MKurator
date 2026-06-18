@@ -108,6 +108,25 @@ func TestFormatDefineChannelMQSC(t *testing.T) {
 	}
 }
 
+func TestFormatDefineChannelMQSC_Rcvr(t *testing.T) {
+	t.Parallel()
+	got, err := FormatDefineChannelMQSC(mqadmin.ChannelSpec{
+		Name: "QM2.FROM.QM1",
+		Type: mqadmin.ChannelTypeRcvr,
+		Attributes: map[string]string{
+			attrTrptype: "tcp",
+			"descr":     "inbound",
+		},
+	})
+	if err != nil {
+		t.Fatalf("FormatDefineChannelMQSC: %v", err)
+	}
+	want := "DEFINE CHANNEL('QM2.FROM.QM1') REPLACE CHLTYPE('rcvr') DESCR('inbound') TRPTYPE('tcp')"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
 func TestFormatDefineChannelMQSC_Sdr(t *testing.T) {
 	t.Parallel()
 	got, err := FormatDefineChannelMQSC(mqadmin.ChannelSpec{

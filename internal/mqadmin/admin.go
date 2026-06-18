@@ -66,6 +66,7 @@ type ChannelType string
 const (
 	ChannelTypeSvrconn ChannelType = "svrconn"
 	ChannelTypeSdr     ChannelType = "sdr"
+	ChannelTypeRcvr    ChannelType = "rcvr"
 )
 
 // ChannelSpec is the domain shape for defining a channel via MQSC.

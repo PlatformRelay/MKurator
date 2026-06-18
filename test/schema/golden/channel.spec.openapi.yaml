@@ -35,6 +35,7 @@ properties:
     description: |-
       ConnName is the remote connection name for sender channels (MQSC CONNAME), e.g.
       qm2.example.com(1414). Required for type sdr when not set via attributes.conname.
+      Not valid on RCVR channels (IBM MQ rejects CONNAME on CHLTYPE(RCVR)).
       Mutually exclusive with attributes.conname; typed field takes precedence when folded
       into the attribute map for mqadmin.
     maxLength: 264
@@ -137,11 +138,12 @@ properties:
     type: string
   type:
     default: svrconn
-    description: Type is the channel kind to define. svrconn and sdr are reconciled
+    description: Type is the channel kind to define. svrconn, sdr, and rcvr are reconciled
       in v1alpha1.
     enum:
     - svrconn
     - sdr
+    - rcvr
     type: string
   xmitQueue:
     description: |-
