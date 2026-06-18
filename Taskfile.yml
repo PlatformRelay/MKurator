@@ -360,6 +360,16 @@ tasks:
     cmds:
       - docker compose -f hack/mq-docker/docker-compose.yml down
 
+  mq:swagger:fetch:
+    desc: Fetch mqweb Swagger 2.0 JSON from a running queue manager
+    env:
+      MQWEB_USER: "{{.MQWEB_USER | default \"admin\"}}"
+      MQWEB_PASS: "{{.MQWEB_PASS | default \"passw0rd\"}}"
+      MQWEB_INSECURE: "{{.MQWEB_INSECURE | default \"1\"}}"
+      KURATOR_INTEGRATION_MQ_ENDPOINT: "{{.KURATOR_INTEGRATION_MQ_ENDPOINT | default \"https://127.0.0.1:9443\"}}"
+    cmds:
+      - bash scripts/fetch-mqweb-swagger.sh "${KURATOR_INTEGRATION_MQ_ENDPOINT}" docs/schemas/mqweb-swagger.json
+
   local:down:
     desc: "Tear down sample CRs, Helm release, and kind cluster"
     cmds:
