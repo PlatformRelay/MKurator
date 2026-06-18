@@ -12,9 +12,8 @@ import (
 const defaultQueueLocalDisplayProbeObject = "SYSTEM.DEFAULT.LOCAL.QUEUE"
 
 // queueLocalProbedDisplayCandidates lists define-only candidates probed at runtime
-// when building local-queue DISPLAY for drift (ADR-0024 §4). Extend incrementally
-// from QueueLocalDefineOnlyCandidates as wiring matures.
-var queueLocalProbedDisplayCandidates = []string{attrShare}
+// when building local-queue DISPLAY for drift (ADR-0024 §4).
+var queueLocalProbedDisplayCandidates = QueueLocalDefineOnlyCandidates
 
 // ResolveQueueDriftCheckKeys returns DISPLAY-safe drift keys for the queue type.
 // For local queues backed by *Client, probed define-only candidates (e.g. share)

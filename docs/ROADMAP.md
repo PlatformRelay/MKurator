@@ -360,8 +360,8 @@ Per [ADR-0024](adr/0024-mqsc-command-construction-hygiene.md) §4;
 
 - [x] Spike: `ProbeQueueLocalAttributeDisplayable` + client cache (#58 MQ-1).
 - [x] **`share` wired** into local-queue DISPLAY/drift via runtime probe (#62 MQ-3).
-- [ ] Extend probe to remaining `QueueLocalDefineOnlyCandidates` (`defopts`,
-  `bothresh`, `boqname`, `usage`) incrementally.
+- [x] Extend probe to remaining `QueueLocalDefineOnlyCandidates` (`defopts`,
+  `bothresh`, `boqname`, `usage`, `maxmsglen`) via client cache (MQ-4).
 
 ### 8d — `v1beta1` graduation
 
