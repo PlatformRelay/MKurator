@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- bases/messaging.mkurator.dev_authorityrecords.yaml
+- bases/messaging.mkurator.dev_channelauthrules.yaml
+- bases/messaging.mkurator.dev_channels.yaml
+- bases/messaging.mkurator.dev_queuemanagerconnections.yaml
+- bases/messaging.mkurator.dev_queues.yaml
+- bases/messaging.mkurator.dev_topics.yaml
+
+patches:
+- path: patches/webhook_in_authorityrecords.yaml
+- path: patches/webhook_in_channelauthrules.yaml
+- path: patches/webhook_in_channels.yaml
+- path: patches/webhook_in_queuemanagerconnections.yaml
+- path: patches/webhook_in_queues.yaml
+- path: patches/webhook_in_topics.yaml
+- path: patches/cainjection_in_authorityrecords.yaml
+- path: patches/cainjection_in_channelauthrules.yaml
+- path: patches/cainjection_in_channels.yaml
+- path: patches/cainjection_in_queuemanagerconnections.yaml
+- path: patches/cainjection_in_queues.yaml
+- path: patches/cainjection_in_topics.yaml
+
+configurations:
+- kustomizeconfig.yaml
