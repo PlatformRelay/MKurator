@@ -1,11 +1,21 @@
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: mkurator-system/mkurator-serving-cert
     controller-gen.kubebuilder.io/version: v0.21.0
   name: topics.messaging.mkurator.dev
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: mkurator-webhook-service
+          namespace: mkurator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: messaging.mkurator.dev
   names:
     kind: Topic
@@ -40,19 +50,28 @@ spec:
           manager.
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object.
+
+              Servers should convert recognized schemas to the latest internal value,
+              and
+
               may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
+            description: 'Kind is a string value representing the REST resource this
+              object represents.
+
+              Servers may infer this from the endpoint the client submits requests
+              to.
+
               Cannot be updated.
+
               In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -72,9 +91,10 @@ spec:
               attributes:
                 additionalProperties:
                   type: string
-                description: |-
-                  Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-                  Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
+                description: 'Attributes map to MQSC parameters (lowercase keys in
+                  mqweb runCommandJSON).
+
+                  Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.'
                 type: object
               connectionRef:
                 description: ConnectionRef names a QueueManagerConnection in the same
@@ -87,13 +107,16 @@ spec:
                 - name
                 type: object
               defPersistence:
-                description: |-
-                  DefPersistence is the default message persistence for new messages (MQSC DEFPSIST).
-                  Mutually exclusive with attributes.defpsist; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'DefPersistence is the default message persistence for
+                  new messages (MQSC DEFPSIST).
+
+                  Mutually exclusive with attributes.defpsist; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 enum:
-                - "yes"
-                - "no"
+                - 'yes'
+                - 'no'
                 type: string
               deletionPolicy:
                 default: Delete
@@ -103,40 +126,54 @@ spec:
                 - Orphan
                 type: string
               description:
-                description: |-
-                  Description is the topic description (MQSC DESCR).
-                  Mutually exclusive with attributes.descr; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'Description is the topic description (MQSC DESCR).
+
+                  Mutually exclusive with attributes.descr; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 type: string
               publish:
-                description: |-
-                  Publish controls whether applications may publish to the topic (MQSC PUB).
-                  Mutually exclusive with attributes.pub; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'Publish controls whether applications may publish to
+                  the topic (MQSC PUB).
+
+                  Mutually exclusive with attributes.pub; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 enum:
                 - enabled
                 - disabled
                 type: string
               publishScope:
-                description: |-
-                  PublishScope is the publish scope for the topic (MQSC PUBSCOPE).
-                  Mutually exclusive with attributes.pubscope; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'PublishScope is the publish scope for the topic (MQSC
+                  PUBSCOPE).
+
+                  Mutually exclusive with attributes.pubscope; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 type: string
               subscribe:
-                description: |-
-                  Subscribe controls whether applications may subscribe to the topic (MQSC SUB).
-                  Mutually exclusive with attributes.sub; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'Subscribe controls whether applications may subscribe
+                  to the topic (MQSC SUB).
+
+                  Mutually exclusive with attributes.sub; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 enum:
                 - enabled
                 - disabled
                 type: string
               subscribeScope:
-                description: |-
-                  SubscribeScope is the subscribe scope for the topic (MQSC SUBSCOPE).
-                  Mutually exclusive with attributes.subscope; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'SubscribeScope is the subscribe scope for the topic
+                  (MQSC SUBSCOPE).
+
+                  Mutually exclusive with attributes.subscope; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 type: string
               suspend:
                 description: Suspend pauses MQ reconciliation for this object. Status
@@ -160,10 +197,13 @@ spec:
                     use
                   rule: '!self.upperAscii().startsWith(''AMQ'')'
               topicString:
-                description: |-
-                  TopicString is the IBM MQ topic string (MQSC TOPICSTR / attribute topstr).
-                  Mutually exclusive with attributes.topstr and attributes.topicstr; typed field
-                  takes precedence when folded into the attribute map for mqadmin.
+                description: 'TopicString is the IBM MQ topic string (MQSC TOPICSTR
+                  / attribute topstr).
+
+                  Mutually exclusive with attributes.topstr and attributes.topicstr;
+                  typed field
+
+                  takes precedence when folded into the attribute map for mqadmin.'
                 type: string
             required:
             - connectionRef
@@ -204,32 +244,45 @@ spec:
                     state of this API Resource.
                   properties:
                     lastTransitionTime:
-                      description: |-
-                        lastTransitionTime is the last time the condition transitioned from one status to another.
-                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      description: 'lastTransitionTime is the last time the condition
+                        transitioned from one status to another.
+
+                        This should be when the underlying condition changed.  If
+                        that is not known, then using the time when the API field
+                        changed is acceptable.'
                       format: date-time
                       type: string
                     message:
-                      description: |-
-                        message is a human readable message indicating details about the transition.
-                        This may be an empty string.
+                      description: 'message is a human readable message indicating
+                        details about the transition.
+
+                        This may be an empty string.'
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: |-
-                        observedGeneration represents the .metadata.generation that the condition was set based upon.
-                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                        with respect to the current state of the instance.
+                      description: 'observedGeneration represents the .metadata.generation
+                        that the condition was set based upon.
+
+                        For instance, if .metadata.generation is currently 12, but
+                        the .status.conditions[x].observedGeneration is 9, the condition
+                        is out of date
+
+                        with respect to the current state of the instance.'
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: |-
-                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                        Producers of specific condition types may define expected values and meanings for this field,
+                      description: 'reason contains a programmatic identifier indicating
+                        the reason for the condition''s last transition.
+
+                        Producers of specific condition types may define expected
+                        values and meanings for this field,
+
                         and whether the values are considered a guaranteed API.
+
                         The value should be a CamelCase string.
-                        This field may not be empty.
+
+                        This field may not be empty.'
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
@@ -237,8 +290,8 @@ spec:
                     status:
                       description: status of the condition, one of True, False, Unknown.
                       enum:
-                      - "True"
-                      - "False"
+                      - 'True'
+                      - 'False'
                       - Unknown
                       type: string
                     type:
@@ -258,10 +311,13 @@ spec:
                 - type
                 x-kubernetes-list-type: map
               desiredMQSC:
-                description: |-
-                  DesiredMQSC is a debug/GitOps aid: the DEFINE TOPIC REPLACE line equivalent
-                  to what the operator applies via mqweb. Not authoritative; do not use this
-                  field to drive cluster apply or drift detection.
+                description: 'DesiredMQSC is a debug/GitOps aid: the DEFINE TOPIC
+                  REPLACE line equivalent
+
+                  to what the operator applies via mqweb. Not authoritative; do not
+                  use this
+
+                  field to drive cluster apply or drift detection.'
                 type: string
               lastSyncTime:
                 description: LastSyncTime is set when the object last reconciled successfully.
@@ -310,19 +366,28 @@ spec:
           manager.
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object.
+
+              Servers should convert recognized schemas to the latest internal value,
+              and
+
               may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
+            description: 'Kind is a string value representing the REST resource this
+              object represents.
+
+              Servers may infer this from the endpoint the client submits requests
+              to.
+
               Cannot be updated.
+
               In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -342,9 +407,10 @@ spec:
               attributes:
                 additionalProperties:
                   type: string
-                description: |-
-                  Attributes map to MQSC parameters (lowercase keys in mqweb runCommandJSON).
-                  Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.
+                description: 'Attributes map to MQSC parameters (lowercase keys in
+                  mqweb runCommandJSON).
+
+                  Drift-checked vs define-only keys: docs/ATTRIBUTE_RECONCILIATION.md.'
                 type: object
               connectionRef:
                 description: ConnectionRef names a QueueManagerConnection in the same
@@ -357,13 +423,16 @@ spec:
                 - name
                 type: object
               defPersistence:
-                description: |-
-                  DefPersistence is the default message persistence for new messages (MQSC DEFPSIST).
-                  Mutually exclusive with attributes.defpsist; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'DefPersistence is the default message persistence for
+                  new messages (MQSC DEFPSIST).
+
+                  Mutually exclusive with attributes.defpsist; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 enum:
-                - "yes"
-                - "no"
+                - 'yes'
+                - 'no'
                 type: string
               deletionPolicy:
                 default: Delete
@@ -373,40 +442,54 @@ spec:
                 - Orphan
                 type: string
               description:
-                description: |-
-                  Description is the topic description (MQSC DESCR).
-                  Mutually exclusive with attributes.descr; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'Description is the topic description (MQSC DESCR).
+
+                  Mutually exclusive with attributes.descr; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 type: string
               publish:
-                description: |-
-                  Publish controls whether applications may publish to the topic (MQSC PUB).
-                  Mutually exclusive with attributes.pub; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'Publish controls whether applications may publish to
+                  the topic (MQSC PUB).
+
+                  Mutually exclusive with attributes.pub; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 enum:
                 - enabled
                 - disabled
                 type: string
               publishScope:
-                description: |-
-                  PublishScope is the publish scope for the topic (MQSC PUBSCOPE).
-                  Mutually exclusive with attributes.pubscope; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'PublishScope is the publish scope for the topic (MQSC
+                  PUBSCOPE).
+
+                  Mutually exclusive with attributes.pubscope; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 type: string
               subscribe:
-                description: |-
-                  Subscribe controls whether applications may subscribe to the topic (MQSC SUB).
-                  Mutually exclusive with attributes.sub; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'Subscribe controls whether applications may subscribe
+                  to the topic (MQSC SUB).
+
+                  Mutually exclusive with attributes.sub; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 enum:
                 - enabled
                 - disabled
                 type: string
               subscribeScope:
-                description: |-
-                  SubscribeScope is the subscribe scope for the topic (MQSC SUBSCOPE).
-                  Mutually exclusive with attributes.subscope; typed field takes precedence when folded
-                  into the attribute map for mqadmin.
+                description: 'SubscribeScope is the subscribe scope for the topic
+                  (MQSC SUBSCOPE).
+
+                  Mutually exclusive with attributes.subscope; typed field takes precedence
+                  when folded
+
+                  into the attribute map for mqadmin.'
                 type: string
               suspend:
                 description: Suspend pauses MQ reconciliation for this object. Status
@@ -430,10 +513,13 @@ spec:
                     use
                   rule: '!self.upperAscii().startsWith(''AMQ'')'
               topicString:
-                description: |-
-                  TopicString is the IBM MQ topic string (MQSC TOPICSTR / attribute topstr).
-                  Mutually exclusive with attributes.topstr and attributes.topicstr; typed field
-                  takes precedence when folded into the attribute map for mqadmin.
+                description: 'TopicString is the IBM MQ topic string (MQSC TOPICSTR
+                  / attribute topstr).
+
+                  Mutually exclusive with attributes.topstr and attributes.topicstr;
+                  typed field
+
+                  takes precedence when folded into the attribute map for mqadmin.'
                 type: string
             required:
             - connectionRef
@@ -474,32 +560,45 @@ spec:
                     state of this API Resource.
                   properties:
                     lastTransitionTime:
-                      description: |-
-                        lastTransitionTime is the last time the condition transitioned from one status to another.
-                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      description: 'lastTransitionTime is the last time the condition
+                        transitioned from one status to another.
+
+                        This should be when the underlying condition changed.  If
+                        that is not known, then using the time when the API field
+                        changed is acceptable.'
                       format: date-time
                       type: string
                     message:
-                      description: |-
-                        message is a human readable message indicating details about the transition.
-                        This may be an empty string.
+                      description: 'message is a human readable message indicating
+                        details about the transition.
+
+                        This may be an empty string.'
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: |-
-                        observedGeneration represents the .metadata.generation that the condition was set based upon.
-                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                        with respect to the current state of the instance.
+                      description: 'observedGeneration represents the .metadata.generation
+                        that the condition was set based upon.
+
+                        For instance, if .metadata.generation is currently 12, but
+                        the .status.conditions[x].observedGeneration is 9, the condition
+                        is out of date
+
+                        with respect to the current state of the instance.'
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: |-
-                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                        Producers of specific condition types may define expected values and meanings for this field,
+                      description: 'reason contains a programmatic identifier indicating
+                        the reason for the condition''s last transition.
+
+                        Producers of specific condition types may define expected
+                        values and meanings for this field,
+
                         and whether the values are considered a guaranteed API.
+
                         The value should be a CamelCase string.
-                        This field may not be empty.
+
+                        This field may not be empty.'
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
@@ -507,8 +606,8 @@ spec:
                     status:
                       description: status of the condition, one of True, False, Unknown.
                       enum:
-                      - "True"
-                      - "False"
+                      - 'True'
+                      - 'False'
                       - Unknown
                       type: string
                     type:
@@ -528,10 +627,13 @@ spec:
                 - type
                 x-kubernetes-list-type: map
               desiredMQSC:
-                description: |-
-                  DesiredMQSC is a debug/GitOps aid: the DEFINE TOPIC REPLACE line equivalent
-                  to what the operator applies via mqweb. Not authoritative; do not use this
-                  field to drive cluster apply or drift detection.
+                description: 'DesiredMQSC is a debug/GitOps aid: the DEFINE TOPIC
+                  REPLACE line equivalent
+
+                  to what the operator applies via mqweb. Not authoritative; do not
+                  use this
+
+                  field to drive cluster apply or drift detection.'
                 type: string
               lastSyncTime:
                 description: LastSyncTime is set when the object last reconciled successfully.
@@ -556,3 +658,4 @@ spec:
     storage: false
     subresources:
       status: {}
+

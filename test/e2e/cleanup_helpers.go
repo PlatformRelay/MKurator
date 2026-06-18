@@ -130,11 +130,11 @@ func undeployMKuratorCRDsNoWait() {
 		_, _ = fmt.Fprintf(GinkgoWriter, "undeploy CRDs: get project dir: %v\n", err)
 		return
 	}
-	crdDir := filepath.Join(projectDir, "config", "crd", "bases")
+	crdDir := filepath.Join(projectDir, "config", "crd")
 	ctx, cancel := context.WithTimeout(context.Background(), kubectlCommandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "kubectl", "--request-timeout="+kubectlRequestTimeout,
-		"delete", "--ignore-not-found", "-f", crdDir, "--wait=false")
+		"delete", "--ignore-not-found", "-k", crdDir, "--wait=false")
 	cmd.Env = taskEnv()
 	_, _ = utils.Run(cmd)
 }

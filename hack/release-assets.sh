@@ -24,9 +24,7 @@ KUSTOMIZE="$(cd "${ROOT}" && go tool -n kustomize)"
 
 "${KUSTOMIZE}" build "${WORK}/config/default" >"${DIST}/install.yaml"
 
-# CRDs are plain YAML files (no kustomization.yaml under config/crd/bases).
-awk 'FNR==1 && NR>1 {print "---"} {print}' "${ROOT}"/config/crd/bases/*.yaml \
-  >"${DIST}/install-crds.yaml"
+go tool kustomize build "${ROOT}/config/crd" >"${DIST}/install-crds.yaml"
 
 bash "${ROOT}/hack/helm-sync-crds.sh"
 helm package "${ROOT}/charts/mkurator" \
