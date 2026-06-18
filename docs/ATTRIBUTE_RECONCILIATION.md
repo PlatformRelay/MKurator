@@ -197,6 +197,13 @@ Notes:
 `define` keys such as `profile`, `objectType`, `principal` / `group` are identity
 for GET; only `authorities` is drift-checked after the rule exists.
 
+**Profile parity (Phase 9 AUTH-9):** `OBJTYPE(QUEUE)`, `OBJTYPE(CHANNEL)`, and
+`OBJTYPE(NLIST)` (MQSC `NAMELIST`) share the same SET/DISPLAY/DELETE adapter path
+and reconciler logic. The CRD enum uses `NLIST`; mqrest maps it to MQSC
+`NAMELIST`. Docker integration and envtest cover queue (`GET`/`PUT`), channel
+(`CHG`/`DSP`), and namelist (`CHG`/`DSP`) profiles; topic profiles are also
+integration-tested (`SUB`/`DSP`).
+
 ## Out of scope (not CRDs today)
 
 | MQ surface | MQSC | Phase |

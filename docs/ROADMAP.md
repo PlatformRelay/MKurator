@@ -365,7 +365,7 @@ parity; coverage floor intact without padding; e2e flake rate addressed.
   reconciler + drift, Docker integration (AUTH-5a).
 - [x] `USERMAP` CHLAUTH — `clientUser`/`mcaUser` CRD fields, mqrest SET/DISPLAY,
   reconciler + drift (AUTH-3b), Docker integration (AUTH-3a #42), kind e2e (AUTH-4 #43).
-- [ ] AuthorityRecord channel/namelist profile parity with queue profiles.
+- [x] AuthorityRecord channel/namelist profile parity with queue profiles (AUTH-9).
 - [x] BLOCKADDR integration + e2e coverage (AUTH-1/AUTH-2) — #40 Docker integration, #41 kind e2e.
 - [x] `SDR` sender channel — `connName`/`xmitQueue` CRD fields, mqrest SET/DISPLAY/DELETE,
   reconciler + drift, Docker integration (AUTH-8a).
