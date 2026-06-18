@@ -1,13 +1,11 @@
-## Append samples of your project ##
 resources:
-- messaging_v1alpha1_queuemanagerconnection.yaml
-- messaging_v1alpha1_queue.yaml
-- messaging_v1alpha1_queue_alias.yaml
-- messaging_v1alpha1_queue_remote.yaml
-- messaging_v1alpha1_topic.yaml
-- messaging_v1alpha1_channel.yaml
-- messaging_v1alpha1_channelauthrule.yaml
-- messaging_v1alpha1_channelauthrule_blockuser.yaml
-- messaging_v1alpha1_channelauthrule_blockaddr.yaml
-- messaging_v1alpha1_authorityrecord.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples
+- messaging_v1beta1_queuemanagerconnection.yaml
+- messaging_v1beta1_queue.yaml
+- messaging_v1beta1_queue_alias.yaml
+- messaging_v1beta1_queue_remote.yaml
+- messaging_v1beta1_topic.yaml
+- messaging_v1beta1_channel.yaml
+- messaging_v1beta1_channelauthrule.yaml
+- messaging_v1beta1_channelauthrule_blockuser.yaml
+- messaging_v1beta1_channelauthrule_blockaddr.yaml
+- messaging_v1beta1_authorityrecord.yaml

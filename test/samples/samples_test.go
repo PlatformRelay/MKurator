@@ -2,6 +2,7 @@ package samples_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 	"github.com/conduit-ops/mkurator/internal/validation"
 )
 
@@ -41,7 +43,7 @@ func sampleFiles(t *testing.T) []string {
 			continue
 		}
 		name := ent.Name()
-		if !strings.HasPrefix(name, "messaging_v1alpha1_") || !strings.HasSuffix(name, ".yaml") {
+		if !strings.HasPrefix(name, "messaging_v1beta1_") || !strings.HasSuffix(name, ".yaml") {
 			continue
 		}
 		files = append(files, filepath.Join(root, name))
@@ -53,12 +55,28 @@ func loadScheme(t *testing.T) *k8sruntime.Scheme {
 	t.Helper()
 	s := k8sruntime.NewScheme()
 	if err := messagingv1alpha1.AddToScheme(s); err != nil {
-		t.Fatalf("add scheme: %v", err)
+		t.Fatalf("add v1alpha1 scheme: %v", err)
+	}
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
+		t.Fatalf("add v1beta1 scheme: %v", err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
 		t.Fatalf("add corev1: %v", err)
 	}
 	return s
+}
+
+func convertSpec[T any, U any](t *testing.T, in *T) *U {
+	t.Helper()
+	data, err := json.Marshal(in)
+	if err != nil {
+		t.Fatalf("marshal spec: %v", err)
+	}
+	var out U
+	if err := json.Unmarshal(data, &out); err != nil {
+		t.Fatalf("unmarshal spec: %v", err)
+	}
+	return &out
 }
 
 func decodeObject(t *testing.T, path string) client.Object {
@@ -71,47 +89,51 @@ func decodeObject(t *testing.T, path string) client.Object {
 
 	dec := yaml.NewYAMLOrJSONDecoder(strings.NewReader(string(data)), 4096)
 	var meta struct {
-		Kind string `json:"kind"`
+		APIVersion string `json:"apiVersion"`
+		Kind       string `json:"kind"`
 	}
 	if err := dec.Decode(&meta); err != nil {
 		t.Fatalf("decode meta %s: %v", path, err)
+	}
+	if meta.APIVersion != "messaging.mkurator.dev/v1beta1" {
+		t.Fatalf("%s: expected apiVersion messaging.mkurator.dev/v1beta1, got %q", path, meta.APIVersion)
 	}
 
 	dec = yaml.NewYAMLOrJSONDecoder(strings.NewReader(string(data)), 4096)
 
 	switch meta.Kind {
 	case "QueueManagerConnection":
-		var obj messagingv1alpha1.QueueManagerConnection
+		var obj messagingv1beta1.QueueManagerConnection
 		if err := dec.Decode(&obj); err != nil {
 			t.Fatalf("decode %s: %v", path, err)
 		}
 		return &obj
 	case "Queue":
-		var obj messagingv1alpha1.Queue
+		var obj messagingv1beta1.Queue
 		if err := dec.Decode(&obj); err != nil {
 			t.Fatalf("decode %s: %v", path, err)
 		}
 		return &obj
 	case "Topic":
-		var obj messagingv1alpha1.Topic
+		var obj messagingv1beta1.Topic
 		if err := dec.Decode(&obj); err != nil {
 			t.Fatalf("decode %s: %v", path, err)
 		}
 		return &obj
 	case "Channel":
-		var obj messagingv1alpha1.Channel
+		var obj messagingv1beta1.Channel
 		if err := dec.Decode(&obj); err != nil {
 			t.Fatalf("decode %s: %v", path, err)
 		}
 		return &obj
 	case "ChannelAuthRule":
-		var obj messagingv1alpha1.ChannelAuthRule
+		var obj messagingv1beta1.ChannelAuthRule
 		if err := dec.Decode(&obj); err != nil {
 			t.Fatalf("decode %s: %v", path, err)
 		}
 		return &obj
 	case "AuthorityRecord":
-		var obj messagingv1alpha1.AuthorityRecord
+		var obj messagingv1beta1.AuthorityRecord
 		if err := dec.Decode(&obj); err != nil {
 			t.Fatalf("decode %s: %v", path, err)
 		}
@@ -144,7 +166,22 @@ func TestConfigSamplesAdmissionValidation(t *testing.T) {
 
 	objects := make([]client.Object, 0, len(paths)+1)
 	for _, path := range paths {
-		objects = append(objects, decodeObject(t, path))
+		obj := decodeObject(t, path)
+		if qmc, ok := obj.(*messagingv1beta1.QueueManagerConnection); ok {
+			spec := convertSpec[
+				messagingv1beta1.QueueManagerConnectionSpec,
+				messagingv1alpha1.QueueManagerConnectionSpec,
+			](t, &qmc.Spec)
+			alpha := &messagingv1alpha1.QueueManagerConnection{
+				ObjectMeta: qmc.ObjectMeta,
+				Spec:       *spec,
+			}
+			alpha.APIVersion = messagingv1alpha1.GroupVersion.String()
+			alpha.Kind = "QueueManagerConnection"
+			objects = append(objects, alpha)
+			continue
+		}
+		objects = append(objects, obj)
 	}
 
 	secret := &corev1.Secret{
@@ -163,19 +200,22 @@ func TestConfigSamplesAdmissionValidation(t *testing.T) {
 			if len(errs) > 0 {
 				t.Fatalf("QueueManagerConnection/%s: %v", o.Name, errs)
 			}
-		case *messagingv1alpha1.Queue:
-			if _, errs := validation.ValidateQueueSpec(ctx, cl, o.Namespace, o.Name, &o.Spec); len(errs) > 0 {
+		case *messagingv1beta1.Queue:
+			spec := convertSpec[messagingv1beta1.QueueSpec, messagingv1alpha1.QueueSpec](t, &o.Spec)
+			if _, errs := validation.ValidateQueueSpec(ctx, cl, o.Namespace, o.Name, spec); len(errs) > 0 {
 				t.Fatalf("Queue/%s: %v", o.Name, errs)
 			}
-		case *messagingv1alpha1.Topic:
-			if _, errs := validation.ValidateTopicSpec(ctx, cl, o.Namespace, o.Name, &o.Spec); len(errs) > 0 {
+		case *messagingv1beta1.Topic:
+			spec := convertSpec[messagingv1beta1.TopicSpec, messagingv1alpha1.TopicSpec](t, &o.Spec)
+			if _, errs := validation.ValidateTopicSpec(ctx, cl, o.Namespace, o.Name, spec); len(errs) > 0 {
 				t.Fatalf("Topic/%s: %v", o.Name, errs)
 			}
-		case *messagingv1alpha1.Channel:
-			if _, errs := validation.ValidateChannelSpec(ctx, cl, o.Namespace, o.Name, &o.Spec); len(errs) > 0 {
+		case *messagingv1beta1.Channel:
+			spec := convertSpec[messagingv1beta1.ChannelSpec, messagingv1alpha1.ChannelSpec](t, &o.Spec)
+			if _, errs := validation.ValidateChannelSpec(ctx, cl, o.Namespace, o.Name, spec); len(errs) > 0 {
 				t.Fatalf("Channel/%s: %v", o.Name, errs)
 			}
-		case *messagingv1alpha1.ChannelAuthRule, *messagingv1alpha1.AuthorityRecord:
+		case *messagingv1beta1.ChannelAuthRule, *messagingv1beta1.AuthorityRecord:
 			// Auth samples illustrate MQ rule shapes; cross-CR channel profile checks are covered in envtest.
 		case *corev1.Secret:
 		default:

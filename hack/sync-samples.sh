@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sync Kubebuilder sample CRs into the Helm chart samples tree.
-# Canonical source: config/samples/messaging_v1alpha1_*.yaml
+# Canonical source: config/samples/messaging_v1beta1_*.yaml
 # Chart output: charts/mkurator/samples/resources/ (no metadata.namespace; kustomization sets it)
 set -euo pipefail
 
@@ -9,16 +9,16 @@ SRC="${ROOT}/config/samples"
 DST="${DEST_DIR:-${ROOT}/charts/mkurator/samples/resources}"
 
 declare -A MAP=(
-  [messaging_v1alpha1_queuemanagerconnection.yaml]=queuemanagerconnection.yaml
-  [messaging_v1alpha1_queue.yaml]=queue.yaml
-  [messaging_v1alpha1_queue_alias.yaml]=queue-alias.yaml
-  [messaging_v1alpha1_queue_remote.yaml]=queue-remote.yaml
-  [messaging_v1alpha1_topic.yaml]=topic.yaml
-  [messaging_v1alpha1_channel.yaml]=channel.yaml
-  [messaging_v1alpha1_channelauthrule.yaml]=channelauthrule.yaml
-  [messaging_v1alpha1_channelauthrule_blockuser.yaml]=channelauthrule-blockuser.yaml
-  [messaging_v1alpha1_channelauthrule_blockaddr.yaml]=channelauthrule-blockaddr.yaml
-  [messaging_v1alpha1_authorityrecord.yaml]=authorityrecord.yaml
+  [messaging_v1beta1_queuemanagerconnection.yaml]=queuemanagerconnection.yaml
+  [messaging_v1beta1_queue.yaml]=queue.yaml
+  [messaging_v1beta1_queue_alias.yaml]=queue-alias.yaml
+  [messaging_v1beta1_queue_remote.yaml]=queue-remote.yaml
+  [messaging_v1beta1_topic.yaml]=topic.yaml
+  [messaging_v1beta1_channel.yaml]=channel.yaml
+  [messaging_v1beta1_channelauthrule.yaml]=channelauthrule.yaml
+  [messaging_v1beta1_channelauthrule_blockuser.yaml]=channelauthrule-blockuser.yaml
+  [messaging_v1beta1_channelauthrule_blockaddr.yaml]=channelauthrule-blockaddr.yaml
+  [messaging_v1beta1_authorityrecord.yaml]=authorityrecord.yaml
 )
 
 mkdir -p "${DST}"

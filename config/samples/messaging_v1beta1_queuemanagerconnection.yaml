@@ -1,4 +1,4 @@
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
   name: qm1
