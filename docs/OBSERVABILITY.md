@@ -78,32 +78,73 @@ See [Verify scraping](#verify-scraping) for port-forward and 403 troubleshooting
 When `metrics.secure=true` (default), scrapes must use **HTTPS** and present a
 valid Kubernetes service account token (or a subject allowed by RBAC).
 
-### Built-in custom metrics
+### Metrics inventory
 
-| Metric | Labels | Meaning |
-|--------|--------|---------|
-| `mkurator_reconcile_total` | `controller`, `result` | Reconcile passes (`success` / `error`) |
-| `mkurator_reconcile_errors_total` | `controller` | Passes that returned an error to the manager |
-| `mkurator_mq_operations_total` | `operation`, `result` | mqweb adapter calls (`success` / `error`) |
+All MKurator custom metrics are **counters** registered in
+[`internal/metrics/metrics.go`](../internal/metrics/metrics.go). Label cardinality
+is covered by unit tests in [`internal/metrics/metrics_test.go`](../internal/metrics/metrics_test.go).
 
-**Controller** label values: `queue`, `topic`, `channel`, `channelauthrule`,
-`authorityrecord`, `queuemanagerconnection`.
+| Type | Custom MKurator metrics | Histograms |
+|------|-------------------------|------------|
+| Counters | 5 (see table below) | — |
+| Histograms | — | none today (mqweb latency not instrumented) |
 
-**MQ operation** label values include `ping`, queue/topic/channel get/define/delete,
-and auth operations: `get_channel_auth`, `set_channel_auth`, `delete_channel_auth`,
-`get_authority`, `set_authority`, `delete_authority`, plus `run_mqsc` (integration
-fixtures). See `internal/metrics/metrics.go` for the canonical list.
+The same `/metrics` endpoint also exposes **controller-runtime** workqueue metrics
+(e.g. `workqueue_depth`, `workqueue_adds_total`, `controller_runtime_reconcile_total`,
+`controller_runtime_reconcile_time_seconds` histogram) and standard Go/process
+collectors. The starter Grafana dashboard uses MKurator counters plus
+`controller_runtime_reconcile_total`.
 
-Plus standard controller-runtime workqueue and Go runtime metrics on the same endpoint.
+#### MKurator counters
+
+| Metric | Labels | Incremented when |
+|--------|--------|------------------|
+| `mkurator_reconcile_total` | `controller`, `result` | Every reconcile pass completes (`result`: `success` or `error`) |
+| `mkurator_reconcile_errors_total` | `controller` | Reconcile pass returns a non-nil error to the manager |
+| `mkurator_mq_operations_total` | `operation`, `result` | mqweb adapter call completes (`result`: `success` or `error`) |
+| `mkurator_drift_detected_total` | `controller` | Workload reconcile detects attribute drift on IBM MQ |
+| `mkurator_mq_circuit_breaker_transitions_total` | `from`, `to` | mqweb per-connection circuit breaker changes state |
+
+**`controller` label values** (reconcile + drift; drift excludes QMC):
+
+| Value | Reconciler |
+|-------|------------|
+| `queue` | Queue |
+| `topic` | Topic |
+| `channel` | Channel |
+| `channelauthrule` | ChannelAuthRule |
+| `authorityrecord` | AuthorityRecord |
+| `queuemanagerconnection` | QueueManagerConnection (reconcile only; no drift counter) |
+
+**`operation` label values** (`mkurator_mq_operations_total`):
+
+| Value | mqweb call |
+|-------|------------|
+| `ping` | QueueManagerConnection health check |
+| `get_queue` / `define_queue` / `delete_queue` | Queue CRUD |
+| `get_topic` / `define_topic` / `delete_topic` | Topic CRUD |
+| `get_channel` / `define_channel` / `delete_channel` | Channel CRUD |
+| `set_channel_auth` / `get_channel_auth` / `delete_channel_auth` | CHLAUTH |
+| `set_authority` / `get_authority` / `delete_authority` | OAM AUTHREC |
+| `run_mqsc` | Raw MQSC (integration/e2e fixtures only) |
+
+**`from` / `to` label values** (`mkurator_mq_circuit_breaker_transitions_total`):
+`closed`, `open`, `half_open` — transitions observed include `closed→open`,
+`open→half_open`, `half_open→closed`, and `half_open→open`.
+
+**`result` label values** (reconcile + MQ operation counters): `success`, `error`.
+Any non-nil error (including wrapped errors) counts as `error`.
 
 ### Drift vs reconcile errors
 
 Attribute **drift** (spec no longer matches MQ) sets workload CR status
-`Synced=False` with `Reason=DriftDetected` and does **not** increment
+`Synced=False` with `Reason=DriftDetected`, increments
+`mkurator_drift_detected_total`, and does **not** increment
 `mkurator_reconcile_errors_total` — the reconcile pass succeeds after patching status.
-Alert on drift via `kubectl` / GitOps checks on conditions, not on reconcile-error
-metrics. Transient MQ failures and terminal reconcile errors **do** increment
-`mkurator_reconcile_errors_total` and often set `Reason=Error`.
+
+Alert on drift via the drift counter, CR conditions, or GitOps checks — not via
+reconcile-error metrics. Transient MQ failures and terminal reconcile errors **do**
+increment `mkurator_reconcile_errors_total` and often set `Reason=Error`.
 
 ## Readiness (`/readyz`, REL-7)
 
@@ -118,6 +159,40 @@ metrics. Transient MQ failures and terminal reconcile errors **do** increment
 Implemented in `internal/health` ([NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md)
 REL-7). The Helm alert **MKuratorOperatorNotReady** uses `kube_pod_status_ready` on
 the controller-manager pod (requires kube-state-metrics, e.g. kube-prometheus-stack).
+
+## ServiceMonitor scrape configuration
+
+When `metrics.serviceMonitor.enabled=true`, Helm renders
+[`charts/mkurator/templates/servicemonitor.yaml`](../charts/mkurator/templates/servicemonitor.yaml)
+in the release namespace. Kustomize installs can use
+[`config/prometheus/monitor.yaml`](../config/prometheus/monitor.yaml) (disabled in
+the default overlay).
+
+| Field | Helm default | Notes |
+|-------|--------------|-------|
+| `spec.endpoints[].path` | `/metrics` | Same path as controller-runtime |
+| `spec.endpoints[].port` | `https` | Named port on the metrics Service (8443) |
+| `spec.endpoints[].scheme` | `https` | Required when `metrics.secure=true` |
+| `spec.endpoints[].interval` | `30s` | Helm value `metrics.serviceMonitor.interval` |
+| `spec.endpoints[].scrapeTimeout` | `10s` | Helm value `metrics.serviceMonitor.scrapeTimeout` |
+| `spec.endpoints[].bearerTokenFile` | SA token path | Prometheus pod SA must bind `metrics-reader` |
+| `spec.endpoints[].tlsConfig.insecureSkipVerify` | `true` | Skip metrics-server cert verify; tighten in prod if needed |
+| `spec.selector` | release pod labels | Targets `{release}-metrics` Service |
+| `metadata.labels` | chart labels + `metrics.serviceMonitor.labels` | Must match Prometheus `serviceMonitorSelector` |
+
+### Observability checklist
+
+Use this when standing up or reviewing production scrape:
+
+- [ ] `metrics.enabled=true` and `metrics.secure=true` (defaults)
+- [ ] Prometheus Operator CRDs installed (e.g. kube-prometheus-stack)
+- [ ] `metrics.serviceMonitor.enabled=true` with labels matching `serviceMonitorSelector`
+- [ ] ClusterRoleBinding: Prometheus SA → `{release}-metrics-reader`
+- [ ] Target **up** in Prometheus: `up{namespace="<release-ns>",service="<release>-metrics"}`
+- [ ] Custom counters present after traffic: `mkurator_reconcile_total`, `mkurator_mq_operations_total`
+- [ ] Optional: `metrics.prometheusRule.enabled=true` for starter alerts
+- [ ] Optional: import [`grafana-dashboard.json`](../config/samples/observability/grafana-dashboard.json)
+- [ ] Drift monitoring: `rate(mkurator_drift_detected_total[15m])` or CR `Synced` conditions
 
 ## Enabling Prometheus scrape (Helm)
 
@@ -217,8 +292,10 @@ Import the starter dashboard from
 - MQ ping failures: `rate(mkurator_mq_operations_total{operation="ping",result="error"}[5m])`
 - Auth MQ failures: `rate(mkurator_mq_operations_total{operation=~"set_channel_auth|get_channel_auth|delete_channel_auth|set_authority|get_authority|delete_authority",result="error"}[5m])`
 - MQ operation failures (all): `rate(mkurator_mq_operations_total{result="error"}[5m])`
+- Drift detections: `rate(mkurator_drift_detected_total[15m])` by `controller`
+- Circuit breaker opens: `increase(mkurator_mq_circuit_breaker_transitions_total{from="closed",to="open"}[15m])`
 - Target up: `up` for the metrics Service
-- Drift: `kubectl get … -o jsonpath='…conditions[?(@.type=="Synced")].reason'` for `DriftDetected` (no dedicated metric today)
+- Drift (CR conditions): `kubectl get … -o jsonpath='…conditions[?(@.type=="Synced")].reason'` for `DriftDetected`
 
 Align alerting with [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) (OBS-*).
 
