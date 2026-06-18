@@ -40,14 +40,23 @@ Interpretation:
 Implementation: `Client.ProbeQueueLocalAttributeDisplayable` in
 `internal/adapter/mqrest/display_probe.go`.
 
-## Spike result: `share` and `maxmsglen` on mqweb 9.4.x
+## Wired probing (ADR-0024 §4)
 
-Pilot attributes:
+All `QueueLocalDefineOnlyCandidates` are probed at runtime via
+`queueLocalProbedDisplayCandidates` and the client cache in
+`display_probe_cache.go`. `ResolveQueueDriftCheckKeys` and `GetQueue` for local
+queues include each candidate in DISPLAY/drift only when mqweb reports it
+displayable.
+
+Spike outcomes on mqweb 9.4.x (Docker MQ `9.4.5.1-r1`):
 
 | Attribute | Static table (9.4.x) | Probe outcome |
 |-----------|---------------------|---------------|
 | **`maxmsglen`** | DEFINE-only (`MQWB0120E`) | **Not displayable** on Docker MQ `9.4.5.1-r1` (integration CI) — confirms static omission |
 | **`share`** | DEFINE-only (`MQWB0120E`) | **Displayable** on Docker MQ `9.4.5.1-r1` — static safe list is stale for this fix level |
+
+Other candidates (`defopts`, `bothresh`, `boqname`, `usage`) are probed live;
+outcomes are mqweb-version-dependent (integration tests log results).
 
 The `share` result is why ADR-0024 §4 favours runtime probing over hand-maintained
 `queueLocalDisplayParameters`: mqweb fix packs can enable DISPLAY for keywords
@@ -61,11 +70,9 @@ probe (or manual test) shows DISPLAY support on the target mqweb level.
 
 Per ADR-0024 §4, remaining work:
 
-1. Probe additional candidates from `QueueLocalDefineOnlyCandidates` (`defopts`,
-   `bothresh`, `boqname`, `usage`, `maxmsglen`) using the same client cache.
-2. Optionally run probes once per `QueueManagerConnection` at Ready and surface
+1. Optionally run probes once per `QueueManagerConnection` at Ready and surface
    displayable sets on QMC status (today: lazy probe on first local `GetQueue`).
-3. Build DISPLAY `responseParameters` from desired keys ∩ displayable set.
+2. Build DISPLAY `responseParameters` from desired keys ∩ displayable set.
 
 Candidates for bulk probe: `QueueLocalDefineOnlyCandidates` in `display_probe.go`.
 

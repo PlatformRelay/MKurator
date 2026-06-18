@@ -405,6 +405,14 @@ func TestIntegration_ProbeQueueLocalAttribute_DisplayProbeMechanism(t *testing.T
 		t.Fatalf("Probe share: %v", err)
 	}
 	t.Logf("share displayable on this mqweb: %v (version-dependent; see DISPLAY_CAPABILITY_PROBE.md)", shareDisplayable)
+
+	for _, attr := range []string{"defopts", "bothresh", "boqname", "usage"} {
+		displayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, name, attr)
+		if err != nil {
+			t.Fatalf("Probe %s: %v", attr, err)
+		}
+		t.Logf("%s displayable on this mqweb: %v", attr, displayable)
+	}
 }
 
 func TestIntegration_GetQueue_LocalShareDriftWhenDisplayable(t *testing.T) {
@@ -420,11 +428,19 @@ func TestIntegration_GetQueue_LocalShareDriftWhenDisplayable(t *testing.T) {
 		_ = c.DeleteQueue(context.Background(), mqadmin.QueueSpec{Name: name, Type: mqadmin.QueueTypeLocal})
 	})
 
-	shareDisplayable, err := c.ProbeQueueLocalAttributeDisplayable(ctx, "SYSTEM.DEFAULT.LOCAL.QUEUE", "share")
-	if err != nil {
-		t.Fatalf("Probe share: %v", err)
+	foundShare := false
+	displayableCandidates := make(map[string]bool)
+	for _, attr := range mqrest.QueueLocalDefineOnlyCandidates {
+		ok, err := c.ProbeQueueLocalAttributeDisplayable(ctx, "SYSTEM.DEFAULT.LOCAL.QUEUE", attr)
+		if err != nil {
+			t.Fatalf("Probe %s: %v", attr, err)
+		}
+		displayableCandidates[attr] = ok
+		if attr == "share" {
+			foundShare = ok
+		}
 	}
-	if !shareDisplayable {
+	if !foundShare {
 		t.Skip("share not displayable on this mqweb; see DISPLAY_CAPABILITY_PROBE.md")
 	}
 
@@ -451,15 +467,31 @@ func TestIntegration_GetQueue_LocalShareDriftWhenDisplayable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveQueueDriftCheckKeys: %v", err)
 	}
-	foundShare := false
 	for _, k := range keys {
 		if k == "share" {
 			foundShare = true
-			break
+		}
+		if displayable, ok := displayableCandidates[k]; ok && !displayable {
+			t.Fatalf("expected %q omitted from drift keys when not displayable, got %v", k, keys)
 		}
 	}
 	if !foundShare {
 		t.Fatalf("expected share in drift keys, got %v", keys)
+	}
+	for attr, displayable := range displayableCandidates {
+		found := false
+		for _, k := range keys {
+			if k == attr {
+				found = true
+				break
+			}
+		}
+		if displayable && !found {
+			t.Fatalf("expected displayable %q in drift keys, got %v", attr, keys)
+		}
+		if !displayable && found {
+			t.Fatalf("expected non-displayable %q omitted from drift keys, got %v", attr, keys)
+		}
 	}
 }
 
