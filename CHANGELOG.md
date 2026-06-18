@@ -9,25 +9,31 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/conduit-ops/MKurator/compare/v0.10.0..v0.11.0) - 2026-06-18
+
+### Features
+
+- **auth:** AUTHREC channel/namelist profile parity (AUTH-9) [5edc84f](https://github.com/conduit-ops/MKurator/commit/5edc84fd592a44e0334133895258199929f38426)
+
+- **channel:** Add RCVR receiver channel type (AUTH-8b) [d63c95a](https://github.com/conduit-ops/MKurator/commit/d63c95ad9007021af16a002f0802dd7557d7f726)
+
+- **channel:** Add SDR sender channel type (AUTH-8a) (#63) ([#63](https://github.com/conduit-ops/MKurator/pull/63), )[50c7bcb](https://github.com/conduit-ops/MKurator/commit/50c7bcb06eebdf88d2471a24bd7e293517ac7cd3)
+
+- **mqrest:** Wire share DISPLAY probe into queue drift (Day 27 MQ-3) (#62) ([#62](https://github.com/conduit-ops/MKurator/pull/62), )[fa61d3f](https://github.com/conduit-ops/MKurator/commit/fa61d3fa444f39fd5e53bab2a160f8f22cb4e88a)
+
+### Testing
+
+- **e2e:** SDR/RCVR kind e2e and envtest (Day 31) (#66) ([#66](https://github.com/conduit-ops/MKurator/pull/66), )[b335ef6](https://github.com/conduit-ops/MKurator/commit/b335ef6)
+
+### Documentation
+
+- **roadmap:** Sync Phase 8c/9 checkboxes (Day 32 DOC-4) (#67) ([#67](https://github.com/conduit-ops/MKurator/pull/67), )[b850f1c](https://github.com/conduit-ops/MKurator/commit/b850f1c)
+
 ## [0.10.0](https://github.com/conduit-ops/MKurator/compare/v0.9.6..v0.10.0) - 2026-06-18
 
 ### Features
 
 - **mqrest:** DISPLAY capability probe spike (Day 22 MQ-1) (#58) ([#58](https://github.com/conduit-ops/MKurator/pull/58), )[7bc65f3](https://github.com/conduit-ops/MKurator/commit/7bc65f3fdfb8e6f14da31dd18601df5dfd048b7c)
-
-### Bug Fixes
-
-- **mqrest:** Stabilize sleep-with-context-cancel unit test [9dc47a1](https://github.com/conduit-ops/MKurator/commit/9dc47a1)
-
-### Documentation
-
-- **observability:** Metrics catalog and ServiceMonitor scrape checklist (#61) ([#61](https://github.com/conduit-ops/MKurator/pull/61), )[0b07c5b](https://github.com/conduit-ops/MKurator/commit/0b07c5b)
-
-### Tooling
-
-- **mq:** mqweb swagger fetch script and `task mq:swagger:fetch` (#59) ([#59](https://github.com/conduit-ops/MKurator/pull/59), )[cd7dee3](https://github.com/conduit-ops/MKurator/commit/cd7dee3)
-
-- **metrics:** Counter increment edge-case unit tests (#60) ([#60](https://github.com/conduit-ops/MKurator/pull/60), )[00ec315](https://github.com/conduit-ops/MKurator/commit/00ec315)
 
 ## [0.9.6](https://github.com/conduit-ops/MKurator/compare/v0.9.5..v0.9.6) - 2026-06-17
 
