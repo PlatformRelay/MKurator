@@ -55,6 +55,9 @@ the same key in `spec.attributes`.
 | `Channel` | `maxInstances`, `maxInstancesClient` | `maxinst`, `maxinstc` | yes |
 | `Channel` | `sslCipherSpec`, `sslClientAuth` | `sslciph`, `sslcauth` | yes |
 
+Typed fields and `spec.attributes` keys in the tables below refer to the same
+reconciliation path once folded.
+
 ## Reconciled object types (v1alpha1)
 
 | CRD | MQ object | `spec.type` |
