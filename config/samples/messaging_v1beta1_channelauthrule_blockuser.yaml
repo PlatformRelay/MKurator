@@ -1,4 +1,4 @@
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: dev-app-blockuser
