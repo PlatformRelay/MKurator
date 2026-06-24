@@ -18,7 +18,7 @@ hide:
 [![Release](https://img.shields.io/github/v/release/conduit-ops/MKurator?label=release)](https://github.com/conduit-ops/MKurator/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/conduit-ops/MKurator/blob/main/LICENSE)
 [![Go](https://img.shields.io/github/go-mod/go-version/conduit-ops/mkurator)](https://pkg.go.dev/github.com/conduit-ops/mkurator)
-[![Container](https://img.shields.io/badge/ghcr.io-conduit-ops%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/conduit-ops/MKurator/pkgs/container/mkurator)
+[![Container](https://img.shields.io/badge/ghcr.io-conduit-ops%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/conduit-ops/packages?repo_name=MKurator)
 
 </p>
 

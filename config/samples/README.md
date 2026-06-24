@@ -47,21 +47,21 @@ this directory.
 
 ```sh
 kubectl apply -f mq-credentials-secret.yaml   # or charts/mkurator/samples/resources/
-kubectl apply -f messaging_v1alpha1_queuemanagerconnection.yaml
+kubectl apply -f messaging_v1beta1_queuemanagerconnection.yaml
 kubectl wait --for=condition=Ready qmc/qm1 -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_queue.yaml
+kubectl apply -f messaging_v1beta1_queue.yaml
 kubectl wait --for=condition=Synced queue/orders -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_topic.yaml
+kubectl apply -f messaging_v1beta1_topic.yaml
 kubectl wait --for=condition=Synced topic/retail-orders -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_channel.yaml
+kubectl apply -f messaging_v1beta1_channel.yaml
 kubectl wait --for=condition=Synced channel/orders-app -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_channelauthrule.yaml
+kubectl apply -f messaging_v1beta1_channelauthrule.yaml
 kubectl wait --for=condition=Synced channelauthrule/dev-app-addressmap -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_channelauthrule_blockuser.yaml
+kubectl apply -f messaging_v1beta1_channelauthrule_blockuser.yaml
 kubectl wait --for=condition=Synced channelauthrule/dev-app-blockuser -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_channelauthrule_blockaddr.yaml
+kubectl apply -f messaging_v1beta1_channelauthrule_blockaddr.yaml
 kubectl wait --for=condition=Synced channelauthrule/dev-app-blockaddr -n mkurator-system --timeout=120s
-kubectl apply -f messaging_v1alpha1_authorityrecord.yaml
+kubectl apply -f messaging_v1beta1_authorityrecord.yaml
 kubectl wait --for=condition=Synced authorityrecord/app-orders-get-put -n mkurator-system --timeout=120s
 ```
 
@@ -73,12 +73,12 @@ kubectl apply -f charts/mkurator/samples/resources/mq-credentials-secret.yaml
 kubectl apply -k config/samples/
 ```
 
-## `messaging_v1alpha1_queuemanagerconnection.yaml`
+## `messaging_v1beta1_queuemanagerconnection.yaml`
 
 Points the operator at one queue manager through mqweb.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
   name: qm1
@@ -132,12 +132,12 @@ passwords to git.
 
 ---
 
-## `messaging_v1alpha1_queue.yaml`
+## `messaging_v1beta1_queue.yaml`
 
 Declares a local queue on the queue manager referenced by `connectionRef`.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: orders
@@ -166,7 +166,7 @@ Helm copy:
 
 ---
 
-## `messaging_v1alpha1_queue_alias.yaml`
+## `messaging_v1beta1_queue_alias.yaml`
 
 Alias queue pointing at `APP.ORDERS` (`targq`).
 
@@ -179,7 +179,7 @@ Verify: `task mq:runmqsc -- "DISPLAY QALIAS('APP.ORDERS.ALIAS') TARGQ DESCR"`
 
 ---
 
-## `messaging_v1alpha1_queue_remote.yaml`
+## `messaging_v1beta1_queue_remote.yaml`
 
 Remote queue definition to `APP.ORDERS` on `QM1` (local demo).
 
@@ -192,12 +192,12 @@ Remote queue definition to `APP.ORDERS` on `QM1` (local demo).
 
 ---
 
-## `messaging_v1alpha1_topic.yaml`
+## `messaging_v1beta1_topic.yaml`
 
 Declares an administrative topic object on the referenced queue manager.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Topic
 metadata:
   name: retail-orders
@@ -233,12 +233,12 @@ Helm copy:
 
 ---
 
-## `messaging_v1alpha1_channel.yaml`
+## `messaging_v1beta1_channel.yaml`
 
 Declares a server-connection channel for inbound client applications.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: orders-app
@@ -273,7 +273,7 @@ Helm copy:
 
 ---
 
-## `messaging_v1alpha1_channelauthrule.yaml`
+## `messaging_v1beta1_channelauthrule.yaml`
 
 Applies an `ADDRESSMAP` CHLAUTH rule for the gitops sample channel name
 (`DEV.APP.SVRCONN.0TLS`). Requires a `Channel` CR in the same namespace with
@@ -288,7 +288,7 @@ matching `spec.channelName` and `spec.connectionRef` (validated at admission).
 
 ---
 
-## `messaging_v1alpha1_channelauthrule_blockuser.yaml`
+## `messaging_v1beta1_channelauthrule_blockuser.yaml`
 
 Optional companion to the `ADDRESSMAP` sample: blocks privileged user IDs on the
 same gitops channel via `TYPE(BLOCKUSER)`.
@@ -304,7 +304,7 @@ Helm copy:
 
 ---
 
-## `messaging_v1alpha1_channelauthrule_blockaddr.yaml`
+## `messaging_v1beta1_channelauthrule_blockaddr.yaml`
 
 Listener-level block shipped with the default sample bundle: `TYPE(BLOCKADDR)` on
 channel `*` for a single IP (TEST-NET-1 documentation range).
@@ -320,7 +320,7 @@ Helm copy:
 
 ---
 
-## `messaging_v1alpha1_authorityrecord.yaml`
+## `messaging_v1beta1_authorityrecord.yaml`
 
 Grants `GET` and `PUT` on queue profile `APP.ORDERS` to principal `app`.
 
