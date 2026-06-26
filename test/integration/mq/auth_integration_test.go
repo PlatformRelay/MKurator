@@ -555,7 +555,7 @@ func TestIntegration_GetChannelAuth_NotFound(t *testing.T) {
 	}
 
 	_, err = c.GetChannelAuth(ctx, mqadmin.ChannelAuthSpec{
-		ChannelName: channelNameForTest(t.Name()+".missing"),
+		ChannelName: channelNameForTest(t.Name() + ".missing"),
 		RuleType:    mqadmin.ChannelAuthRuleTypeAddressMap,
 	})
 	if err == nil || !errors.Is(err, mqadmin.ErrNotFound) {
