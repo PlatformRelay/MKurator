@@ -89,7 +89,7 @@ slices 8d-0–8d-6).
    `v1beta1` for all six kinds — **implemented** (8d-2); envtest round-trip per
    kind (8d-3); dual-version CRD bundle and samples defaulting to `v1beta1` (8d-4).
 
-**Remaining before `v0.12.0` tag:**
+**Completed at the `v0.12.0` tag:**
 
 3. **Deprecation policy** documented in [UPGRADE.md](UPGRADE.md) — migration
    guide and `spec.attributes` timeline (**8d-5**; this doc sync).
@@ -97,11 +97,14 @@ slices 8d-0–8d-6).
    referential `connectionRef` checks on `v1beta1` creates/updates (**8d-5b**).
 5. CI **e2e migration proof** — apply `v1alpha1` CR, upgrade CRDs, assert
    conversion + reconcile green (**8d-6**).
-6. Optional **etcd storage flip** to `v1beta1` hub — separate step after 8d-6 is
-   green; do not run dual storage versions.
 
-Until **8d exit criteria** are met, pin the operator and CRD bundle to a **release
-tag** and read CHANGELOG/UPGRADE before upgrading.
+**Deferred (optional, post-`v0.12.0`):**
+
+6. **etcd storage flip** to `v1beta1` hub — separate step now that 8d-6 is green;
+   do not run dual storage versions.
+
+The **8d exit criteria** are met as of `v0.12.0`; pin the operator and CRD bundle
+to a **release tag** and read CHANGELOG/UPGRADE before upgrading.
 
 ## Deprecation policy (`v1beta1`)
 
