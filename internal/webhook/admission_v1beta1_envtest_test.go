@@ -1,4 +1,4 @@
-package webhookv1beta1
+package webhook_test
 
 import (
 	"context"
@@ -24,6 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	webhookv1alpha1 "github.com/conduit-ops/mkurator/internal/webhook/v1alpha1"
+	webhookv1beta1 "github.com/conduit-ops/mkurator/internal/webhook/v1beta1"
 )
 
 var (
@@ -71,7 +73,8 @@ var _ = BeforeSuite(func() {
 		}),
 	})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(SetupWithManager(mgr)).To(Succeed())
+	Expect(webhookv1alpha1.SetupWithManager(mgr)).To(Succeed())
+	Expect(webhookv1beta1.SetupWithManager(mgr)).To(Succeed())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	webhookCancel = cancel
