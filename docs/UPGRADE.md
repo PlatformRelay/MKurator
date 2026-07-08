@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.11.0   # target release
+VERSION=0.11.1   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -43,6 +43,7 @@ before upgrading.
 
 | From | To | Highlights |
 |------|-----|------------|
+| **0.11.x** | **0.12.x** | **`v1beta1` API** for all six kinds with **conversion webhook** (dual served versions). See [Migrating to v1beta1 (0.11.x → 0.12.x)](#migrating-to-v1beta1-011x--012x) below. |
 | **&lt; 0.5.0** | **0.5.0+** | New CRDs: `ChannelAuthRule`, `AuthorityRecord`. Validating webhooks on by default (cert-manager TLS). Review [INSTALL_AND_USE.md](INSTALL_AND_USE.md) auth sections. |
 | **0.3.x** | **0.4.0+** | Validating webhooks and QMC delete protection. Ensure cert-manager is installed if using Helm/Kustomize webhook bundles. |
 | **0.2.x** | **0.3.0+** | Module and image registry moved to `conduit-ops/MKurator` ([ADR-0006](adr/0006-project-name-kurator.md)). Update `image.repository` / install manifest URLs. |
@@ -50,6 +51,108 @@ before upgrading.
 Semantic versioning: **patch** — bug fixes, safe rolling image bump; **minor** —
 new CR fields or kinds, may need CRD apply; **major** (or `feat!` / `BREAKING CHANGE`)
 — read release notes and ADRs before upgrading production.
+
+## Migrating to v1beta1 (0.11.x → 0.12.x)
+
+Release **0.12.x** introduces **`messaging.mkurator.dev/v1beta1`** for all six
+kinds (`QueueManagerConnection`, `Queue`, `Topic`, `Channel`, `ChannelAuthRule`,
+`AuthorityRecord`) per [ADR-0026](adr/0026-v1beta1-graduation-plan.md). Existing
+`v1alpha1` manifests and etcd objects continue to work — no big-bang rewrite required.
+
+### Upgrade order
+
+Follow the [safe upgrade order](#safe-upgrade-order) above. For this release the
+critical steps are:
+
+1. **CRDs first** — multi-version CRDs add `v1beta1` (`served: true`) alongside
+   `v1alpha1` (still **storage** until a later release proves hub migration).
+   Apply `install-crds.yaml` or `charts/mkurator/crds/` with server-side apply.
+2. **Operator second** — the controller image registers a **conversion webhook**
+   in addition to validating webhooks. Wait for rollout **and** webhook TLS before
+   changing workload CRs (see below).
+3. **Workload CRs last** — optional gradual `apiVersion` bump; stored `v1alpha1`
+   objects convert on read.
+
+```sh
+VERSION=0.12.0   # target release (when tagged)
+
+# 1. CRDs (includes conversion webhook clientConfig)
+kubectl apply --server-side -f install-crds.yaml
+
+# 2. Operator (conversion + validating webhook Deployment)
+kubectl apply -f install.yaml
+kubectl -n mkurator-system rollout status deployment/mkurator-controller-manager
+kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server-cert --timeout=120s
+
+# 3. Verify dual versions are served
+kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1beta1
+kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1alpha1
+```
+
+### Conversion webhook TLS
+
+The conversion webhook shares the same cert-manager posture as validating
+webhooks ([Validating webhooks and cert-manager](#validating-webhooks-and-cert-manager)):
+
+- cert-manager must be healthy before upgrading.
+- The `webhook-server-cert` `Certificate` must reach **Ready** — the API server
+  calls conversion over HTTPS using the same serving Secret as validation.
+- If conversion fails with TLS errors after cert rotation, restart the controller
+  Deployment once.
+
+Conversion is registered on the CRD `spec.conversion` strategy; no separate
+cert-manager `Certificate` is required beyond the existing webhook bundle.
+
+### Gradual `apiVersion` bump
+
+Both **`v1alpha1`** and **`v1beta1`** are **served** for at least **one minor
+release** after `v0.12.0` ships ([ADR-0026](adr/0026-v1beta1-graduation-plan.md)):
+
+| Posture | Version | Meaning |
+|---------|---------|---------|
+| Storage (etcd) | `v1alpha1` | Existing objects stay stored as-is until hub migration is proven in CI |
+| Served (read/write) | `v1alpha1` + `v1beta1` | `kubectl get` may show either version; conversion handles round-trip |
+| Preferred for new YAML | `v1beta1` | Samples in this repo default to `v1beta1` from 8d-4 onward |
+
+**You do not need to rewrite all manifests immediately.** GitOps repos pinned to
+`apiVersion: messaging.mkurator.dev/v1alpha1` keep reconciling. When ready,
+change the `apiVersion` line (and prefer typed fields — see below); conversion
+folds `spec.attributes` map keys into typed fields where unambiguous.
+
+Example:
+
+```yaml
+# Before (still valid through the deprecation window)
+apiVersion: messaging.mkurator.dev/v1alpha1
+kind: Queue
+spec:
+  attributes:
+    maxdepth: "500000"
+
+# After (preferred for new manifests)
+apiVersion: messaging.mkurator.dev/v1beta1
+kind: Queue
+spec:
+  maxDepth: 500000
+```
+
+### `spec.attributes` deprecation timeline
+
+On **`v1beta1`**, map keys that have a typed equivalent (for example `maxdepth` →
+`spec.maxDepth`) are **deprecated**, not removed ([ADR-0021](adr/0021-attribute-api-shape.md),
+[API_STABILITY.md](API_STABILITY.md)):
+
+| Phase | Release | Behaviour |
+|-------|---------|-----------|
+| **Now** | `v0.12.x` | `spec.attributes` remains valid; conversion copies map values into typed fields on read; admission **warnings** when a deprecated map key is used on `v1beta1` creates/updates |
+| **Later** | post-`v0.12` minor or major | Deprecated map keys on **`v1beta1`** may be **rejected** at admission; notice in CHANGELOG and this doc before enforcement |
+| **Escape hatch** | indefinite on `v1beta1` | Keys with **no** typed equivalent stay in `spec.attributes` |
+
+Setting **both** a typed field and the same key in `attributes` is rejected at
+admission (no silent merge). Prefer typed fields in new manifests; use
+`kubectl explain queue.spec.maxDepth --api-version=messaging.mkurator.dev/v1beta1`.
+
+Map-only **`v1alpha1`** manifests are unaffected until you bump `apiVersion`.
 
 ## CRD schema changes and server-side apply
 
@@ -71,7 +174,8 @@ After CRD apply, verify:
 
 ```sh
 kubectl get crd | grep messaging.mkurator.dev
-kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1alpha1
+kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1beta1
+# or v1alpha1 while both versions are served
 ```
 
 ## Validating webhooks and cert-manager

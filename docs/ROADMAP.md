@@ -369,10 +369,15 @@ Per [ADR-0026](adr/0026-v1beta1-graduation-plan.md); bake criterion met (`v0.11.
 
 - [x] **8d-0** graduation plan ADR — conversion scope, hub-spoke storage, deprecation
   policy (docs only; no webhook code).
-- [ ] **8d-1..8d-6** `v1beta1` types, conversion webhook, tests, samples, UPGRADE.md,
-  e2e migration proof.
-- [ ] `v1beta1` graduation of all six kinds with conversion webhook (exit when
-  8d-1..8d-6 complete; target minor e.g. `v0.12.0`).
+- [x] **8d-1** `api/v1beta1` types; CRD multi-version (`served` on both versions).
+- [x] **8d-2** conversion webhook + cert-manager wiring (Kustomize + Helm).
+- [x] **8d-3** per-kind conversion unit tests (table-driven round-trip).
+- [x] **8d-4** Helm/Kustomize CRD bundle serves both versions; samples default `v1beta1`.
+- [ ] **8d-5** UPGRADE.md migration guide + API_STABILITY graduation checklist sync;
+  v1beta1 validating admission (deprecated `attributes` warnings, referential checks).
+- [ ] **8d-6** e2e: apply `v1alpha1` → upgrade CRDs → object converts → reconcile green.
+- [ ] **Exit:** tag **minor** (e.g. `v0.12.0`) when 8d-5 and 8d-6 complete; optional
+  etcd storage flip to `v1beta1` hub after e2e proof.
 
 ## Phase 9 — MQ surface depth (resequenced from Phase 5)
 

@@ -2,5 +2,5 @@
 # Replace OWNER if you fork or use a different registry namespace.
 image:
   repository: ghcr.io/conduit-ops/mkurator
-  tag: "0.1.0"
+  tag: "0.11.1"
   pullPolicy: IfNotPresent
