@@ -28,7 +28,7 @@ guides, examples, ADRs, and engineering standards.
 
 > Status: **Phase 9 breadth shipped on `main`** — SDR/RCVR channels, AUTHREC
 > channel/namelist profiles, DISPLAY capability probing for local queues, with
-> Docker integration and kind e2e coverage. Latest release: **`v0.11.0`**. Extended
+> Docker integration and kind e2e coverage. Latest release: **`v0.12.1`**. Extended
 > CHLAUTH rule types remain in the
 > [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
 
