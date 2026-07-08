@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 )
 
 func TestValidateManagedChannelRef(t *testing.T) {
@@ -77,5 +78,25 @@ func TestValidateManagedChannelRef(t *testing.T) {
 				t.Fatalf("expected type %s, got %s: %v", tt.wantType, errs[0].Type, errs)
 			}
 		})
+	}
+}
+
+func TestValidateManagedChannelRefV1Beta1Fallback(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1beta1.AddToScheme(scheme)
+	channel := &messagingv1beta1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: "ns"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(channel).Build()
+	path := field.NewPath("spec").Child("channelName")
+
+	errs := ValidateManagedChannelRef(context.Background(), cl, "ns", "qm1", "ORDERS.APP", path)
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
 	}
 }

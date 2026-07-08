@@ -10,6 +10,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-messaging-mkurator-dev-v1beta1-authorityrecord
+  failurePolicy: Fail
+  name: vauthorityrecord-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - messaging.mkurator.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - authorityrecords
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-messaging-mkurator-dev-v1alpha1-authorityrecord
   failurePolicy: Fail
   name: vauthorityrecord.kb.io
@@ -23,6 +43,26 @@ webhooks:
     - UPDATE
     resources:
     - authorityrecords
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-messaging-mkurator-dev-v1beta1-channel
+  failurePolicy: Fail
+  name: vchannel-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - messaging.mkurator.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - channels
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -50,6 +90,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-messaging-mkurator-dev-v1beta1-channelauthrule
+  failurePolicy: Fail
+  name: vchannelauthrule-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - messaging.mkurator.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - channelauthrules
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-messaging-mkurator-dev-v1alpha1-channelauthrule
   failurePolicy: Fail
   name: vchannelauthrule.kb.io
@@ -63,6 +123,26 @@ webhooks:
     - UPDATE
     resources:
     - channelauthrules
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-messaging-mkurator-dev-v1beta1-queue
+  failurePolicy: Fail
+  name: vqueue-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - messaging.mkurator.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - queues
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -90,6 +170,27 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-messaging-mkurator-dev-v1beta1-queuemanagerconnection
+  failurePolicy: Fail
+  name: vqueuemanagerconnection-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - messaging.mkurator.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - queuemanagerconnections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-messaging-mkurator-dev-v1alpha1-queuemanagerconnection
   failurePolicy: Fail
   name: vqueuemanagerconnection.kb.io
@@ -104,6 +205,26 @@ webhooks:
     - DELETE
     resources:
     - queuemanagerconnections
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-messaging-mkurator-dev-v1beta1-topic
+  failurePolicy: Fail
+  name: vtopic-v1beta1.kb.io
+  rules:
+  - apiGroups:
+    - messaging.mkurator.dev
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - topics
   sideEffects: None
 - admissionReviewVersions:
   - v1

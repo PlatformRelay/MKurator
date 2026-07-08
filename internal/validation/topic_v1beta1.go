@@ -6,19 +6,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 )
 
-// ValidateQueueSpec runs stateful admission validation for Queue spec fields.
-func ValidateQueueSpec(
+// ValidateTopicSpecV1Beta1 runs stateful admission validation for Topic v1beta1 spec fields.
+func ValidateTopicSpecV1Beta1(
 	ctx context.Context,
 	reader client.Reader,
 	namespace, _ string,
-	spec *messagingv1alpha1.QueueSpec,
+	spec *messagingv1beta1.TopicSpec,
 ) ([]string, field.ErrorList) {
 	errs := ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))
-	warnings := unknownQueueAttributeWarnings(mqadmin.QueueType(spec.Type), spec.Attributes)
+	warnings := deprecatedTopicAttributeWarnings(spec.Attributes)
+	warnings = append(warnings, unknownTopicAttributeWarnings(spec.Attributes)...)
 	return warnings, errs
 }

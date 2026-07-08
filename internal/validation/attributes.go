@@ -3,7 +3,6 @@ package validation
 import (
 	"fmt"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
 	"github.com/conduit-ops/mkurator/internal/mqadmin"
 )
 
@@ -12,23 +11,23 @@ const unknownAttrWarningFmt = "attribute key %q is not in the drift-check allow-
 
 var (
 	queueLocalKnownAttrs = keys(
-		"maxdepth", "descr", "defpsist", "get", "put",
+		attrKeyMaxDepth, attrKeyDescr, "defpsist", "get", "put",
 		"maxmsglen", "share", "defopts", "bothresh", "boqname", "usage",
 		"trigtype", "trigdata", "trigmpri", "trigint", "trigdpth",
 		"cluster", "clusnl",
 	)
-	queueAliasKnownAttrs  = keys("targq", "targtype", "descr", "target")
+	queueAliasKnownAttrs  = keys(attrKeyTargQ, "targtype", attrKeyDescr, attrKeyTarget)
 	queueRemoteKnownAttrs = keys(
-		"rname", "rqmname", "xmitq", "descr",
-		"remotequeue", "remotemanager", "transmissionqueue",
+		"rname", attrKeyRQMName, attrKeyXmitQ, attrKeyDescr,
+		"remotequeue", attrKeyRemoteMgr, attrKeyXmitQLong,
 	)
 	topicKnownAttrs = keys(
-		"topstr", "topicstr", "descr", mqadmin.AttrKeyPub, mqadmin.AttrKeySub, "defpsist",
+		attrKeyTopStr, attrKeyTopicStr, attrKeyDescr, mqadmin.AttrKeyPub, mqadmin.AttrKeySub, "defpsist",
 		"pubscope", "subscope", "toptype", "cluster",
 	)
 	channelKnownAttrs = keys(
-		"descr", "trptype", "sharecnv", "maxmsgl", "mcauser", "maxinst", "maxinstc",
-		"sslciph", "sslcauth", "conname", "xmitq",
+		attrKeyDescr, "trptype", "sharecnv", attrKeyMaxMsgL, "mcauser", "maxinst", "maxinstc",
+		"sslciph", "sslcauth", attrKeyConName, attrKeyXmitQ,
 	)
 )
 
@@ -40,9 +39,9 @@ func keys(names ...string) map[string]struct{} {
 	return out
 }
 
-func unknownQueueAttributeWarnings(qType messagingv1alpha1.QueueType, attrs map[string]string) []string {
+func unknownQueueAttributeWarnings(qType mqadmin.QueueType, attrs map[string]string) []string {
 	known := queueLocalKnownAttrs
-	switch mqadmin.NormalizeQueueType(mqadmin.QueueType(qType)) {
+	switch mqadmin.NormalizeQueueType(qType) {
 	case mqadmin.QueueTypeAlias:
 		known = queueAliasKnownAttrs
 	case mqadmin.QueueTypeRemote:

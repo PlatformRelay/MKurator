@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 )
 
 // ValidateManagedChannelRef ensures a Channel CR exists in the same namespace with matching
@@ -26,8 +28,10 @@ func ValidateManagedChannelRef(
 
 	var channels messagingv1alpha1.ChannelList
 	if err := reader.List(ctx, &channels, client.InNamespace(namespace)); err != nil {
-		return field.ErrorList{
-			field.InternalError(path, fmt.Errorf("list Channels: %w", err)),
+		if !k8sruntime.IsNotRegisteredError(err) {
+			return field.ErrorList{
+				field.InternalError(path, fmt.Errorf("list Channels: %w", err)),
+			}
 		}
 	}
 
@@ -42,6 +46,34 @@ func ValidateManagedChannelRef(
 		}
 		match = ch
 		break
+	}
+	if match == nil {
+		var channelsV1Beta1 messagingv1beta1.ChannelList
+		if err := reader.List(ctx, &channelsV1Beta1, client.InNamespace(namespace)); err != nil {
+			if !k8sruntime.IsNotRegisteredError(err) {
+				return field.ErrorList{
+					field.InternalError(path, fmt.Errorf("list Channels (v1beta1): %w", err)),
+				}
+			}
+		}
+		for i := range channelsV1Beta1.Items {
+			ch := &channelsV1Beta1.Items[i]
+			if ch.Spec.ChannelName != channelName {
+				continue
+			}
+			if connectionRefName != "" && ch.Spec.ConnectionRef.Name != connectionRefName {
+				continue
+			}
+			if ch.DeletionTimestamp != nil {
+				return field.ErrorList{
+					field.Invalid(path, channelName, fmt.Sprintf(
+						"Channel %q is deleting; wait for deletion to finish or point channelName at another Channel",
+						ch.Name,
+					)),
+				}
+			}
+			return errs
+		}
 	}
 	if match == nil {
 		return field.ErrorList{

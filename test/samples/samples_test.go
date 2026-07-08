@@ -2,7 +2,6 @@ package samples_test
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -64,19 +63,6 @@ func loadScheme(t *testing.T) *k8sruntime.Scheme {
 		t.Fatalf("add corev1: %v", err)
 	}
 	return s
-}
-
-func convertSpec[T any, U any](t *testing.T, in *T) *U {
-	t.Helper()
-	data, err := json.Marshal(in)
-	if err != nil {
-		t.Fatalf("marshal spec: %v", err)
-	}
-	var out U
-	if err := json.Unmarshal(data, &out); err != nil {
-		t.Fatalf("unmarshal spec: %v", err)
-	}
-	return &out
 }
 
 func decodeObject(t *testing.T, path string) client.Object {
@@ -166,22 +152,7 @@ func TestConfigSamplesAdmissionValidation(t *testing.T) {
 
 	objects := make([]client.Object, 0, len(paths)+1)
 	for _, path := range paths {
-		obj := decodeObject(t, path)
-		if qmc, ok := obj.(*messagingv1beta1.QueueManagerConnection); ok {
-			spec := convertSpec[
-				messagingv1beta1.QueueManagerConnectionSpec,
-				messagingv1alpha1.QueueManagerConnectionSpec,
-			](t, &qmc.Spec)
-			alpha := &messagingv1alpha1.QueueManagerConnection{
-				ObjectMeta: qmc.ObjectMeta,
-				Spec:       *spec,
-			}
-			alpha.APIVersion = messagingv1alpha1.GroupVersion.String()
-			alpha.Kind = "QueueManagerConnection"
-			objects = append(objects, alpha)
-			continue
-		}
-		objects = append(objects, obj)
+		objects = append(objects, decodeObject(t, path))
 	}
 
 	secret := &corev1.Secret{
@@ -193,26 +164,23 @@ func TestConfigSamplesAdmissionValidation(t *testing.T) {
 
 	for _, obj := range objects {
 		switch o := obj.(type) {
-		case *messagingv1alpha1.QueueManagerConnection:
-			_, errs := validation.ValidateQueueManagerConnectionSpec(
+		case *messagingv1beta1.QueueManagerConnection:
+			_, errs := validation.ValidateQueueManagerConnectionSpecV1Beta1(
 				ctx, cl, o.Namespace, o.Annotations, &o.Spec,
 			)
 			if len(errs) > 0 {
 				t.Fatalf("QueueManagerConnection/%s: %v", o.Name, errs)
 			}
 		case *messagingv1beta1.Queue:
-			spec := convertSpec[messagingv1beta1.QueueSpec, messagingv1alpha1.QueueSpec](t, &o.Spec)
-			if _, errs := validation.ValidateQueueSpec(ctx, cl, o.Namespace, o.Name, spec); len(errs) > 0 {
+			if _, errs := validation.ValidateQueueSpecV1Beta1(ctx, cl, o.Namespace, o.Name, &o.Spec); len(errs) > 0 {
 				t.Fatalf("Queue/%s: %v", o.Name, errs)
 			}
 		case *messagingv1beta1.Topic:
-			spec := convertSpec[messagingv1beta1.TopicSpec, messagingv1alpha1.TopicSpec](t, &o.Spec)
-			if _, errs := validation.ValidateTopicSpec(ctx, cl, o.Namespace, o.Name, spec); len(errs) > 0 {
+			if _, errs := validation.ValidateTopicSpecV1Beta1(ctx, cl, o.Namespace, o.Name, &o.Spec); len(errs) > 0 {
 				t.Fatalf("Topic/%s: %v", o.Name, errs)
 			}
 		case *messagingv1beta1.Channel:
-			spec := convertSpec[messagingv1beta1.ChannelSpec, messagingv1alpha1.ChannelSpec](t, &o.Spec)
-			if _, errs := validation.ValidateChannelSpec(ctx, cl, o.Namespace, o.Name, spec); len(errs) > 0 {
+			if _, errs := validation.ValidateChannelSpecV1Beta1(ctx, cl, o.Namespace, o.Name, &o.Spec); len(errs) > 0 {
 				t.Fatalf("Channel/%s: %v", o.Name, errs)
 			}
 		case *messagingv1beta1.ChannelAuthRule, *messagingv1beta1.AuthorityRecord:

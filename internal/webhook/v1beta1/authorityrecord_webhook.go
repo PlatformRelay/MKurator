@@ -1,0 +1,62 @@
+//nolint:dupl // workload webhook validators share the same controller-runtime shape
+package webhookv1beta1
+
+import (
+	"context"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	"github.com/conduit-ops/mkurator/internal/validation"
+)
+
+//nolint:lll // kubebuilder webhook marker is a single line
+// +kubebuilder:webhook:path=/validate-messaging-mkurator-dev-v1beta1-authorityrecord,mutating=false,failurePolicy=fail,sideEffects=None,groups=messaging.mkurator.dev,resources=authorityrecords,verbs=create;update,versions=v1beta1,name=vauthorityrecord-v1beta1.kb.io,admissionReviewVersions=v1
+
+type authorityRecordCustomValidator struct {
+	Client client.Reader
+}
+
+var _ admission.Validator[*messagingv1beta1.AuthorityRecord] = &authorityRecordCustomValidator{}
+
+func setupAuthorityRecordWebhook(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr, &messagingv1beta1.AuthorityRecord{}).
+		WithValidator(&authorityRecordCustomValidator{Client: mgr.GetClient()}).
+		Complete()
+}
+
+func (v *authorityRecordCustomValidator) ValidateCreate(
+	ctx context.Context,
+	auth *messagingv1beta1.AuthorityRecord,
+) (admission.Warnings, error) {
+	return validateCreateUpdate(ctx, v.Client, auth, v.validateRecord, validation.AuthorityRecordInvalidV1Beta1)
+}
+
+func (v *authorityRecordCustomValidator) ValidateUpdate(
+	ctx context.Context,
+	_ *messagingv1beta1.AuthorityRecord,
+	newAuth *messagingv1beta1.AuthorityRecord,
+) (admission.Warnings, error) {
+	if newAuth.DeletionTimestamp != nil {
+		return nil, nil
+	}
+	return validateCreateUpdate(ctx, v.Client, newAuth, v.validateRecord, validation.AuthorityRecordInvalidV1Beta1)
+}
+
+func (v *authorityRecordCustomValidator) ValidateDelete(
+	_ context.Context,
+	_ *messagingv1beta1.AuthorityRecord,
+) (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (v *authorityRecordCustomValidator) validateRecord(
+	ctx context.Context,
+	reader client.Reader,
+	auth *messagingv1beta1.AuthorityRecord,
+) ([]string, field.ErrorList) {
+	return nil, validation.ValidateAuthorityRecordSpecV1Beta1(ctx, reader, auth.Namespace, auth.Name, &auth.Spec)
+}

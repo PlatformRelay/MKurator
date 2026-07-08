@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
 )
 
 func TestValidateQueueManagerConnectionDeleteWithTopic(t *testing.T) {
@@ -268,7 +269,7 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 	})
 	t.Run("no warning when username present", func(t *testing.T) {
 		t.Parallel()
-		for _, key := range []string{"username", "user", "mqAdminUser"} {
+		for _, key := range credentialsSecretUsernameKeys {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
 				Data:       map[string][]byte{key: []byte("mquser"), "password": []byte("x")},
@@ -284,4 +285,69 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 			}
 		}
 	})
+}
+
+func TestValidateQueueManagerConnectionDeleteWithV1Beta1Dependents(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1beta1.AddToScheme(scheme)
+
+	conn := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://mq.example:9443",
+			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+		},
+	}
+	queue := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+		},
+	}
+	topic := &messagingv1beta1.Topic{
+		ObjectMeta: metav1.ObjectMeta{Name: "events", Namespace: "ns"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			TopicName:     "RETAIL.ORDERS",
+		},
+	}
+	channel := &messagingv1beta1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: "ns"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+		},
+	}
+	car := &messagingv1beta1.ChannelAuthRule{
+		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
+			Address:       "*",
+		},
+	}
+	auth := &messagingv1beta1.AuthorityRecord{
+		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS",
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
+			Principal:     "app",
+			Authorities:   []string{"GET"},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(conn, queue, topic, channel, car, auth).
+		Build()
+
+	errs := ValidateQueueManagerConnectionDeleteV1Beta1(context.Background(), cl, conn)
+	if len(errs) == 0 {
+		t.Fatal("expected delete blocked")
+	}
 }

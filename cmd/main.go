@@ -29,6 +29,7 @@ import (
 	"github.com/conduit-ops/mkurator/internal/logging"
 	webhookconversion "github.com/conduit-ops/mkurator/internal/webhook/conversion"
 	webhookv1alpha1 "github.com/conduit-ops/mkurator/internal/webhook/v1alpha1"
+	webhookv1beta1 "github.com/conduit-ops/mkurator/internal/webhook/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -301,6 +302,10 @@ func main() {
 	}
 	if err := webhookv1alpha1.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup webhooks")
+		os.Exit(1)
+	}
+	if err := webhookv1beta1.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup v1beta1 webhooks")
 		os.Exit(1)
 	}
 
