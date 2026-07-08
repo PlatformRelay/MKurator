@@ -1,4 +1,4 @@
-package webhookv1alpha1
+package admission_test
 
 import (
 	"context"
@@ -24,6 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	webhookv1alpha1 "github.com/conduit-ops/mkurator/internal/webhook/v1alpha1"
+	webhookv1beta1 "github.com/conduit-ops/mkurator/internal/webhook/v1beta1"
 )
 
 var (
@@ -33,9 +36,9 @@ var (
 	webhookCancel    context.CancelFunc
 )
 
-func TestWebhookAdmission(t *testing.T) {
+func TestValidatingWebhookAdmission(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Webhook Admission Suite")
+	RunSpecs(t, "Validating Webhook Admission Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -44,11 +47,11 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping webhook test environment")
 	webhookTestEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "..", "config", "crd", "bases"),
+			filepath.Join("..", "..", "config", "crd", "bases"),
 		},
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
 			Paths: []string{
-				filepath.Join("..", "..", "..", "config", "webhook", "manifests.yaml"),
+				filepath.Join("..", "..", "config", "webhook", "manifests.yaml"),
 			},
 		},
 	}
@@ -57,6 +60,7 @@ var _ = BeforeSuite(func() {
 	webhookCfg, err = webhookTestEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(messagingv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(messagingv1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(corev1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	webhookK8sClient, err = client.New(webhookCfg, client.Options{Scheme: scheme.Scheme})
@@ -72,7 +76,8 @@ var _ = BeforeSuite(func() {
 		}),
 	})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(SetupWithManager(mgr)).To(Succeed())
+	Expect(webhookv1alpha1.SetupWithManager(mgr)).To(Succeed())
+	Expect(webhookv1beta1.SetupWithManager(mgr)).To(Succeed())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	webhookCancel = cancel
@@ -114,6 +119,104 @@ var _ = Describe("Validating admission webhooks", func() {
 			},
 		}
 		err := webhookK8sClient.Create(ctx, q)
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+	})
+
+	It("denies v1beta1 Queue when connectionRef target is missing", func() {
+		ctx := context.Background()
+		q := &messagingv1beta1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "bad-queue-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "missing-qmc"},
+				QueueName:     "APP.ORDERS",
+			},
+		}
+		err := webhookK8sClient.Create(ctx, q)
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsInvalid(err)).To(BeTrue())
+	})
+
+	It("allows valid v1beta1 Topic and Channel when connection exists", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		Expect(webhookK8sClient.Create(ctx, sampleWebhookConnectionV1Beta1(ns, "qm-beta"))).To(Succeed())
+
+		topic := &messagingv1beta1.Topic{
+			ObjectMeta: metav1.ObjectMeta{Name: "good-topic-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.TopicSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-beta"},
+				TopicName:     "RETAIL.ORDERS",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, topic)).To(Succeed())
+
+		channel := &messagingv1beta1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "good-channel-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-beta"},
+				ChannelName:   "ORDERS.APP",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, channel)).To(Succeed())
+	})
+
+	It("allows valid v1beta1 ChannelAuthRule and AuthorityRecord", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		Expect(webhookK8sClient.Create(ctx, sampleWebhookConnectionV1Beta1(ns, "qm-beta-auth"))).To(Succeed())
+		Expect(webhookK8sClient.Create(ctx, &messagingv1beta1.Channel{
+			ObjectMeta: metav1.ObjectMeta{Name: "orders-app-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-beta-auth"},
+				ChannelName:   "ORDERS.APP",
+			},
+		})).To(Succeed())
+
+		rule := &messagingv1beta1.ChannelAuthRule{
+			ObjectMeta: metav1.ObjectMeta{Name: "good-car-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-beta-auth"},
+				ChannelName:   "ORDERS.APP",
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
+				Address:       "*",
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, rule)).To(Succeed())
+
+		auth := &messagingv1beta1.AuthorityRecord{
+			ObjectMeta: metav1.ObjectMeta{Name: "good-auth-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.AuthorityRecordSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-beta-auth"},
+				Profile:       "APP.ORDERS",
+				ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
+				Principal:     "app",
+				Authorities:   []string{"GET"},
+			},
+		}
+		Expect(webhookK8sClient.Create(ctx, auth)).To(Succeed())
+	})
+
+	It("denies v1beta1 QueueManagerConnection delete when dependents exist", func() {
+		ctx := context.Background()
+		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+		})).To(Succeed())
+		conn := sampleWebhookConnectionV1Beta1(ns, "qm-beta-delete")
+		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+		Expect(webhookK8sClient.Create(ctx, &messagingv1beta1.Queue{
+			ObjectMeta: metav1.ObjectMeta{Name: "dep-queue-v1beta1", Namespace: ns},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-beta-delete"},
+				QueueName:     "APP.ORDERS",
+			},
+		})).To(Succeed())
+
+		err := webhookK8sClient.Delete(ctx, conn)
 		Expect(err).To(HaveOccurred())
 		Expect(apierrors.IsInvalid(err)).To(BeTrue())
 	})
@@ -683,6 +786,30 @@ var _ = Describe("Validating admission webhooks", func() {
 		})
 	})
 
+	Describe("v1beta1 deprecated spec.attributes warnings", func() {
+		BeforeEach(func() {
+			ctx := context.Background()
+			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+			})).To(Succeed())
+			Expect(webhookK8sClient.Create(ctx, sampleWebhookConnectionV1Beta1(ns, "qm-v1beta1"))).To(Succeed())
+		})
+
+		It("allows Queue create and warns on deprecated attribute keys", func() {
+			ctx := context.Background()
+			warningClient, capture := newWarningCapturingClient()
+			q := &messagingv1beta1.Queue{
+				ObjectMeta: metav1.ObjectMeta{Name: "warn-queue-v1beta1", Namespace: ns},
+				Spec: messagingv1beta1.QueueSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm-v1beta1"},
+					QueueName:     "APP.WARN.BETA",
+					Attributes:    map[string]string{"maxdepth": "1000"},
+				},
+			}
+			Expect(warningClient.Create(ctx, q)).To(Succeed())
+			expectDeprecatedAttributeWarning(capture, "maxdepth", "spec.maxDepth")
+		})
+	})
 })
 
 func sampleWebhookConnection(ns, name string) *messagingv1alpha1.QueueManagerConnection {
@@ -705,7 +832,26 @@ func cleanupWebhookNamespace(ctx context.Context, ns string) {
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.AuthorityRecord{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Channel{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnection{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Queue{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Topic{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.ChannelAuthRule{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.AuthorityRecord{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Channel{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.QueueManagerConnection{}, client.InNamespace(ns))
 	_ = webhookK8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(ns))
+}
+
+func sampleWebhookConnectionV1Beta1(ns, name string) *messagingv1beta1.QueueManagerConnection {
+	return &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://mq.example:9443",
+			CredentialsSecretRef: messagingv1beta1.SecretReference{
+				Name: "creds",
+			},
+		},
+	}
 }
 
 type warningCapture struct {
