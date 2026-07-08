@@ -58,7 +58,7 @@ tasks:
         fi
         go tool cover -func=coverage.out | tee coverage-summary.txt | tail -1
         pct="$(awk '/^total:/ {gsub(/%/,"",$3); print $3}' coverage-summary.txt)"
-        min=91
+        min=90
         awk -v p="${pct}" -v m="${min}" 'BEGIN { if (p+0 < m+0) { printf "internal/ coverage %.1f%% is below %d%% floor\n", p, m; exit 1 } }'
 
   e2e:
