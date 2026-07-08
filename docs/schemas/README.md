@@ -9,6 +9,15 @@ IBM does **not** ship a static OpenAPI file in the product download or on GitHub
 | `mqsc-runcommand.schema.json` | IBM documentation (stable) | Request/response shapes for the `/mqsc` admin endpoint |
 | `mqweb-swagger.json` | **You generate this** | Full Swagger 2.0 from your queue manager |
 
+### `mqweb-swagger.json` export target
+
+Pin each committed export to the integration MQ image tag in
+[`hack/mq-docker/docker-compose.yml`](../../hack/mq-docker/docker-compose.yml)
+(currently **`icr.io/ibm-messaging/mq:9.4.5.1-r1`**, IBM MQ **9.4.5.1**).
+
+After fetching, record the image tag here so reviewers know which mqweb build
+the OpenAPI snapshot matches.
+
 ## Obtain the complete Swagger schema
 
 1. Enable API discovery in `mqwebuser.xml`:
@@ -36,7 +45,7 @@ task mq:integration:wait
 task mq:swagger:fetch
 ```
 
-4. Commit `mqweb-swagger.json` with a note of the IBM MQ version it was exported from (e.g. `9.4.2`).
+4. Commit `mqweb-swagger.json` with a note of the IBM MQ version it was exported from (see export target above).
 
 Interactive explorer: `https://host:port/ibm/api/explorer`
 
