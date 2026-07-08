@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.11.1   # target release
+VERSION=0.12.1   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -74,7 +74,7 @@ critical steps are:
    objects convert on read.
 
 ```sh
-VERSION=0.12.0   # target release (when tagged)
+VERSION=0.12.1   # target release
 
 # 1. CRDs (includes conversion webhook clientConfig)
 kubectl apply --server-side -f install-crds.yaml
@@ -106,7 +106,7 @@ cert-manager `Certificate` is required beyond the existing webhook bundle.
 ### Gradual `apiVersion` bump
 
 Both **`v1alpha1`** and **`v1beta1`** are **served** for at least **one minor
-release** after `v0.12.0` ships ([ADR-0026](adr/0026-v1beta1-graduation-plan.md)):
+release** starting with `v0.12.0` ([ADR-0026](adr/0026-v1beta1-graduation-plan.md)):
 
 | Posture | Version | Meaning |
 |---------|---------|---------|
