@@ -269,7 +269,7 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 	})
 	t.Run("no warning when username present", func(t *testing.T) {
 		t.Parallel()
-		for _, key := range []string{"username", "user", "mqAdminUser"} {
+		for _, key := range credentialsSecretUsernameKeys {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"},
 				Data:       map[string][]byte{key: []byte("mquser"), "password": []byte("x")},

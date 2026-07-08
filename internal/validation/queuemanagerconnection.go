@@ -19,6 +19,8 @@ import (
 const insecureTLSWithoutOptInMsg = "tls.insecureSkipVerify requires annotation " +
 	messagingv1alpha1.AllowInsecureTLSAnnotation + `="true" (dev/local only; do not use in production)`
 
+var credentialsSecretUsernameKeys = []string{"username", "user", "mqAdminUser"}
+
 const credentialsUsernameDefaultWarningFmt = `credentials Secret %q has no username key ` +
 	`(expected one of username, user, or mqAdminUser); mqweb login will default to "admin" — ` +
 	`set an explicit username for production`
@@ -68,7 +70,7 @@ func credentialsSecretUsernameWarnings(secret *corev1.Secret) []string {
 }
 
 func credentialsSecretHasUsername(data map[string][]byte) bool {
-	for _, key := range []string{"username", "user", "mqAdminUser"} {
+	for _, key := range credentialsSecretUsernameKeys {
 		if v, ok := data[key]; ok && len(v) > 0 {
 			return true
 		}
@@ -113,6 +115,7 @@ type connectionDependent struct {
 	name string
 }
 
+//nolint:gocyclo // lists v1alpha1 and v1beta1 dependents per MQ object kind.
 func listConnectionDependents(
 	ctx context.Context,
 	reader client.Reader,
