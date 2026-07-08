@@ -10,7 +10,6 @@ import (
 )
 
 func TestRecordReconcile(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, ReconcileTotal, ControllerQueue, ResultSuccess)
 	RecordReconcile(ControllerQueue, nil)
 	after := counterValue(t, ReconcileTotal, ControllerQueue, ResultSuccess)
@@ -27,7 +26,6 @@ func TestRecordReconcile(t *testing.T) {
 }
 
 func TestRecordReconcile_errorIncrementsResultErrorTotal(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, ReconcileTotal, ControllerTopic, ResultError)
 	RecordReconcile(ControllerTopic, errors.New("reconcile failed"))
 	after := counterValue(t, ReconcileTotal, ControllerTopic, ResultError)
@@ -37,7 +35,6 @@ func TestRecordReconcile_errorIncrementsResultErrorTotal(t *testing.T) {
 }
 
 func TestRecordReconcile_successDoesNotIncrementErrors(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, ReconcileErrors, ControllerChannel)
 	RecordReconcile(ControllerChannel, nil)
 	after := counterValue(t, ReconcileErrors, ControllerChannel)
@@ -47,7 +44,6 @@ func TestRecordReconcile_successDoesNotIncrementErrors(t *testing.T) {
 }
 
 func TestRecordReconcile_wrappedErrorCountsAsError(t *testing.T) {
-	t.Parallel()
 	root := errors.New("mqweb timeout")
 	wrapped := fmt.Errorf("define queue: %w", root)
 
@@ -65,7 +61,6 @@ func TestRecordReconcile_wrappedErrorCountsAsError(t *testing.T) {
 }
 
 func TestRecordReconcile_controllerLabelCardinality(t *testing.T) {
-	t.Parallel()
 	controllers := []string{
 		ControllerQueue,
 		ControllerTopic,
@@ -76,7 +71,6 @@ func TestRecordReconcile_controllerLabelCardinality(t *testing.T) {
 	}
 	for _, ctrl := range controllers {
 		t.Run(ctrl, func(t *testing.T) {
-			t.Parallel()
 			before := counterValue(t, ReconcileTotal, ctrl, ResultSuccess)
 			RecordReconcile(ctrl, nil)
 			after := counterValue(t, ReconcileTotal, ctrl, ResultSuccess)
@@ -88,7 +82,6 @@ func TestRecordReconcile_controllerLabelCardinality(t *testing.T) {
 }
 
 func TestRecordDriftDetected(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, DriftDetectedTotal, ControllerQueue)
 	RecordDriftDetected(ControllerQueue)
 	after := counterValue(t, DriftDetectedTotal, ControllerQueue)
@@ -98,7 +91,6 @@ func TestRecordDriftDetected(t *testing.T) {
 }
 
 func TestRecordDriftDetected_controllerLabelCardinality(t *testing.T) {
-	t.Parallel()
 	workloadControllers := []string{
 		ControllerQueue,
 		ControllerTopic,
@@ -108,7 +100,6 @@ func TestRecordDriftDetected_controllerLabelCardinality(t *testing.T) {
 	}
 	for _, ctrl := range workloadControllers {
 		t.Run(ctrl, func(t *testing.T) {
-			t.Parallel()
 			before := counterValue(t, DriftDetectedTotal, ctrl)
 			RecordDriftDetected(ctrl)
 			after := counterValue(t, DriftDetectedTotal, ctrl)
@@ -120,7 +111,6 @@ func TestRecordDriftDetected_controllerLabelCardinality(t *testing.T) {
 }
 
 func TestRecordMQOperation(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, MQOperationsTotal, MQOpPing, ResultSuccess)
 	RecordMQOperation(MQOpPing, nil)
 	after := counterValue(t, MQOperationsTotal, MQOpPing, ResultSuccess)
@@ -137,7 +127,6 @@ func TestRecordMQOperation(t *testing.T) {
 }
 
 func TestRecordMQOperation_successDoesNotIncrementErrorResult(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, MQOperationsTotal, MQOpGetQueue, ResultError)
 	RecordMQOperation(MQOpGetQueue, nil)
 	after := counterValue(t, MQOperationsTotal, MQOpGetQueue, ResultError)
@@ -147,7 +136,6 @@ func TestRecordMQOperation_successDoesNotIncrementErrorResult(t *testing.T) {
 }
 
 func TestRecordMQOperation_wrappedErrorCountsAsError(t *testing.T) {
-	t.Parallel()
 	wrapped := fmt.Errorf("get topic: %w", errors.New("404"))
 
 	before := counterValue(t, MQOperationsTotal, MQOpGetTopic, ResultError)
@@ -159,7 +147,6 @@ func TestRecordMQOperation_wrappedErrorCountsAsError(t *testing.T) {
 }
 
 func TestRecordMQOperation_operationLabelCardinality(t *testing.T) {
-	t.Parallel()
 	operations := []string{
 		MQOpPing,
 		MQOpGetQueue,
@@ -181,7 +168,6 @@ func TestRecordMQOperation_operationLabelCardinality(t *testing.T) {
 	}
 	for _, op := range operations {
 		t.Run(op, func(t *testing.T) {
-			t.Parallel()
 			before := counterValue(t, MQOperationsTotal, op, ResultSuccess)
 			RecordMQOperation(op, nil)
 			after := counterValue(t, MQOperationsTotal, op, ResultSuccess)
@@ -193,7 +179,6 @@ func TestRecordMQOperation_operationLabelCardinality(t *testing.T) {
 }
 
 func TestRecordCircuitBreakerTransition(t *testing.T) {
-	t.Parallel()
 	before := counterValue(t, CircuitBreakerTransitionsTotal, "closed", "open")
 	RecordCircuitBreakerTransition("closed", "open")
 	after := counterValue(t, CircuitBreakerTransitionsTotal, "closed", "open")
@@ -203,7 +188,6 @@ func TestRecordCircuitBreakerTransition(t *testing.T) {
 }
 
 func TestRecordCircuitBreakerTransition_labelCardinality(t *testing.T) {
-	t.Parallel()
 	transitions := [][2]string{
 		{"closed", "open"},
 		{"open", "half_open"},
@@ -213,7 +197,6 @@ func TestRecordCircuitBreakerTransition_labelCardinality(t *testing.T) {
 	for _, pair := range transitions {
 		from, to := pair[0], pair[1]
 		t.Run(from+"->"+to, func(t *testing.T) {
-			t.Parallel()
 			before := counterValue(t, CircuitBreakerTransitionsTotal, from, to)
 			RecordCircuitBreakerTransition(from, to)
 			after := counterValue(t, CircuitBreakerTransitionsTotal, from, to)
