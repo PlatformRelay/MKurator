@@ -7,17 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
-## [Unreleased]
+## [0.12.0](https://github.com/conduit-ops/MKurator/compare/v0.11.1..v0.12.0) - 2026-07-08
+
+### Bug Fixes
+
+- **validation:** Satisfy lint for v1beta1 admission [2fd2371](https://github.com/conduit-ops/MKurator/commit/2fd23711feb44bb8a7a878f584308650f70c3577)
+
+
+### Features
+
+- **webhook:** Add v1beta1 validating admission [077d607](https://github.com/conduit-ops/MKurator/commit/077d607c76814c835569c6f2748deef4d99ccabb)
+
+- **samples:** Default sample CRs to v1beta1 (8d-4) [402457c](https://github.com/conduit-ops/MKurator/commit/402457cc6a08bd42776109d50de34ad0b8d46c5d)
+
+- **webhook:** Conversion webhook for v1beta1 hub (8d-2) [37b5fc4](https://github.com/conduit-ops/MKurator/commit/37b5fc449cc9917bf6020d52f96eb04cc3d776bc)
+
+- **api:** Scaffold v1beta1 types and multi-version CRDs (8d-1) (#71) ([#71](https://github.com/conduit-ops/MKurator/pull/71), )[037b0f3](https://github.com/conduit-ops/MKurator/commit/037b0f31315c5c597fa59f414d53f0274de7dc3a)
+
+
+### Refactoring
+
+- **webhook:** Split v1beta1 envtest suite [6c6f050](https://github.com/conduit-ops/MKurator/commit/6c6f050b843b5d92754aa112def86f1795f5ee20)
 
 ## [0.11.1](https://github.com/conduit-ops/MKurator/compare/v0.11.0..v0.11.1) - 2026-06-18
 
 ### Features
 
 - **mqrest:** Probe all QLOCAL define-only candidates (#69) ([#69](https://github.com/conduit-ops/MKurator/pull/69), )[a26127d](https://github.com/conduit-ops/MKurator/commit/a26127d86d6a8a8b022536f197ad8b60d038758a)
-
-### Documentation
-
-- **install:** Bump version pins to v0.11.0 (Day 33 DOC-5) (#68) ([#68](https://github.com/conduit-ops/MKurator/pull/68), )[0287e41](https://github.com/conduit-ops/MKurator/commit/0287e41)
 
 ## [0.11.0](https://github.com/conduit-ops/MKurator/compare/v0.10.0..v0.11.0) - 2026-06-18
 
@@ -30,14 +46,6 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 - **channel:** Add SDR sender channel type (AUTH-8a) (#63) ([#63](https://github.com/conduit-ops/MKurator/pull/63), )[50c7bcb](https://github.com/conduit-ops/MKurator/commit/50c7bcb06eebdf88d2471a24bd7e293517ac7cd3)
 
 - **mqrest:** Wire share DISPLAY probe into queue drift (Day 27 MQ-3) (#62) ([#62](https://github.com/conduit-ops/MKurator/pull/62), )[fa61d3f](https://github.com/conduit-ops/MKurator/commit/fa61d3fa444f39fd5e53bab2a160f8f22cb4e88a)
-
-### Testing
-
-- **e2e:** SDR/RCVR kind e2e and envtest (Day 31) (#66) ([#66](https://github.com/conduit-ops/MKurator/pull/66), )[b335ef6](https://github.com/conduit-ops/MKurator/commit/b335ef6)
-
-### Documentation
-
-- **roadmap:** Sync Phase 8c/9 checkboxes (Day 32 DOC-4) (#67) ([#67](https://github.com/conduit-ops/MKurator/pull/67), )[b850f1c](https://github.com/conduit-ops/MKurator/commit/b850f1c)
 
 ## [0.10.0](https://github.com/conduit-ops/MKurator/compare/v0.9.6..v0.10.0) - 2026-06-18
 

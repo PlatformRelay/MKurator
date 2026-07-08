@@ -373,11 +373,11 @@ Per [ADR-0026](adr/0026-v1beta1-graduation-plan.md); bake criterion met (`v0.11.
 - [x] **8d-2** conversion webhook + cert-manager wiring (Kustomize + Helm).
 - [x] **8d-3** per-kind conversion unit tests (table-driven round-trip).
 - [x] **8d-4** Helm/Kustomize CRD bundle serves both versions; samples default `v1beta1`.
-- [ ] **8d-5** UPGRADE.md migration guide + API_STABILITY graduation checklist sync;
+- [x] **8d-5** UPGRADE.md migration guide + API_STABILITY graduation checklist sync;
   v1beta1 validating admission (deprecated `attributes` warnings, referential checks).
-- [ ] **8d-6** e2e: apply `v1alpha1` → upgrade CRDs → object converts → reconcile green.
-- [ ] **Exit:** tag **minor** (e.g. `v0.12.0`) when 8d-5 and 8d-6 complete; optional
-  etcd storage flip to `v1beta1` hub after e2e proof.
+- [x] **8d-6** e2e: apply `v1alpha1` → upgrade CRDs → object converts → reconcile green.
+- [x] **Exit:** tagged **minor** `v0.12.0` — 8d-5 and 8d-6 complete; optional
+  etcd storage flip to `v1beta1` hub after e2e proof deferred.
 
 ## Phase 9 — MQ surface depth (resequenced from Phase 5)
 
