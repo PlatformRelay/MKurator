@@ -113,8 +113,13 @@ tasks:
       - go tool controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
       - task: test:generate
 
+  docs:crd-ref:
+    desc: Regenerate per-CRD reference field tables (crd-ref blocks in docs/crds/*.md) from config/crd/bases
+    cmds:
+      - go run ./hack/tools/crd-ref-gen
+
   verify:
-    desc: Fail if generated artifacts (manifests, deepcopy, mocks) are stale
+    desc: Fail if generated artifacts (manifests, deepcopy, mocks, CRD reference docs) are stale
     deps: [install]
     cmds:
       - bash hack/verify.sh

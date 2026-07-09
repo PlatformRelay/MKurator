@@ -53,6 +53,9 @@ dist/
 site/
 .venv-docs/
 docs/node_modules/
+# Stray binary if `go build ./hack/tools/crd-ref-gen` is run from the repo root
+# (the tool is meant to be invoked via `go run` / `task docs:crd-ref`).
+/crd-ref-gen
 .task/
 
 # Local Renovate working clone (hack/renovate-docker.sh)
