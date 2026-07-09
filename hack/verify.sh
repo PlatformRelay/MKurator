@@ -24,6 +24,10 @@ copy_generated() {
     mkdir -p "$scratch/test"
     cp -a test/mocks "$scratch/test/mocks"
   fi
+  if [[ -d docs/crds ]]; then
+    mkdir -p "$scratch/docs"
+    cp -a docs/crds "$scratch/docs/crds"
+  fi
 }
 
 copy_generated
@@ -41,6 +45,8 @@ if grep -q 'packages:' .mockery.yaml 2>/dev/null && ! grep -q 'packages: {}' .mo
 fi
 
 bash hack/helm-sync-crds.sh
+
+go run ./hack/tools/crd-ref-gen
 
 samples_scratch="${scratch}/charts/mkurator/samples/resources"
 mkdir -p "$(dirname "${samples_scratch}")"
@@ -81,6 +87,13 @@ fi
 if ! diff -ru "${samples_scratch}" charts/mkurator/samples/resources; then
   echo "verify: drift in charts/mkurator/samples/resources — run 'task samples:sync'" >&2
   exit 1
+fi
+
+if [[ -d "$scratch/docs/crds" ]] || [[ -d docs/crds ]]; then
+  if ! diff -ru "$scratch/docs/crds" docs/crds; then
+    echo "verify: drift in docs/crds — run 'task docs:crd-ref'" >&2
+    exit 1
+  fi
 fi
 
 echo "verify: CRD OpenAPI spec fragments..."
