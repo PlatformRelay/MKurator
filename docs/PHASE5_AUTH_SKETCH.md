@@ -2,22 +2,22 @@
 
 Planning document for MKurator **Phase 5** ([ROADMAP.md](ROADMAP.md)). It maps
 reference MQSC from
-ibm-messaging/mq-gitops-samples `qmdemo-mqsc-config-map.yaml` (mirrored in [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc))
+ibm-messaging/mq-gitops-samples `qmdemo-mqsc-config-map.yaml` (mirrored in [`test/e2e/fixtures/channel-auth-prereq.mqsc`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/fixtures/channel-auth-prereq.mqsc))
 and patterns in [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) to CRD fields.
 
-**Already shipped (Phase 4):** the [`Channel`](../api/v1alpha1/channel_types.go)
+**Already shipped (Phase 4):** the [`Channel`](https://github.com/conduit-ops/MKurator/blob/main/api/v1alpha1/channel_types.go)
 CRD reconciles `DEFINE CHANNEL` … `CHLTYPE(SVRCONN)` with drift detection. See
 [INSTALL_AND_USE.md](INSTALL_AND_USE.md) and
 [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 **Shipped on `main` (Phase 5):**
 
-- [`ChannelAuthRule`](../api/v1alpha1/channelauthrule_types.go) — `SET CHLAUTH`
+- [`ChannelAuthRule`](https://github.com/conduit-ops/MKurator/blob/main/api/v1alpha1/channelauthrule_types.go) — `SET CHLAUTH`
   with `ACTION(REPLACE)` / `ACTION(REMOVE)` on delete
-- [`AuthorityRecord`](../api/v1alpha1/authorityrecord_types.go) — `SET AUTHREC`
+- [`AuthorityRecord`](https://github.com/conduit-ops/MKurator/blob/main/api/v1alpha1/authorityrecord_types.go) — `SET AUTHREC`
   with `AUTHADD` / `AUTHRMV(ALL)` on delete
-- Samples: [`config/samples/`](../config/samples/) · integration tests in
-  [`test/integration/mq/`](../test/integration/mq/)
+- Samples: [`config/samples/`](https://github.com/conduit-ops/MKurator/tree/main/config/samples) · integration tests in
+  [`test/integration/mq/`](https://github.com/conduit-ops/MKurator/tree/main/test/integration/mq)
 
 **Remaining:** optional integration breadth for additional AUTHREC profiles, CI proof
 on release tag, and roadmap items outside Phase 5 — see
@@ -30,7 +30,7 @@ MKurator reconciles Phase 5 objects via the existing **mqweb `/mqsc`** path
 ## Reference MQSC (gitops basic deployment)
 
 Source: IBM `mq-gitops-samples` (Apache-2.0 header in upstream file). MKurator e2e
-fixture: [`test/e2e/fixtures/channel-auth-prereq.mqsc`](../test/e2e/fixtures/channel-auth-prereq.mqsc).
+fixture: [`test/e2e/fixtures/channel-auth-prereq.mqsc`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/fixtures/channel-auth-prereq.mqsc).
 
 ```mqsc
 DEFINE CHANNEL('DEV.APP.SVRCONN.0TLS') CHLTYPE(SVRCONN) TRPTYPE(TCP) +
@@ -62,7 +62,7 @@ The `DEFINE CHANNEL` portion is covered by the shipped `Channel` CRD. The
 
 **Samples and CI today:** `ADDRESSMAP`, `BLOCKUSER`, and `BLOCKADDR` in config/Helm
 default samples; all six `ruleType` values exercised in Docker integration GET/delete
-and kind e2e (see [README.md#what-ci-proves](../README.md#what-ci-proves)).
+and kind e2e (see [README.md#what-ci-proves](https://github.com/conduit-ops/MKurator/blob/main/README.md#what-ci-proves)).
 
 | `ruleType` | Typical use | MKurator today |
 |------------|-------------|---------------|
@@ -95,7 +95,7 @@ SetAuthority(ctx context.Context, spec AuthoritySpec) error
 DeleteAuthority(ctx context.Context, spec AuthoritySpec) error
 ```
 
-Adapter implementation: [`internal/adapter/mqrest/auth.go`](../internal/adapter/mqrest/auth.go)
+Adapter implementation: [`internal/adapter/mqrest/auth.go`](https://github.com/conduit-ops/MKurator/blob/main/internal/adapter/mqrest/auth.go)
 via `RunMQSC` / `runCommand`.
 
 **GET paths (shipped):** `GetChannelAuth` and `GetAuthority` run `DISPLAY CHLAUTH` /
@@ -118,6 +118,6 @@ Observe-only behaviour:
 ## E2e and fixtures
 
 Channel/auth MQSC used to validate mqweb lives under
-[`test/e2e/fixtures/`](../test/e2e/fixtures/). Queue/Topic/Channel/auth reconcile
-e2e is in [`test/e2e/mq_e2e_test.go`](../test/e2e/mq_e2e_test.go). Remaining
+[`test/e2e/fixtures/`](https://github.com/conduit-ops/MKurator/tree/main/test/e2e/fixtures). Queue/Topic/Channel/auth reconcile
+e2e is in [`test/e2e/mq_e2e_test.go`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/mq_e2e_test.go). Remaining
 Phase 5 items are tracked in [ROADMAP.md](ROADMAP.md#phase-5--user--authority-management).

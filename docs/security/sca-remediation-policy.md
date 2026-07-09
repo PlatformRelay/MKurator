@@ -2,7 +2,7 @@
 
 Software Composition Analysis (SCA) for **third-party dependencies** — `go.mod`, GitHub Actions,
 and container base images. Application SAST and secret scanning are governed separately in
-[coding-standards.md](../development/coding-standards.md) and [SECURITY.md](../../SECURITY.md).
+[coding-standards.md](../development/coding-standards.md) and [SECURITY.md](https://github.com/conduit-ops/MKurator/blob/main/SECURITY.md).
 
 ## OSPS-VM-05.01 compliance
 
@@ -31,7 +31,7 @@ manual SBOM review.
 
 ### License findings
 
-MKurator is [MIT-licensed](../../LICENSE).
+MKurator is [MIT-licensed](https://github.com/conduit-ops/MKurator/blob/main/LICENSE).
 
 | License class | Examples | Action |
 | --- | --- | --- |

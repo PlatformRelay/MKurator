@@ -24,7 +24,7 @@ Release artifacts: [GitHub Releases](https://github.com/conduit-ops/MKurator/rel
 
 ## Connect and create a queue
 
-1. Create a `Secret` with MQ credentials (see [sample Secret](../charts/mkurator/samples/resources/mq-credentials-secret.yaml) or [Credentials secret](../config/samples/README.md#credentials-secret)).
+1. Create a `Secret` with MQ credentials (see [sample Secret](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/samples/resources/mq-credentials-secret.yaml) or [Credentials secret](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md#credentials-secret)).
 2. Apply a `QueueManagerConnection` pointing at your mqweb endpoint.
 3. Wait for the connection `Ready` condition.
 4. Apply a `Queue` CR — the operator runs `DEFINE QLOCAL` (or alias/remote) via mqweb.
@@ -46,7 +46,7 @@ MQ-side checks: [IBM_MQ_101.md](IBM_MQ_101.md) (`runmqsc`, MQ console).
 | Topic | Link |
 | --- | --- |
 | All CR kinds | [crds/README.md](crds/README.md) |
-| Sample manifests | [config/samples/README.md](../config/samples/README.md) |
+| Sample manifests | [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md) |
 | Upgrade | [UPGRADE.md](UPGRADE.md) |
 | Local dev platform | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | Examples | [examples/README.md](examples/README.md) |

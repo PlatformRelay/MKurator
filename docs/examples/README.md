@@ -1,7 +1,7 @@
 # Examples
 
 Walkthroughs for common MKurator tasks. Each links to annotated sample YAML under
-[`config/samples/`](../../config/samples/).
+[`config/samples/`](https://github.com/conduit-ops/MKurator/tree/main/config/samples).
 
 | Walkthrough | Covers |
 | --- | --- |

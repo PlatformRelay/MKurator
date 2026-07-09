@@ -2,14 +2,14 @@
 
 How to set up, build, test, and run **MKurator** locally. For commit format and
 contributor guidelines see [CONTRIBUTING.md](CONTRIBUTING.md); for Go style and
-agent workflow see [../AGENTS.md](../AGENTS.md); for design see
+agent workflow see [../AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md); for design see
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 The Git repository is [conduit-ops/MKurator](https://github.com/conduit-ops/MKurator); your
 local clone directory may differ (for example `IBM-Message-Queue-Operator`).
 See [ADR-0006](adr/0006-project-name-kurator.md).
 
-Doc index: [README.md](README.md)
+Doc index: [README.md](index.md)
 
 **Codegen and test matrix:** [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) (CRD
 regeneration, reconciler/MQAdmin mocks, which tier to run). **Module layout:**
@@ -46,7 +46,7 @@ Optional: enable [direnv](https://direnv.net/) so `.envrc` exports
 `KUBECONFIG=hack/kind-cluster/.state/kubeconfig.yaml` automatically.
 
 Platform-only commands live under `task cluster:*` (see
-[hack/kind-cluster/README.md](../hack/kind-cluster/README.md)).
+[hack/kind-cluster/README.md](https://github.com/conduit-ops/MKurator/blob/main/hack/kind-cluster/README.md)).
 
 ### Task reference
 
@@ -62,7 +62,7 @@ Platform-only commands live under `task cluster:*` (see
 | `task cluster:info` | MQ/Grafana/Argo CD URLs and passwords |
 | `task cluster:down` | Destroy platform and delete kind cluster |
 | `task deploy` | Operator via Kustomize (`config/default` + CRDs) |
-| `task deploy:helm` | Operator via [Helm chart](../charts/mkurator/README.md) (recommended on kind) |
+| `task deploy:helm` | Operator via [Helm chart](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/README.md) (recommended on kind) |
 | `task deploy:samples` | Sample Secret + `QueueManagerConnection` + `Queue` + `Topic` + `Channel` |
 | `task mq:console` | IBM MQ web UI URL (`https://mq.localhost:30443/ibmmq/console/`) |
 | `task mq:cli` | Interactive `runmqsc` on QM1 |
@@ -189,7 +189,7 @@ those resources (`charts/mkurator/templates/webhook-*.yaml`,
 | Kustomize (default) | unset or `KURATOR_E2E_DEPLOY=kustomize` | `task deploy` | `task undeploy:operator` | `task test:e2e` |
 | Helm | `KURATOR_E2E_DEPLOY=helm` | `task deploy:helm` | `task undeploy:helm` | `task test:e2e:helm` |
 
-**Helm e2e in CI:** [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml) runs
+**Helm e2e in CI:** [`.github/workflows/e2e.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/e2e.yaml) runs
 `e2e (helm)` on `workflow_dispatch` and weekly cron (not on every PR). PRs run
 `e2e (kustomize)` only. Local Helm path: `KURATOR_E2E_MQ=1 task test:e2e:helm` after
 `task cluster:up`. Full kustomize + Helm on one cluster: `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
@@ -228,8 +228,8 @@ with **HAProxy Ingress** (NodePorts 30080/30443), **cert-manager**, an optional
 — wired with **Terraform** and trusted TLS from **mkcert**.
 
 > **Canonical reference** for local URLs, credentials, task targets, and test
-> tiers is this section and [hack/kind-cluster/README.md](../hack/kind-cluster/README.md).
-> [README.md](../README.md) and [INSTALL_AND_USE.md](INSTALL_AND_USE.md) link here
+> tiers is this section and [hack/kind-cluster/README.md](https://github.com/conduit-ops/MKurator/blob/main/hack/kind-cluster/README.md).
+> [README.md](https://github.com/conduit-ops/MKurator/blob/main/README.md) and [INSTALL_AND_USE.md](INSTALL_AND_USE.md) link here
 > for quick start only.
 
 Cluster name: `mkurator` (override with `CLUSTER_NAME` if you have an existing
@@ -332,7 +332,7 @@ On **EKS**, disable OpenShift-only routes in the `QueueManager` spec (see
 Create a Kubernetes Secret with mqweb admin credentials. MKurator accepts `username` +
 `password` or `mqAdminPassword` (see `internal/adapter/mqrest/factory.go`).
 
-Example `QueueManagerConnection` (same as [samples](../config/samples/)):
+Example `QueueManagerConnection` (same as [samples](https://github.com/conduit-ops/MKurator/tree/main/config/samples)):
 
 ```yaml
 spec:
@@ -381,7 +381,7 @@ kustomize binary required.
 
 Both install paths target namespace **`mkurator-system`** and expect mqweb at
 `https://ibm-mq.ibm-mq.svc:9443` after `task cluster:up`. Chart details:
-[charts/mkurator/README.md](../charts/mkurator/README.md).
+[charts/mkurator/README.md](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/README.md).
 
 ### Tear down
 
@@ -404,7 +404,7 @@ Per-change checklist: [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 
 ### What CI proves
 
-Same tiers as [README.md#what-ci-proves](../README.md#what-ci-proves) (summary table).
+Same tiers as [README.md#what-ci-proves](https://github.com/conduit-ops/MKurator/blob/main/README.md#what-ci-proves) (summary table).
 Commands and env vars below.
 
 | Tier | Scope | Needs a cluster? | Command |
@@ -422,7 +422,7 @@ delete (including idempotent delete), and not-found paths for auth as well as
 queue/topic/channel. **Alias, remote queues, replace-on-update, and CHLAUTH/AUTHREC
 edge cases** live here (ADR-0011); kind e2e keeps one happy-path reconcile + delete
 per CR kind plus admission smoke. Uses `//go:build integration` in
-[`test/integration/mq/`](../test/integration/mq/).
+[`test/integration/mq/`](https://github.com/conduit-ops/MKurator/tree/main/test/integration/mq).
 
 **Machine lock:** e2e and integration share Docker MQ, kind, kubeconfig, and
 operator deploy on one host — only one suite may run at a time. Entry points
@@ -459,7 +459,7 @@ export KURATOR_INTEGRATION_MQ_HOST=mq.localhost
 task test:integration
 ```
 
-See [`hack/mq-docker/README.md`](../hack/mq-docker/README.md).
+See [`hack/mq-docker/README.md`](https://github.com/conduit-ops/MKurator/blob/main/hack/mq-docker/README.md).
 
 **IBM MQ e2e scenarios** (Queue, Topic, Channel, ChannelAuthRule, AuthorityRecord
 reconcile and delete; channel/auth fixtures) run only when `KURATOR_E2E_MQ=1` is
@@ -467,7 +467,7 @@ set and the kind platform with IBM MQ is up. Without that, the scaffold e2e suit
 (controller pod, metrics) still runs. MQ-specific tests use defaults aligned with
 `hack/kind-cluster` (`QM1`, `admin` / `passw0rd`, endpoint
 `https://ibm-mq.ibm-mq.svc:9443`). Override with `KURATOR_E2E_MQ_*` env vars
-documented in [`test/e2e/fixtures/README.md`](../test/e2e/fixtures/README.md).
+documented in [`test/e2e/fixtures/README.md`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/fixtures/README.md).
 The same **machine lock** as integration applies (`exclusive-test.lock`); do not
 run `task ci:e2e`, `task test:e2e`, and integration tasks in parallel on one host.
 Phase 5 and test-tier follow-ups: [ROADMAP.md](ROADMAP.md#phase-5--user--authority-management).

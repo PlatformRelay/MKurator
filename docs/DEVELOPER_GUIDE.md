@@ -10,7 +10,7 @@ see [DEVELOPMENT.md](DEVELOPMENT.md); for system design see
 | 🧩 | [GO_MODULE.md](GO_MODULE.md) — module layout, import layers, `go-arch-lint` |
 | ⚙️ | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) — manager wiring, probes, concurrency |
 
-Doc index: [README.md](README.md) · Agent entry: [../AGENTS.md](../AGENTS.md)
+Doc index: [README.md](index.md) · Agent entry: [../AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md)
 
 ## On this page
 
@@ -53,10 +53,10 @@ Then `task verify` before commit (also runs schema contract tests).
 | Webhook handler (thin) | `internal/webhook/v1alpha1/` — delegates to validation |
 | Reconciler mapping CR spec → port types | `internal/controller/*_controller.go` |
 | Drift / DEFINE vs DISPLAY policy | [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) and reconciler helpers |
-| User-facing samples | `config/samples/`, [config/samples/README.md](../config/samples/README.md) |
+| User-facing samples | `config/samples/`, [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md) |
 | Helm-only sample files | `charts/mkurator/samples/resources/` (README, Secret template) |
 
-OpenAPI **contract** tests live in [`test/schema/`](../test/schema/README.md): they
+OpenAPI **contract** tests live in [`test/schema/`](https://github.com/conduit-ops/MKurator/blob/main/test/schema/README.md): they
 diff committed CRD YAML against golden spec fragments — no cluster. Adding a new
 CR kind requires a row in `test/schema/extract.go` plus a golden file.
 
@@ -122,9 +122,9 @@ It does not run in `task test:run` or default `go test ./...`.
 
 | Path | Contents |
 |------|----------|
-| [`.mockery.yaml`](../.mockery.yaml) | mockery v3 config (`template: testify`) |
-| [`test/mocks/mqadmin/`](../test/mocks/mqadmin/) | Generated `MockAdmin`, `MockFactory` — **do not edit by hand** |
-| [`internal/mqadmin/`](../internal/mqadmin/) | Real `Admin` / `Factory` interfaces and domain errors |
+| [`.mockery.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.mockery.yaml) | mockery v3 config (`template: testify`) |
+| [`test/mocks/mqadmin/`](https://github.com/conduit-ops/MKurator/tree/main/test/mocks/mqadmin) | Generated `MockAdmin`, `MockFactory` — **do not edit by hand** |
+| [`internal/mqadmin/`](https://github.com/conduit-ops/MKurator/tree/main/internal/mqadmin) | Real `Admin` / `Factory` interfaces and domain errors |
 
 Regenerate mocks:
 
@@ -149,9 +149,9 @@ Tests inject mocks at the **factory** boundary (same field name on reconcilers):
 3. `mockAdmin := mqadmintest.NewMockAdmin(t)`.
 4. `mockAdmin.EXPECT().DefineQueue(...).Return(nil)` (etc.).
 
-Example (envtest Ginkgo): [`internal/controller/queue_reconciler_test.go`](../internal/controller/queue_reconciler_test.go).
+Example (envtest Ginkgo): [`internal/controller/queue_reconciler_test.go`](https://github.com/conduit-ops/MKurator/blob/main/internal/controller/queue_reconciler_test.go).
 
-Example (stdlib unit): [`internal/controller/queue_controller_unit_test.go`](../internal/controller/queue_controller_unit_test.go).
+Example (stdlib unit): [`internal/controller/queue_controller_unit_test.go`](https://github.com/conduit-ops/MKurator/blob/main/internal/controller/queue_controller_unit_test.go).
 
 `NewMockFactory` / `NewMockAdmin` register `t.Cleanup` to assert expectations.
 Use `github.com/stretchr/testify/mock` matchers (`mock.Anything`, typed `QueueSpec`, …).
@@ -160,7 +160,7 @@ Use `github.com/stretchr/testify/mock` matchers (`mock.Anything`, typed `QueueSp
 
 `internal/adapter/mqrest` unit tests often use an **`httptest.Server`** to fake
 mqweb responses — no Kubernetes, no mockery. Use integration tier when behaviour
-depends on a real IBM MQ container ([`hack/mq-docker/README.md`](../hack/mq-docker/README.md)).
+depends on a real IBM MQ container ([`hack/mq-docker/README.md`](https://github.com/conduit-ops/MKurator/blob/main/hack/mq-docker/README.md)).
 
 ---
 
@@ -185,4 +185,4 @@ See [DEVELOPMENT.md — Before you push](DEVELOPMENT.md#before-you-push) and
 | [CICD.md](CICD.md) | What CI runs on PRs vs scheduled jobs |
 | [GO_MODULE.md](GO_MODULE.md) | Package boundaries and allowed imports |
 | [OPERATOR_RUNTIME.md](OPERATOR_RUNTIME.md) | Manager, leader election, health, metrics |
-| [test/schema/README.md](../test/schema/README.md) | CRD OpenAPI golden workflow |
+| [test/schema/README.md](https://github.com/conduit-ops/MKurator/blob/main/test/schema/README.md) | CRD OpenAPI golden workflow |

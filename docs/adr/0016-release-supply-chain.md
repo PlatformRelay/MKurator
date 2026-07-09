@@ -13,7 +13,7 @@ cert-manager-scale KMS multi-artifact signing ([ADR-0005](0005-keep-tooling-lean
 ## Decision
 
 On each **`v*.*.*` tag** (and `workflow_dispatch` for rebuild tests), the
-[`.github/workflows/release.yaml`](../../.github/workflows/release.yaml) job will:
+[`.github/workflows/release.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release.yaml) job will:
 
 | Control | Mechanism |
 |---------|-----------|

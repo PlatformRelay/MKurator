@@ -7,7 +7,7 @@ have a running **IBM MQ queue manager** with the **Administrative REST API**
 
 For contributor setup (kind, tests, codegen), see [DEVELOPMENT.md](DEVELOPMENT.md).
 
-Doc index: [README.md](README.md) · [../README.md](../README.md)
+Doc index: [README.md](index.md) · [../README.md](https://github.com/conduit-ops/MKurator/blob/main/README.md)
 
 ## On this page
 
@@ -47,10 +47,10 @@ on each resource, and removes MQ objects when you delete a CR (finalizers).
 and kind e2e. Auth drift uses GET/replace (not queue/topic/channel DISPLAY
 matrices) — see [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
-Sample manifests with field notes: [config/samples/README.md](../config/samples/README.md).
+Sample manifests with field notes: [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md).
 
-CR summary and release identity: [README.md#what-ships-in-v1alpha1-today](../README.md#what-ships-in-v1alpha1-today).
-Test coverage: [README.md#what-ci-proves](../README.md#what-ci-proves) and
+CR summary and release identity: [README.md#what-ships-today](https://github.com/conduit-ops/MKurator/blob/main/README.md#what-ships-today).
+Test coverage: [README.md#what-ci-proves](https://github.com/conduit-ops/MKurator/blob/main/README.md#what-ci-proves) and
 [DEVELOPMENT.md#test-tiers](DEVELOPMENT.md#test-tiers).
 
 ---
@@ -154,7 +154,7 @@ task deploy          # Kustomize: config/default + CRDs
 task deploy:helm     # Helm chart with a locally built image (kind)
 ```
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) and [charts/mkurator/README.md](../charts/mkurator/README.md).
+See [DEVELOPMENT.md](DEVELOPMENT.md) and [charts/mkurator/README.md](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/README.md).
 
 ---
 
@@ -512,15 +512,15 @@ kind platform.
 
 | File | Purpose |
 |------|---------|
-| [`config/samples/messaging_v1alpha1_queuemanagerconnection.yaml`](../config/samples/messaging_v1alpha1_queuemanagerconnection.yaml) | Connection to in-cluster MQ on kind |
-| [`config/samples/messaging_v1alpha1_queue.yaml`](../config/samples/messaging_v1alpha1_queue.yaml) | Sample `APP.ORDERS` local queue |
-| [`config/samples/messaging_v1alpha1_topic.yaml`](../config/samples/messaging_v1alpha1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
-| [`config/samples/messaging_v1alpha1_channel.yaml`](../config/samples/messaging_v1alpha1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
-| [`config/samples/messaging_v1alpha1_channelauthrule.yaml`](../config/samples/messaging_v1alpha1_channelauthrule.yaml) | Sample `ADDRESSMAP` CHLAUTH for gitops channel |
-| [`config/samples/messaging_v1alpha1_channelauthrule_blockuser.yaml`](../config/samples/messaging_v1alpha1_channelauthrule_blockuser.yaml) | Optional `BLOCKUSER` CHLAUTH on the same channel |
-| [`config/samples/messaging_v1alpha1_authorityrecord.yaml`](../config/samples/messaging_v1alpha1_authorityrecord.yaml) | Sample OAM grant on `APP.ORDERS` |
-| [`charts/mkurator/samples/resources/`](../charts/mkurator/samples/resources/) | Same samples for Helm workflows |
-| [`config/samples/README.md`](../config/samples/README.md) | Field-by-field annotations |
+| [`config/samples/messaging_v1alpha1_queuemanagerconnection.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) | Connection to in-cluster MQ on kind |
+| [`config/samples/messaging_v1alpha1_queue.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) | Sample `APP.ORDERS` local queue |
+| [`config/samples/messaging_v1alpha1_topic.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
+| [`config/samples/messaging_v1alpha1_channel.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
+| [`config/samples/messaging_v1alpha1_channelauthrule.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) | Sample `ADDRESSMAP` CHLAUTH for gitops channel |
+| [`config/samples/messaging_v1alpha1_channelauthrule_blockuser.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule_blockuser.yaml) | Optional `BLOCKUSER` CHLAUTH on the same channel |
+| [`config/samples/messaging_v1alpha1_authorityrecord.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) | Sample OAM grant on `APP.ORDERS` |
+| [`charts/mkurator/samples/resources/`](https://github.com/conduit-ops/MKurator/tree/main/charts/mkurator/samples/resources) | Same samples for Helm workflows |
+| [`config/samples/README.md`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md) | Field-by-field annotations |
 
 **Local kind defaults** (do not use in production):
 
@@ -599,7 +599,7 @@ default. Ensure **cert-manager** is installed and the webhook certificate become
 `Ready` before relying on admission. Skipping CRD apply first can leave the API server
 on an old schema while the controller expects new fields.
 
-**Before you upgrade:** read the [CHANGELOG](../CHANGELOG.md) and the
+**Before you upgrade:** read the [CHANGELOG](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md) and the
 [GitHub release notes](https://github.com/conduit-ops/MKurator/releases) for your target tag.
 Jumping to **0.5.0+** adds `ChannelAuthRule` and `AuthorityRecord`; tags before **v0.5.0**
 do not ship those CRDs.
@@ -825,4 +825,4 @@ kubectl delete -f install-crds.yaml
 - [ROADMAP.md](ROADMAP.md) — auth resources and additional MQ types on the horizon  
 - [ARCHITECTURE.md](ARCHITECTURE.md) — reconcilers, security, error handling  
 - [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md) — how the operator calls mqweb  
-- [SECURITY.md](../SECURITY.md) — reporting vulnerabilities  
+- [SECURITY.md](https://github.com/conduit-ops/MKurator/blob/main/SECURITY.md) — reporting vulnerabilities  

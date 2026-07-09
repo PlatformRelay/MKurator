@@ -1,13 +1,13 @@
 # Commit conventions
 
 > **Process overview** (standards map, DCO, merge policy, expectations) →
-> [../CONTRIBUTING.md](../CONTRIBUTING.md)
+> [../CONTRIBUTING.md](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md)
 
 Developer guidelines for **MKurator**: commit message format, gitmoji, changelog, and
 release notes. For local setup see [DEVELOPMENT.md](DEVELOPMENT.md); for Go style,
-testing, and agent workflow see [AGENTS.md](../AGENTS.md).
+testing, and agent workflow see [AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md).
 
-Doc index: [README.md](README.md)
+Doc index: [README.md](index.md)
 
 ## On this page
 
@@ -145,7 +145,7 @@ refactor!: :recycle: rename module to github.com/conduit-ops/MKurator
 BREAKING CHANGE: import paths and container image registry moved to conduit-ops/MKurator.
 ```
 
-Breaking commits appear under **Breaking Changes** in [CHANGELOG.md](../CHANGELOG.md).
+Breaking commits appear under **Breaking Changes** in [CHANGELOG.md](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md).
 
 ## Examples
 
@@ -173,7 +173,7 @@ feat(queue): :sparkles: Fixed the thing.  # past tense, trailing period
 
 ## Changelog and releases
 
-[`CHANGELOG.md`](../CHANGELOG.md) is generated from git history, not hand-written
+[`CHANGELOG.md`](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md) is generated from git history, not hand-written
 per bullet.
 
 | Task | Purpose |
@@ -192,11 +192,11 @@ per bullet.
 
 Only `feat`, `fix`, `perf`, `refactor`, and breaking commits appear in the
 user-facing changelog; `docs` / `test` / `chore` / `ci` / `build` / `style` are
-skipped ([`cliff.toml`](../cliff.toml)).
+skipped ([`cliff.toml`](https://github.com/conduit-ops/MKurator/blob/main/cliff.toml)).
 
 ## Before you open a PR or push
 
-See [../CONTRIBUTING.md](../CONTRIBUTING.md) for the full preflight checklist and merge policy.
+See [../CONTRIBUTING.md](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md) for the full preflight checklist and merge policy.
 Minimum before push:
 
 1. `task verify` — CRDs, RBAC, deepcopy, mocks are up to date.
@@ -208,10 +208,10 @@ Minimum before push:
 
 | Doc | Topic |
 |-----|--------|
-| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Standards map, DCO, code review |
+| [../CONTRIBUTING.md](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md) | Standards map, DCO, code review |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Local setup, Task commands, test tiers |
-| [AGENTS.md](../AGENTS.md) | Go conventions, codegen, CI parity |
+| [AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md) | Go conventions, codegen, CI parity |
 | [CICD.md](CICD.md) | Pipeline and release job |
 | [RELEASE.md](RELEASE.md) | Maintainer release runbook |
 | [adr/0008-changelog-git-cliff.md](adr/0008-changelog-git-cliff.md) | Why git-cliff |
-| [SECURITY.md](../SECURITY.md) | Reporting vulnerabilities |
+| [SECURITY.md](https://github.com/conduit-ops/MKurator/blob/main/SECURITY.md) | Reporting vulnerabilities |

@@ -21,12 +21,12 @@ ones.
 **Adopt:**
 
 - Strict `golangci-lint` (`default: none`) with the curated linter set in
-  [../../AGENTS.md](../../AGENTS.md) — not the full 56-linter list.
+  [../../AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md) — not the full 56-linter list.
 - A `generate` / `verify` discipline for all generated artifacts (CRDs, RBAC,
   deepcopy, mocks).
 - Layered tests: unit → envtest → kind e2e.
 - Short ADRs (this directory) for non-obvious decisions.
-- A real, local [SECURITY.md](../../SECURITY.md) and periodic `govulncheck`.
+- A real, local [SECURITY.md](https://github.com/conduit-ops/MKurator/blob/main/SECURITY.md) and periodic `govulncheck`.
 - Pinned tool versions (`go.mod` tool directives) and pinned CI action SHAs.
 
 **Defer / skip (until justified by external consumers):**

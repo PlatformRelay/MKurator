@@ -1,7 +1,7 @@
 # Security assurance case
 
 Security claims, trust boundaries, and countermeasures for MKurator. Complements
-[NFR SEC-*](NON_FUNCTIONAL_REQUIREMENTS.md#1-security), [SECURITY.md](../SECURITY.md),
+[NFR SEC-*](NON_FUNCTIONAL_REQUIREMENTS.md#1-security), [SECURITY.md](https://github.com/conduit-ops/MKurator/blob/main/SECURITY.md),
 and [ADR-0009](adr/0009-validating-admission-webhooks.md).
 
 **Last updated:** 2026-06-06
@@ -68,7 +68,7 @@ flowchart TB
 
 | Risk | Mitigation status | Owner action |
 | --- | --- | --- |
-| Solo maintainer (bus factor 1) | Documented in [GOVERNANCE.md](../GOVERNANCE.md) | Co-maintainer when feasible |
+| Solo maintainer (bus factor 1) | Documented in [GOVERNANCE.md](https://github.com/conduit-ops/MKurator/blob/main/GOVERNANCE.md) | Co-maintainer when feasible |
 | Adopter enables `allowInsecureTLS` in prod | Dev-only annotation gate | Document in INSTALL_AND_USE |
 | mqweb credential rotation not watch-driven | Periodic requeue backstop | See operator improvement backlog |
 
