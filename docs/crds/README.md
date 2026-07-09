@@ -6,10 +6,15 @@ should use **`v1beta1`** (the samples below default to it); `v1alpha1` remains t
 etcd storage version until the hub migration is proven in CI
 ([ADR-0026](../adr/0026-v1beta1-graduation-plan.md), [API_STABILITY.md](../API_STABILITY.md)).
 
+Field-level reference pages (every `spec`/`status` field) are being added per
+kind; the field tables are generated from the CRD OpenAPI schema by
+`task docs:crd-ref` and augmented with hand-written prose. Available so far:
+**[Queue](queue.md)**.
+
 | Kind | Short name | Purpose | Sample YAML |
 | --- | --- | --- | --- |
 | `QueueManagerConnection` | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) |
-| `Queue` | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
+| [`Queue`](queue.md) | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
 | `Topic` | `tp` | Administrative topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
 | `Channel` | `chl` | Server-connection channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
 | `ChannelAuthRule` | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
