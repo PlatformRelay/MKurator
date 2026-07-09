@@ -1,27 +1,31 @@
-# Custom resources (v1alpha1)
+# Custom resources
 
-API group: **`messaging.mkurator.dev/v1alpha1`**
+API group: **`messaging.mkurator.dev`** — both **`v1alpha1`** and **`v1beta1`**
+are served (all six kinds), with a conversion webhook between them. New manifests
+should use **`v1beta1`** (the samples below default to it); `v1alpha1` remains the
+etcd storage version until the hub migration is proven in CI
+([ADR-0026](../adr/0026-v1beta1-graduation-plan.md), [API_STABILITY.md](../API_STABILITY.md)).
 
 | Kind | Short name | Purpose | Sample YAML |
 | --- | --- | --- | --- |
-| `QueueManagerConnection` | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](../../config/samples/messaging_v1alpha1_queuemanagerconnection.yaml) |
-| `Queue` | `mq` | Local, alias, or remote queue | [queue.yaml](../../config/samples/messaging_v1alpha1_queue.yaml) |
-| `Topic` | `tp` | Administrative topic | [topic.yaml](../../config/samples/messaging_v1alpha1_topic.yaml) |
-| `Channel` | `chl` | Server-connection channel | [channel.yaml](../../config/samples/messaging_v1alpha1_channel.yaml) |
-| `ChannelAuthRule` | `car` | Channel authentication rule | [channelauthrule.yaml](../../config/samples/messaging_v1alpha1_channelauthrule.yaml) |
-| `AuthorityRecord` | `auth` | OAM authority record | [authorityrecord.yaml](../../config/samples/messaging_v1alpha1_authorityrecord.yaml) |
+| `QueueManagerConnection` | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) |
+| `Queue` | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
+| `Topic` | `tp` | Administrative topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
+| `Channel` | `chl` | Server-connection channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
+| `ChannelAuthRule` | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
+| `AuthorityRecord` | `auth` | OAM authority record | [authorityrecord.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) |
 
 ## Queue variants
 
 | `spec.type` | MQ object | Sample |
 | --- | --- | --- |
-| `local` (default) | `QLOCAL` | [queue.yaml](../../config/samples/messaging_v1alpha1_queue.yaml) |
-| `alias` | `QALIAS` | [queue_alias.yaml](../../config/samples/messaging_v1alpha1_queue_alias.yaml) |
-| `remote` | `QREMOTE` | [queue_remote.yaml](../../config/samples/messaging_v1alpha1_queue_remote.yaml) |
+| `local` (default) | `QLOCAL` | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
+| `alias` | `QALIAS` | [queue_alias.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml) |
+| `remote` | `QREMOTE` | [queue_remote.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml) |
 
 ## Further reading
 
 - Field-level install guide: [INSTALL_AND_USE.md — Resource reference](../INSTALL_AND_USE.md#resource-reference)
 - Drift and attribute policy: [ATTRIBUTE_RECONCILIATION.md](../ATTRIBUTE_RECONCILIATION.md)
-- Annotated samples: [config/samples/README.md](../../config/samples/README.md)
-- OpenAPI golden contracts: [test/schema/README.md](../../test/schema/README.md)
+- Annotated samples: [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md)
+- OpenAPI golden contracts: [test/schema/README.md](https://github.com/conduit-ops/MKurator/blob/main/test/schema/README.md)

@@ -95,7 +95,7 @@ the heavy workflows.
 
 ## Workflow caching
 
-Reusable composite actions under [`.github/actions/`](../.github/actions/) keep
+Reusable composite actions under [`.github/actions/`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions) keep
 cache keys consistent across workflows. All use pinned `actions/cache@v5.0.5` and
 `actions/setup-go@v6.4.0` SHAs (same as `ci.yaml`). We do **not** enable
 `setup-go` `cache: true` in addition to the manual module/build cache — that would
@@ -103,14 +103,14 @@ duplicate `~/go/pkg/mod` restores.
 
 | Action | Cache key (primary) | Paths | Used in |
 |--------|---------------------|-------|---------|
-| [`go-cache`](../.github/actions/go-cache/) | `${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}` | `~/.cache/go-build`, `~/go/pkg/mod`; optional envtest: `~/.local/share/kubebuilder-envtest` keyed by `go.mod`+`go.sum` | `ci`, `preflight`, `release-gate`, `integration`, `e2e`, `nightly` |
-| [`tools-bin`](../.github/actions/tools-bin/) | `${{ runner.os }}-tools-${{ hashFiles('Taskfile.yml', 'hack/install-external-tool.sh') }}` | `bin/kind`, `bin/mkcert`, `bin/terraform` | `e2e`, `nightly` (e2e jobs) |
-| [`mq-docker-image`](../.github/actions/mq-docker-image/) | `${{ runner.os }}-ibm-mq-${{ hashFiles('hack/mq-docker/docker-compose.yml', 'hack/kind-cluster/terraform/variables.tf') }}` | `/tmp/ibm-mq-image.tar` (`docker save`/`load` of `icr.io/ibm-messaging/mq:…`) | `integration`, `e2e`, `nightly` |
-| [`helm-cache`](../.github/actions/helm-cache/) | `${{ runner.os }}-helm-${{ hashFiles('hack/kind-cluster/terraform/variables.tf') }}` | `~/.cache/helm` | `e2e`, `nightly` (e2e jobs) |
+| [`go-cache`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/go-cache) | `${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}` | `~/.cache/go-build`, `~/go/pkg/mod`; optional envtest: `~/.local/share/kubebuilder-envtest` keyed by `go.mod`+`go.sum` | `ci`, `preflight`, `release-gate`, `integration`, `e2e`, `nightly` |
+| [`tools-bin`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/tools-bin) | `${{ runner.os }}-tools-${{ hashFiles('Taskfile.yml', 'hack/install-external-tool.sh') }}` | `bin/kind`, `bin/mkcert`, `bin/terraform` | `e2e`, `nightly` (e2e jobs) |
+| [`mq-docker-image`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/mq-docker-image) | `${{ runner.os }}-ibm-mq-${{ hashFiles('hack/mq-docker/docker-compose.yml', 'hack/kind-cluster/terraform/variables.tf') }}` | `/tmp/ibm-mq-image.tar` (`docker save`/`load` of `icr.io/ibm-messaging/mq:…`) | `integration`, `e2e`, `nightly` |
+| [`helm-cache`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/helm-cache) | `${{ runner.os }}-helm-${{ hashFiles('hack/kind-cluster/terraform/variables.tf') }}` | `~/.cache/helm` | `e2e`, `nightly` (e2e jobs) |
 
-Image reference for MQ caching is resolved by [`hack/ci/mq-image-ref.sh`](../hack/ci/mq-image-ref.sh)
+Image reference for MQ caching is resolved by [`hack/ci/mq-image-ref.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/ci/mq-image-ref.sh)
 (must match `hack/mq-docker/docker-compose.yml`). E2e platform bring-up uses
-[`hack/ci/cluster-up-with-mq-image.sh`](../hack/ci/cluster-up-with-mq-image.sh):
+[`hack/ci/cluster-up-with-mq-image.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/ci/cluster-up-with-mq-image.sh):
 `kind:up` → `kind load docker-image` → TLS → Terraform (avoids re-pulling MQ inside
 kind when the host image is warm).
 
@@ -136,7 +136,7 @@ cluster time.
 | go mod tidy | `go mod tidy` then `git diff --exit-code go.sum` | Fails when Renovate or local edits leave `go.sum` out of sync |
 | verify | `task verify` | Same as `ci.yaml` `verify` — CRDs, RBAC, deepcopy, mocks |
 
-Job timeout: **5 minutes**. Uses [`go-cache`](../.github/actions/go-cache/) (same keys as `ci.yaml`).
+Job timeout: **5 minutes**. Uses [`go-cache`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/go-cache) (same keys as `ci.yaml`).
 
 Local equivalent: `go mod tidy && git diff --exit-code go.sum` then `task verify`.
 
@@ -187,15 +187,15 @@ and signing run only in `release.yaml` on tags).
 
 ### `helm-lint`
 `task helm:lint` — `helm lint ./charts/mkurator` on the publishable Helm chart,
-then [`hack/helm-verify-admission.sh`](../hack/helm-verify-admission.sh) and
-[`hack/helm-verify-rbac.sh`](../hack/helm-verify-rbac.sh) to assert rendered
+then [`hack/helm-verify-admission.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/helm-verify-admission.sh) and
+[`hack/helm-verify-rbac.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/helm-verify-rbac.sh) to assert rendered
 webhook and manager ClusterRole templates stay aligned with
 `config/webhook/manifests.yaml` and `config/rbac/role.yaml`.
 Runs in parallel with other `ci.yaml` jobs; no cluster or MQ required.
 
 ### `integration`
-Dedicated workflow [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml):
-[`mq-docker-image`](../.github/actions/mq-docker-image/) → `task mq:integration:up` → `task mq:integration:wait` → `task test:integration`
+Dedicated workflow [`.github/workflows/integration.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/integration.yaml):
+[`mq-docker-image`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/mq-docker-image) → `task mq:integration:up` → `task mq:integration:wait` → `task test:integration`
 → `task mq:integration:down` (always). Exercises `mqadmin.Admin` queue, topic,
 channel, **CHLAUTH**, and **AUTHREC** operations against live mqweb without kind.
 Local equivalent: `task test:integration:local` or `task ci:integration`.
@@ -205,7 +205,7 @@ Local equivalent: `task test:integration:local` or `task ci:integration`.
 an artifact on every run (`if: always()`).
 
 ### `e2e`
-Dedicated workflow [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml):
+Dedicated workflow [`.github/workflows/e2e.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/e2e.yaml):
 
 - **`e2e (kustomize)`** — every qualifying PR and `main` push: platform up →
   `task test:e2e` with `KURATOR_E2E_MQ=1`, parallel Ginkgo (`KURATOR_E2E_NODES=3`),
@@ -226,7 +226,7 @@ Both jobs use workflow caches (Go, platform tools, IBM MQ image, Helm) per
 
 ### `nightly` (scheduled + manual)
 
-Dedicated workflow [`.github/workflows/nightly.yaml`](../.github/workflows/nightly.yaml):
+Dedicated workflow [`.github/workflows/nightly.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/nightly.yaml):
 flake detection and full-suite signal **without** blocking PRs. Not listed in
 branch protection.
 
@@ -253,7 +253,7 @@ Or kustomize + Helm on one cluster: `KURATOR_CI_E2E_BOTH=1 task ci:e2e`.
 
 ### `release-gate` (`workflow_dispatch` only)
 
-Dedicated workflow [`.github/workflows/release-gate.yaml`](../.github/workflows/release-gate.yaml)
+Dedicated workflow [`.github/workflows/release-gate.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release-gate.yaml)
 for maintainers **before tagging** (see [RELEASE.md](RELEASE.md#automated-release-gate-workflow)):
 
 | Job | What it does |
@@ -266,14 +266,14 @@ for maintainers **before tagging** (see [RELEASE.md](RELEASE.md#automated-releas
 
 E2E is **not** executed inside this workflow (~90 min); the poll step requires an
 existing green **E2E (kustomize)** run whose `headSha` matches the gate SHA. Standalone
-**`e2e (helm)`** is optional for tagging. Uses [`hack/ci/wait-release-gate-checks.sh`](../hack/ci/wait-release-gate-checks.sh).
+**`e2e (helm)`** is optional for tagging. Uses [`hack/ci/wait-release-gate-checks.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/ci/wait-release-gate-checks.sh).
 Not a branch-protection check.
 
 ### `release` (tags only)
 Builds and pushes the multi-arch controller image to GHCR with **OCI SBOM** and
 **SLSA provenance** attestations, scans with Trivy, **cosign-signs** the image
 digest (keyless OIDC), generates an SPDX SBOM (`dist/sbom.spdx.json`), packages
-release assets via [`hack/release-assets.sh`](../hack/release-assets.sh)
+release assets via [`hack/release-assets.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/release-assets.sh)
 (Kustomize manifests, Helm `.tgz`, checksums), **pushes the Helm chart to GHCR
 OCI** (`helm push` → `oci://ghcr.io/<owner>/mkurator:<version>`; reuses the
 existing GHCR login — no extra token step), then publishes the same install
@@ -283,8 +283,8 @@ artifacts on the GitHub Release. Runs only on `v*.*.*` tags (or
 **Changelog:** [git-cliff](https://git-cliff.org/) (`cliff.toml`) generates the
 release-notes section from Conventional Commits since the previous tag
 (`orhun/git-cliff-action`, pinned to the same version as `task tools:git-cliff`).
-Install instructions are appended from [`.github/release-notes-install.md`](../.github/release-notes-install.md)
-via [`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh). Checkout
+Install instructions are appended from [`.github/release-notes-install.md`](https://github.com/conduit-ops/MKurator/blob/main/.github/release-notes-install.md)
+via [`hack/assemble-release-notes.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/assemble-release-notes.sh). Checkout
 uses `fetch-depth: 0` so tag ranges resolve correctly.
 
 Maintainer steps: [RELEASE.md](RELEASE.md). Before tagging: `task changelog` (preview),
@@ -303,8 +303,8 @@ Critical/high findings fail the job.
 ## Caching (legacy note)
 
 Go module/build and envtest caches are implemented via the composite
-[`go-cache`](../.github/actions/go-cache/) action (see [Workflow caching](#workflow-caching)).
-IBM MQ image reuse uses [`mq-docker-image`](../.github/actions/mq-docker-image/);
+[`go-cache`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/go-cache) action (see [Workflow caching](#workflow-caching)).
+IBM MQ image reuse uses [`mq-docker-image`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions/mq-docker-image);
 controller **docker-build** in CI does not use BuildKit layer cache (release workflow does).
 
 ## Security & supply chain
@@ -331,15 +331,15 @@ optional; see [ADR-0005](adr/0005-keep-tooling-lean.md).
 ### Renovate (dependency freshness)
 
 Weekly dependency update PRs are driven by
-[`.github/workflows/renovate.yaml`](../.github/workflows/renovate.yaml) using
+[`.github/workflows/renovate.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/renovate.yaml) using
 [`renovatebot/github-action`](https://github.com/renovatebot/github-action).
 
 Configuration is split on purpose:
 
 | File | Role |
 |------|------|
-| [`.github/renovate-config.json`](../.github/renovate-config.json) | **Global** (self-hosted) config passed to the action: target repo via `RENOVATE_REPOSITORIES`, onboarding disabled |
-| [`renovate.json`](../renovate.json) | **Repository** config: schedules, grouping, custom managers, package rules |
+| [`.github/renovate-config.json`](https://github.com/conduit-ops/MKurator/blob/main/.github/renovate-config.json) | **Global** (self-hosted) config passed to the action: target repo via `RENOVATE_REPOSITORIES`, onboarding disabled |
+| [`renovate.json`](https://github.com/conduit-ops/MKurator/blob/main/renovate.json) | **Repository** config: schedules, grouping, custom managers, package rules |
 
 **Maintainer setup:** add a repository secret `RENOVATE_TOKEN` — a classic
 [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)

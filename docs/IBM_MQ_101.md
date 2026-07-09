@@ -1,7 +1,7 @@
 # IBM MQ 101 — local kind cluster and MKurator
 
 A short guide for checking that IBM MQ and the MKurator operator are working on the
-[`hack/kind-cluster`](../hack/kind-cluster/README.md) platform. For MQSC object
+[`hack/kind-cluster`](https://github.com/conduit-ops/MKurator/blob/main/hack/kind-cluster/README.md) platform. For MQSC object
 details see [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md); for mqweb see
 [IBM_MQ_REST_API.md](IBM_MQ_REST_API.md).
 
@@ -65,7 +65,7 @@ task mq:runmqsc -- "DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH DESCR"
 ```
 
 You should see `MAXDEPTH(5000)` and `DESCR(Orders intake queue)` matching
-[`charts/mkurator/samples/resources/queue.yaml`](../charts/mkurator/samples/resources/queue.yaml).
+[`charts/mkurator/samples/resources/queue.yaml`](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/samples/resources/queue.yaml).
 
 ### 3. Web console
 

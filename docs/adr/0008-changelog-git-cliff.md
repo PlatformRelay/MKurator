@@ -7,11 +7,11 @@
 
 The project already requires [Conventional Commits](https://www.conventionalcommits.org/)
 with a [gitmoji](https://gitmoji.dev/) token in every subject (see
-[AGENTS.md](../../AGENTS.md)). Release artifacts are produced manually: bump
-`charts/mkurator/Chart.yaml`, commit [`CHANGELOG.md`](../../CHANGELOG.md), tag
-`v*`, and let [`.github/workflows/release.yaml`](../../.github/workflows/release.yaml)
+[AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md)). Release artifacts are produced manually: bump
+`charts/mkurator/Chart.yaml`, commit [`CHANGELOG.md`](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md), tag
+`v*`, and let [`.github/workflows/release.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release.yaml)
 build/push the image and publish install manifests via
-[`hack/release-assets.sh`](../../hack/release-assets.sh).
+[`hack/release-assets.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/release-assets.sh).
 
 We need release notes that stay in sync with git history without hand-writing
 them, and a committed changelog users can read on the default branch. The
@@ -24,17 +24,17 @@ Go operator.
 We will generate changelogs with **[git-cliff](https://git-cliff.org/)** (pinned
 **v2.13.1**):
 
-- **[`cliff.toml`](../../cliff.toml)** at the repo root configures parsing, grouping,
+- **[`cliff.toml`](https://github.com/conduit-ops/MKurator/blob/main/cliff.toml)** at the repo root configures parsing, grouping,
   and a Keep a Changelog–style template. A **commit preprocessor** strips the
   `:gitmoji:` token so conventional parsing works on subjects like
   `feat(queue): :sparkles: summary`.
-- **[`CHANGELOG.md`](../../CHANGELOG.md)** is committed and regenerated with
+- **[`CHANGELOG.md`](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md)** is committed and regenerated with
   `task changelog:write` before tagging; `task changelog` previews the unreleased
   section locally.
 - **Releases** stay manually versioned. On tag push, `orhun/git-cliff-action`
-  runs `git cliff --latest --strip header`; [`hack/assemble-release-notes.sh`](../../hack/assemble-release-notes.sh)
+  runs `git cliff --latest --strip header`; [`hack/assemble-release-notes.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/assemble-release-notes.sh)
   appends install/cosign instructions from
-  [`.github/release-notes-install.md`](../../.github/release-notes-install.md)
+  [`.github/release-notes-install.md`](https://github.com/conduit-ops/MKurator/blob/main/.github/release-notes-install.md)
   to the GitHub Release body. Checkout uses `fetch-depth: 0` so tag ranges resolve.
 - **Commit filters**: user-facing types (`feat`, `fix`, `perf`, `refactor`, breaking
   `!`) appear in the changelog; `docs`, `test`, `chore`, `ci`, `build`, and `style`
@@ -82,6 +82,6 @@ step.
 
 ## References
 
-- Implementation: [`cliff.toml`](../../cliff.toml), [`Taskfile.yml`](../../Taskfile.yml)
+- Implementation: [`cliff.toml`](https://github.com/conduit-ops/MKurator/blob/main/cliff.toml), [`Taskfile.yml`](https://github.com/conduit-ops/MKurator/blob/main/Taskfile.yml)
   (`changelog*`, `tools:git-cliff`), [docs/CICD.md](../CICD.md) release job.
 - Related: [ADR-0005](0005-keep-tooling-lean.md) (lean tooling posture).

@@ -12,7 +12,7 @@ IBM does **not** ship a static OpenAPI file in the product download or on GitHub
 ### `mqweb-swagger.json` export target
 
 Pin each committed export to the integration MQ image tag in
-[`hack/mq-docker/docker-compose.yml`](../../hack/mq-docker/docker-compose.yml)
+[`hack/mq-docker/docker-compose.yml`](https://github.com/conduit-ops/MKurator/blob/main/hack/mq-docker/docker-compose.yml)
 (currently **`icr.io/ibm-messaging/mq:9.4.5.1-r1`**, IBM MQ **9.4.5.1**).
 
 After fetching, record the image tag here so reviewers know which mqweb build

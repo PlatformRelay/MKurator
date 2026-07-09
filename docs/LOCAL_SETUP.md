@@ -3,7 +3,7 @@
 Install the tools needed to build, test, and run **MKurator** on your machine.
 For day-to-day workflow after setup, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
-Doc index: [README.md](README.md)
+Doc index: [README.md](index.md)
 
 ## On this page
 
@@ -97,7 +97,7 @@ TOOLS_TIER=A task tools:check # inner loop only
 ```
 
 The dev container runs `task tools:install` and `task tools:check` on first
-create — see [`.devcontainer/`](../.devcontainer/).
+create — see [`.devcontainer/`](https://github.com/conduit-ops/MKurator/tree/main/.devcontainer).
 
 ## External tools — install by OS
 
@@ -185,7 +185,7 @@ sudo dnf install golang docker kubectl
 
 Native Windows is **not** tested for the local kind stack. Use **WSL2** with the
 Linux instructions above, or open the repo in the **dev container**
-([`.devcontainer/`](../.devcontainer/)).
+([`.devcontainer/`](https://github.com/conduit-ops/MKurator/tree/main/.devcontainer)).
 
 ### Container runtime notes
 
@@ -259,7 +259,7 @@ export TF_VAR_kubeconfig=$KUBECONFIG
 
 Run `direnv allow` once in the repo root.
 
-Platform details: [hack/kind-cluster/README.md](../hack/kind-cluster/README.md).
+Platform details: [hack/kind-cluster/README.md](https://github.com/conduit-ops/MKurator/blob/main/hack/kind-cluster/README.md).
 Workflow after setup: [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Optional quality-of-life tools

@@ -69,7 +69,7 @@ Custom Resource  →  controller reconcile  →  mqweb REST (MQSC)  →  IBM MQ 
 | Operators | [Install and use](INSTALL_AND_USE.md) · [Upgrade](UPGRADE.md) · [Observability](OBSERVABILITY.md) |
 | Developers | [Development setup](DEVELOPMENT.md) · [Developer guide](DEVELOPER_GUIDE.md) · [CI/CD](CICD.md) |
 | Architects | [Architecture](ARCHITECTURE.md) · [Attribute reconciliation](ATTRIBUTE_RECONCILIATION.md) · [ADRs](adr/README.md) |
-| Contributors | [Contributing](../CONTRIBUTING.md) · [Code of Conduct](../CODE_OF_CONDUCT.md) · [Governance](../GOVERNANCE.md) |
+| Contributors | [Contributing](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md) · [Code of Conduct](https://github.com/conduit-ops/MKurator/blob/main/CODE_OF_CONDUCT.md) · [Governance](https://github.com/conduit-ops/MKurator/blob/main/GOVERNANCE.md) |
 
 ## Examples
 
@@ -77,4 +77,4 @@ Custom Resource  →  controller reconcile  →  mqweb REST (MQSC)  →  IBM MQ 
 - [Channel authentication](examples/channel-authentication.md)
 - [Upgrade walkthrough](examples/upgrade-walkthrough.md)
 
-Sample YAML with field notes: [config/samples README](../config/samples/README.md).
+Sample YAML with field notes: [config/samples README](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md).

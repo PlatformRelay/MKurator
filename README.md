@@ -26,13 +26,14 @@ more later.
 **Full documentation:** [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/) — install
 guides, examples, ADRs, and engineering standards.
 
-> Status: **Phase 9 breadth shipped on `main`** — SDR/RCVR channels, AUTHREC
-> channel/namelist profiles, DISPLAY capability probing for local queues, with
-> Docker integration and kind e2e coverage. Latest release: **`v0.12.1`**. Extended
-> CHLAUTH rule types remain in the
-> [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
+> Status: **`v1beta1` API graduated** (v0.12.0) — all six kinds serve both
+> `v1alpha1` and `v1beta1` behind a conversion webhook. **Phase 9 breadth on
+> `main`** — SDR/RCVR channels, AUTHREC channel/namelist profiles, DISPLAY
+> capability probing for local queues, with Docker integration and kind e2e
+> coverage. Latest release: **`v0.12.1`**. Extended CHLAUTH rule types remain in
+> the [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
 
-## What ships in v1alpha1 (today)
+## What ships today
 
 | Custom resource | MQ objects | Notes |
 |-----------------|------------|-------|
@@ -43,11 +44,13 @@ guides, examples, ADRs, and engineering standards.
 | `ChannelAuthRule` | `CHLAUTH` | `ADDRESSMAP` exercised in kind e2e; `BLOCKUSER` in Docker integration; `USERMAP`, `SSLPEERMAP`, `QMGRMAP`, `BLOCKADDR` accepted by schema and admission, MQ-validated at apply time |
 | `AuthorityRecord` | `SET AUTHREC` (OAM) | Queue profile + principal/group authorities |
 
-**v1alpha1 scope:** access control covers `SET CHLAUTH` (one rule per CR) and
-`SET AUTHREC` for queue/channel-style profiles. See
-[PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md) for rule-type roadmap.
-**API stability:** [docs/API_STABILITY.md](docs/API_STABILITY.md) (`v1alpha1`
-guarantees and `v1beta1` graduation path).
+**API versions:** all six kinds serve **`v1alpha1`** and **`v1beta1`** behind a
+conversion webhook; new manifests should use `v1beta1`. **Access control** covers
+`SET CHLAUTH` (one rule per CR) and `SET AUTHREC` for queue/channel-style
+profiles; see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md) for the
+rule-type roadmap. **API stability:**
+[docs/API_STABILITY.md](docs/API_STABILITY.md) (per-version guarantees and the
+`v1beta1` graduation path).
 
 **Repository:** [github.com/conduit-ops/MKurator](https://github.com/conduit-ops/MKurator) — Go module
 [`github.com/conduit-ops/MKurator`](https://pkg.go.dev/github.com/conduit-ops/mkurator), images
@@ -102,12 +105,13 @@ adapter. Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · extended map:
 
 ```text
 mkurator/
-├── 📦 api/v1alpha1/                 CRD types + deepcopy (QMC, Queue, Topic, Channel, auth)
+├── 📦 api/{v1alpha1,v1beta1}/       CRD types, deepcopy + conversion (QMC, Queue, Topic, Channel, auth)
 ├── 🚀 cmd/                          Manager entrypoint (controller-runtime)
 ├── 🧠 internal/
 │   ├── controller/                  Reconcilers (thin) + unit/envtest suites
 │   ├── validation/                  Admission validation rules (pure functions)
-│   ├── webhook/v1alpha1/            Validating webhook handlers
+│   ├── webhook/{v1alpha1,v1beta1}/  Validating webhook handlers (per version)
+│   ├── webhook/conversion/          v1alpha1 ↔ v1beta1 conversion webhook
 │   ├── mqadmin/                     MQAdmin port — interface + domain errors
 │   ├── adapter/mqrest/              mqweb REST client (sole adapter today)
 │   ├── logging/                     Structured logging helpers

@@ -6,14 +6,14 @@ Maintainer setup for optional quality tools beyond default `task install`.
 
 Internal package layering is enforced by [go-arch-lint](https://github.com/fe3dback/go-arch-lint):
 
-- Config: [`hack/tooling/go-arch-lint.yml`](../../hack/tooling/go-arch-lint.yml)
+- Config: [`hack/tooling/go-arch-lint.yml`](https://github.com/conduit-ops/MKurator/blob/main/hack/tooling/go-arch-lint.yml)
 - Local: `task arch:lint` (also runs as part of `task lint` when wired)
 
 Controllers must depend on `mqadmin` / adapter ports, not vice versa. See [GO_MODULE.md](../GO_MODULE.md).
 
 ## depguard / gomodguard
 
-Configured in [`.golangci.yaml`](../../.golangci.yaml). Denies `logrus`, `pkg/errors`, and `io/ioutil` —
+Configured in [`.golangci.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.golangci.yaml). Denies `logrus`, `pkg/errors`, and `io/ioutil` —
 use `log/slog` and stdlib errors.
 
 ## SonarCloud (disabled)
@@ -23,7 +23,7 @@ GitHub organization.
 
 | Item | Status |
 | --- | --- |
-| Workflow | [`.github/workflows/sonarcloud.yaml`](../../.github/workflows/sonarcloud.yaml) (`if: false`) |
+| Workflow | [`.github/workflows/sonarcloud.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/sonarcloud.yaml) (`if: false`) |
 | Token | Set `SONAR_TOKEN` in repo secrets when enabling |
 | Project key | `conduit-ops_mkurator` (placeholder in workflow) |
 

@@ -153,7 +153,7 @@ fold logic.
 ## References
 
 - [API_STABILITY.md](../API_STABILITY.md) — graduation criteria and deprecation policy
-- [PROGRAM-PHASE8D.md](../../agent-context/PROGRAM-PHASE8D.md) — coordinator work slices (local)
+- PROGRAM-PHASE8D.md — coordinator work slices (local)
 - [ROADMAP.md](../ROADMAP.md#8d--v1beta1-graduation) — Phase 8d tracking
 - [ADR-0009](0009-validating-admission-webhooks.md) — validating-only posture (superseded for conversion by this ADR addendum)
 - [ADR-0021](0021-attribute-api-shape.md) — typed fields + escape hatch

@@ -22,7 +22,7 @@ Related: [CONTRIBUTING.md](CONTRIBUTING.md#changelog-and-releases) (commits),
 ## Overview
 
 Releases are **tag-driven**: push an annotated-style lightweight tag `vX.Y.Z` on
-`main` and [`.github/workflows/release.yaml`](../.github/workflows/release.yaml)
+`main` and [`.github/workflows/release.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release.yaml)
 builds, scans, signs, and publishes artifacts. Version numbers are **not** bumped
 by CI — you commit `Chart.yaml` and `CHANGELOG.md` on `main` first.
 
@@ -63,7 +63,7 @@ task vuln:check        # same as CI test job
 
 ### Automated release gate workflow
 
-Use [`.github/workflows/release-gate.yaml`](../.github/workflows/release-gate.yaml)
+Use [`.github/workflows/release-gate.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release-gate.yaml)
 (**Actions → Release gate → Run workflow**) on the commit you will tag:
 
 | Input | Meaning |
@@ -89,9 +89,9 @@ Do **not** tag until all three workflow runs succeeded on **`${RELEASE_SHA}`**
 
 | Workflow | File | What it proves |
 |----------|------|----------------|
-| **CI** | [`.github/workflows/ci.yaml`](../.github/workflows/ci.yaml) | `verify`, `lint`, `test` (+ Codecov upload), `build`, `docker-build`, `helm-lint` |
-| **Integration** | [`.github/workflows/integration.yaml`](../.github/workflows/integration.yaml) | Live mqweb: queues, topics, channels, CHLAUTH, AUTHREC |
-| **E2E** | [`.github/workflows/e2e.yaml`](../.github/workflows/e2e.yaml) | Operator on kind + IBM MQ (Kustomize deploy) |
+| **CI** | [`.github/workflows/ci.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/ci.yaml) | `verify`, `lint`, `test` (+ Codecov upload), `build`, `docker-build`, `helm-lint` |
+| **Integration** | [`.github/workflows/integration.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/integration.yaml) | Live mqweb: queues, topics, channels, CHLAUTH, AUTHREC |
+| **E2E** | [`.github/workflows/e2e.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/e2e.yaml) | Operator on kind + IBM MQ (Kustomize deploy) |
 
 On GitHub: **Actions** → select the workflow → open the latest run on `main` →
 confirm the commit SHA matches `${RELEASE_SHA}` (copy from `git rev-parse` or
@@ -122,7 +122,7 @@ task changelog
 ```
 
 Review grouping (Features, Bug Fixes, Breaking Changes). Skipped types: `docs`,
-`test`, `chore`, `ci`, `build`, `style` — see [`cliff.toml`](../cliff.toml).
+`test`, `chore`, `ci`, `build`, `style` — see [`cliff.toml`](https://github.com/conduit-ops/MKurator/blob/main/cliff.toml).
 
 ### 2. Choose the version
 
@@ -134,7 +134,7 @@ Review grouping (Features, Bug Fixes, Breaking Changes). Skipped types: `docs`,
 
 ### 3. Bump the Helm chart
 
-Edit [`charts/mkurator/Chart.yaml`](../charts/mkurator/Chart.yaml):
+Edit [`charts/mkurator/Chart.yaml`](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/Chart.yaml):
 
 ```yaml
 version: 0.3.0
@@ -191,10 +191,10 @@ The [release workflow](https://github.com/conduit-ops/MKurator/actions/workflows
 | Helm chart (OCI) | `oci://ghcr.io/conduit-ops/mkurator` |
 
 Release notes are assembled by
-[`hack/assemble-release-notes.sh`](../hack/assemble-release-notes.sh) (git-cliff
+[`hack/assemble-release-notes.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/assemble-release-notes.sh) (git-cliff
 section from `git-cliff-action` output **`content`**, not the `changelog` path +
-[`.github/release-notes-install.md`](../.github/release-notes-install.md)).
-Committed history lives in repo-root [`CHANGELOG.md`](../CHANGELOG.md).
+[`.github/release-notes-install.md`](https://github.com/conduit-ops/MKurator/blob/main/.github/release-notes-install.md)).
+Committed history lives in repo-root [`CHANGELOG.md`](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md).
 
 Local dry-run of install manifests (without pushing):
 

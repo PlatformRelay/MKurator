@@ -57,4 +57,4 @@ See [CICD.md](../CICD.md) for path filters and required checks.
 | --- | --- |
 | [DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md) | Change matrix — what to regenerate |
 | [guidelines.md](guidelines.md) | Definition of done |
-| [test/schema/README.md](../../test/schema/README.md) | Golden OpenAPI contracts |
+| [test/schema/README.md](https://github.com/conduit-ops/MKurator/blob/main/test/schema/README.md) | Golden OpenAPI contracts |
