@@ -9,7 +9,8 @@ etcd storage version until the hub migration is proven in CI
 Field-level reference pages (every `spec`/`status` field) are being added per
 kind; the field tables are generated from the CRD OpenAPI schema by
 `task docs:crd-ref` and augmented with hand-written prose. Available so far:
-**[Queue](queue.md)**, **[Topic](topic.md)**, **[Channel](channel.md)**.
+**[Queue](queue.md)**, **[Topic](topic.md)**, **[Channel](channel.md)**,
+**[ChannelAuthRule](channelauthrule.md)**.
 
 | Kind | Short name | Purpose | Sample YAML |
 | --- | --- | --- | --- |
@@ -17,7 +18,7 @@ kind; the field tables are generated from the CRD OpenAPI schema by
 | [`Queue`](queue.md) | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
 | [`Topic`](topic.md) | `tp` | Administrative topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
 | [`Channel`](channel.md) | `chl` | Server-connection, sender, or receiver channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
-| `ChannelAuthRule` | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
+| [`ChannelAuthRule`](channelauthrule.md) | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
 | `AuthorityRecord` | `auth` | OAM authority record | [authorityrecord.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) |
 
 ## Queue variants

@@ -67,6 +67,7 @@ nav:
       - "Queue (mq)": crds/queue.md
       - "Topic (tp)": crds/topic.md
       - "Channel (chl)": crds/channel.md
+      - "ChannelAuthRule (car)": crds/channelauthrule.md
       - Architecture decision records: adr/README.md
   - Project:
       - Commit conventions: CONTRIBUTING.md
