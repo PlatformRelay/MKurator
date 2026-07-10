@@ -395,6 +395,13 @@ tasks:
 
   ci:integration:
     desc: "Integration test parity with GitHub Actions (Docker MQ up, test, down)"
+    env:
+      # Integration suite runs `go test -race`, which requires cgo. The global
+      # env defaults CGO_ENABLED=0; without this override the value is exported
+      # into run-ci-integration.sh and the nested `task test:integration`, so
+      # `go test -race` fails "requires cgo". Mirrors ci:e2e above. (Kept the
+      # weekly Nightly integration job red once the go-cache fix unmasked it.)
+      CGO_ENABLED: "1"
     cmds:
       - bash hack/ci/run-ci-integration.sh
 
