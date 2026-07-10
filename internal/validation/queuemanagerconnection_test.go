@@ -287,6 +287,85 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 	})
 }
 
+func TestValidateQueueManagerConnectionDeleteDedupsDualVersionDependents(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
+	conn := sampleConnection("ns", "qm1")
+
+	// Simulate the conversion webhook serving one stored Queue under both api versions: the same
+	// (kind, name) referent is returned by both the v1alpha1 and v1beta1 List.
+	queueAlpha := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "e2e-orders-n2", Namespace: "ns"},
+		Spec: messagingv1alpha1.QueueSpec{
+			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+		},
+	}
+	queueBeta := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "e2e-orders-n2", Namespace: "ns"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+		},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, queueAlpha, queueBeta).Build()
+
+	errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn)
+	if len(errs) == 0 {
+		t.Fatal("expected delete blocked when dependent exists")
+	}
+	detail := errs[0].Detail
+	if got := strings.Count(detail, `Queue "e2e-orders-n2"`); got != 1 {
+		t.Fatalf("expected dependent listed exactly once, got %d occurrences in detail = %q", got, detail)
+	}
+}
+
+func TestListConnectionDependentsDedupAndOrder(t *testing.T) {
+	t.Parallel()
+	scheme := runtime.NewScheme()
+	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
+
+	const queueKind = "Queue"
+	alphaRef := messagingv1alpha1.LocalObjectReference{Name: "qm1"}
+	betaRef := messagingv1beta1.LocalObjectReference{Name: "qm1"}
+
+	// The same "shared" Queue served under both versions must be deduped, while a distinct
+	// v1beta1-only Queue proves non-duplicate dependents are preserved (first-seen order).
+	dupAlpha := &messagingv1alpha1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "shared", Namespace: "ns"},
+		Spec:       messagingv1alpha1.QueueSpec{ConnectionRef: alphaRef, QueueName: "A"},
+	}
+	dupBeta := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "shared", Namespace: "ns"},
+		Spec:       messagingv1beta1.QueueSpec{ConnectionRef: betaRef, QueueName: "A"},
+	}
+	distinctBeta := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "beta-only", Namespace: "ns"},
+		Spec:       messagingv1beta1.QueueSpec{ConnectionRef: betaRef, QueueName: "B"},
+	}
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dupAlpha, dupBeta, distinctBeta).Build()
+
+	dependents, errs := listConnectionDependents(context.Background(), cl, "ns", "qm1")
+	if len(errs) > 0 {
+		t.Fatalf("unexpected errors: %v", errs)
+	}
+	want := []connectionDependent{
+		{kind: queueKind, name: "shared"},
+		{kind: queueKind, name: "beta-only"},
+	}
+	if len(dependents) != len(want) {
+		t.Fatalf("dependents = %+v, want %+v", dependents, want)
+	}
+	for i := range want {
+		if dependents[i] != want[i] {
+			t.Fatalf("dependents[%d] = %+v, want %+v (full: %+v)", i, dependents[i], want[i], dependents)
+		}
+	}
+}
+
 func TestValidateQueueManagerConnectionDeleteWithV1Beta1Dependents(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
