@@ -121,6 +121,9 @@ linters:
     paths:
       - third_party$
       - zz_generated\..*\.go$
+      # Local agent worktrees (gitignored). Stale checkouts — or stale golangci
+      # result-cache entries pointing into them — must never redden `task lint`.
+      - \.claude/
 
 formatters:
   enable:
@@ -135,6 +138,7 @@ formatters:
     paths:
       - third_party$
       - zz_generated\..*\.go$
+      - \.claude/
 
 issues:
   max-issues-per-linter: 0
