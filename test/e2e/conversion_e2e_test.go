@@ -17,7 +17,9 @@ const (
 	conversionQueueDescr    = "e2e conversion orders queue"
 )
 
-var _ = Describe("v1alpha1 to v1beta1 CRD upgrade", Label("conversion", "mq"), func() {
+// Serial: upgradeMKuratorCRDs re-applies the cluster-wide CRD bundle mid-spec;
+// parallel processes applying CRs against those CRDs would race the upgrade.
+var _ = Describe("v1alpha1 to v1beta1 CRD upgrade", Serial, Label("conversion", "mq"), func() {
 	var (
 		ns          string
 		prefix      string

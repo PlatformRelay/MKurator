@@ -141,7 +141,12 @@ spec:
 
 		// Queue attribute replace semantics: test/integration/mq (TestIntegration_Queue_UpdateViaReplace).
 
-		It("recovers QueueManagerConnection readiness after secret rotation", Label("slow"), func() {
+		// Serial: mutates state shared across parallel processes — corrupts the
+		// namespace-wide mq-credentials Secret and deletes/recreates the shared
+		// QueueManagerConnection. Run in parallel, sibling processes fail QMC
+		// readiness waits, and the delete here is denied by the referential
+		// webhook while their Queues still reference the connection.
+		It("recovers QueueManagerConnection readiness after secret rotation", Serial, Label("slow"), func() {
 			ensureE2ENamespace(ns)
 			By("creating intentionally invalid MQ credentials")
 			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
