@@ -68,6 +68,7 @@ nav:
       - "Topic (tp)": crds/topic.md
       - "Channel (chl)": crds/channel.md
       - "ChannelAuthRule (car)": crds/channelauthrule.md
+      - "AuthorityRecord (auth)": crds/authorityrecord.md
       - Architecture decision records: adr/README.md
   - Project:
       - Commit conventions: CONTRIBUTING.md

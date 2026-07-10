@@ -10,7 +10,7 @@ Field-level reference pages (every `spec`/`status` field) are being added per
 kind; the field tables are generated from the CRD OpenAPI schema by
 `task docs:crd-ref` and augmented with hand-written prose. Available so far:
 **[Queue](queue.md)**, **[Topic](topic.md)**, **[Channel](channel.md)**,
-**[ChannelAuthRule](channelauthrule.md)**.
+**[ChannelAuthRule](channelauthrule.md)**, **[AuthorityRecord](authorityrecord.md)**.
 
 | Kind | Short name | Purpose | Sample YAML |
 | --- | --- | --- | --- |
@@ -19,7 +19,7 @@ kind; the field tables are generated from the CRD OpenAPI schema by
 | [`Topic`](topic.md) | `tp` | Administrative topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
 | [`Channel`](channel.md) | `chl` | Server-connection, sender, or receiver channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
 | [`ChannelAuthRule`](channelauthrule.md) | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
-| `AuthorityRecord` | `auth` | OAM authority record | [authorityrecord.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) |
+| [`AuthorityRecord`](authorityrecord.md) | `auth` | OAM authority record | [authorityrecord.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) |
 
 ## Queue variants
 
