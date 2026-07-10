@@ -876,3 +876,11 @@ func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 }
+
+func TestSyncedConditionsNonMQObject(t *testing.T) {
+	t.Parallel()
+	// A non-MQObject (QueueManagerConnection) yields nil rather than panicking.
+	if conds := syncedConditions(&messagingv1alpha1.QueueManagerConnection{}); conds != nil {
+		t.Fatalf("expected nil conditions, got %v", conds)
+	}
+}

@@ -62,6 +62,14 @@ func TestObserveOnlyAuthDriftMessage(t *testing.T) {
 		"CHLAUTH on IBM MQ differs from spec (observe-only; not applying)" {
 		t.Fatalf("got %q", got)
 	}
+	if got := observeOnlyAuthDriftMessage(true, "APP.ORDERS", "authority record"); got !=
+		"AUTHREC on IBM MQ differs from spec (observe-only; not applying)" {
+		t.Fatalf("got %q", got)
+	}
+	if got := observeOnlyAuthDriftMessage(true, "APP.ORDERS", "topic"); got !=
+		"topic on IBM MQ differs from spec (observe-only; not applying)" {
+		t.Fatalf("got %q", got)
+	}
 }
 
 func TestReconcileMQObjectState_ObserveOnlyNotFound(t *testing.T) {

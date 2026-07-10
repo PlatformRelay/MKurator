@@ -115,3 +115,53 @@ func TestCircuitBreakerHalfOpenProbe(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A probe that fails in half_open must re-open the breaker and reset openedAt,
+// so the open timeout starts again from the failed probe.
+func TestCircuitBreakerHalfOpenProbeFailureReopens(t *testing.T) {
+	t.Parallel()
+	start := time.Now()
+	now := start
+	var transitions []string
+	b := newCircuitBreaker(circuitBreakerConfig{
+		failureThreshold: 1,
+		openTimeout:      10 * time.Millisecond,
+		now:              func() time.Time { return now },
+		onTransition:     func(from, to string) { transitions = append(transitions, from+"->"+to) },
+	})
+	// Trip closed -> open.
+	if err := b.beforeRequest(); err != nil {
+		t.Fatal(err)
+	}
+	b.recordFailure()
+	// After the open timeout, the next request is admitted as the half_open probe.
+	now = start.Add(20 * time.Millisecond)
+	if err := b.beforeRequest(); err != nil {
+		t.Fatalf("expected probe admitted, got %v", err)
+	}
+	// The probe fails: half_open -> open, openedAt reset to now.
+	b.recordFailure()
+	if b.state != breakerStateOpen {
+		t.Fatalf("state=%q, want open", b.state)
+	}
+	if !b.openedAt.Equal(now) {
+		t.Fatalf("openedAt=%v, want %v", b.openedAt, now)
+	}
+	// Circuit is open again: an immediate retry (before the timeout) is rejected.
+	if err := b.beforeRequest(); err == nil || !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("expected open circuit, got %v", err)
+	}
+	if len(transitions) == 0 || transitions[len(transitions)-1] != "half_open->open" {
+		t.Fatalf("transitions=%v, want last half_open->open", transitions)
+	}
+}
+
+// An unknown breaker state must fail safe (treated as open) rather than admit traffic.
+func TestCircuitBreakerBeforeRequestUnknownStateFailsSafe(t *testing.T) {
+	t.Parallel()
+	b := newCircuitBreaker(circuitBreakerConfig{failureThreshold: 1, openTimeout: time.Minute, now: time.Now})
+	b.state = "bogus"
+	if err := b.beforeRequest(); err == nil || !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("expected fail-safe transient error, got %v", err)
+	}
+}

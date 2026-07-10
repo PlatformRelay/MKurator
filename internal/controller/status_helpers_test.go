@@ -134,6 +134,16 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 			t.Fatalf("status = %+v", o.Status)
 		}
 	})
+	t.Run("non-MQ object no-ops", func(t *testing.T) {
+		t.Parallel()
+		// QueueManagerConnection is not an MQObject; applyMQObjectStatusFields must
+		// safely no-op (leave status untouched) rather than panic.
+		conn := &messagingv1alpha1.QueueManagerConnection{}
+		applyMQObjectStatusFields(conn, opts, "synced", &now)
+		if len(conn.Status.Conditions) != 0 || conn.Status.ObservedGeneration != 0 {
+			t.Fatalf("status mutated: %+v", conn.Status)
+		}
+	})
 }
 
 func TestConnectionWaitMessage_MessageOnly(t *testing.T) {
