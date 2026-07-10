@@ -14,6 +14,12 @@ runs:
       uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
       with:
         go-version-file: go.mod
+        # Disable setup-go's built-in module/build cache: the explicit
+        # actions/cache step below owns ~/go/pkg/mod + ~/.cache/go-build with a
+        # go.sum key. Enabling both restores the module cache twice over the same
+        # paths, and the second tar extraction fails with "Cannot open: File
+        # exists" (broke the weekly Nightly integration job — CI-1).
+        cache: false
     - name: Restore Go build and module cache
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
