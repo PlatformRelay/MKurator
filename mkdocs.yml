@@ -66,6 +66,7 @@ nav:
       - Custom resources: crds/README.md
       - "Queue (mq)": crds/queue.md
       - "Topic (tp)": crds/topic.md
+      - "Channel (chl)": crds/channel.md
       - Architecture decision records: adr/README.md
   - Project:
       - Commit conventions: CONTRIBUTING.md
