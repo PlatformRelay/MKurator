@@ -158,13 +158,16 @@ git commit -m "chore(release): :bookmark: prepare v0.3.0"
 
 Use a conventional subject; the release tag itself does not need to be in this commit.
 
+Land the prep commit on `main` **via pull request** — direct pushes to `main`
+are blocked by the `protect-main` ruleset. Tags are not covered by the branch
+ruleset, so tag pushes still work.
+
 ## Tag and publish
 
-Create and push the tag (triggers CI):
+Create and push the tag on the merged `main` HEAD (triggers CI):
 
 ```sh
 git tag v0.3.0
-git push origin main
 git push origin v0.3.0
 ```
 
@@ -270,6 +273,7 @@ task changelog
 task changelog:write
 git add charts/mkurator/Chart.yaml CHANGELOG.md
 git commit -m "chore(release): :bookmark: prepare vX.Y.Z"
-git tag vX.Y.Z
-git push origin main && git push origin vX.Y.Z
+# land the prep commit via PR — main blocks direct pushes (protect-main ruleset)
+git tag vX.Y.Z           # on the merged main HEAD
+git push origin vX.Y.Z
 ```
