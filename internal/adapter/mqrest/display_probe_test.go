@@ -3,7 +3,7 @@ package mqrest
 import (
 	"testing"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 func TestQueueAttributeDisplayProbeRequest(t *testing.T) {

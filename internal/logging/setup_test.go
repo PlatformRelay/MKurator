@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduit-ops/mkurator/internal/logging"
+	"github.com/platformrelay/mkurator/internal/logging"
 )
 
 func TestLogLevelFiltersVerbose(t *testing.T) {

@@ -152,8 +152,8 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 └── AGENTS.md / README.md
 ```
 
-> Module `github.com/conduit-ops/mkurator`, API group `messaging.mkurator.dev`,
-> version `v1alpha1`. GitHub org/repo: [conduit-ops/MKurator](https://github.com/conduit-ops/MKurator).
+> Module `github.com/platformrelay/mkurator`, API group `messaging.mkurator.dev`,
+> version `v1alpha1`. GitHub org/repo: [platformrelay/MKurator](https://github.com/platformrelay/MKurator).
 > See [ADR-0018](docs/adr/0018-project-rename-mkurator.md) (supersedes [ADR-0006](docs/adr/0006-project-name-kurator.md)).
 
 ## Toolchain & dependencies

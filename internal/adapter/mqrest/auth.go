@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/conduit-ops/mkurator/internal/metrics"
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/metrics"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 const (

@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 // ValidateQueueSpecV1Beta1 runs stateful admission validation for Queue v1beta1 spec fields.

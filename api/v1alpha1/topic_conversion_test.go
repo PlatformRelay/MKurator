@@ -3,7 +3,7 @@ package v1alpha1
 import (
 	"testing"
 
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestTopicConvertToFromRoundTrip(t *testing.T) {

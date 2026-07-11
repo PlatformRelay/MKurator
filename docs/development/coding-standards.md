@@ -1,7 +1,7 @@
 # Coding standards
 
 Go *how* — formatting, lint, modules, and CI gates. Process lives in
-[CONTRIBUTING.md](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md); operator quality bar in [guidelines.md](guidelines.md).
+[CONTRIBUTING.md](https://github.com/platformrelay/MKurator/blob/main/CONTRIBUTING.md); operator quality bar in [guidelines.md](guidelines.md).
 
 ## Formatting
 
@@ -12,7 +12,7 @@ Go *how* — formatting, lint, modules, and CI gates. Process lives in
 
 **golangci-lint v2** with `default: none` (explicit opt-in). Enabled linters include:
 `errcheck`, `gosec`, `govet`, `staticcheck`, `revive`, `ginkgolinter`, and others — see
-[`.golangci.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.golangci.yaml).
+[`.golangci.yaml`](https://github.com/platformrelay/MKurator/blob/main/.golangci.yaml).
 
 - `task lint` runs golangci-lint and (when configured) `go-arch-lint` / depguard.
 - Generated code (`zz_generated.*`, mocks) is excluded or lax.
@@ -28,7 +28,7 @@ Go *how* — formatting, lint, modules, and CI gates. Process lives in
 
 - **gosec** enabled via golangci-lint — no credentials in code paths.
 - **depguard** / **gomodguard** block deprecated logging/error libs (`logrus`, `pkg/errors`, `io/ioutil`).
-- Never commit secrets; pre-commit runs gitleaks with [`.github/gitleaks.toml`](https://github.com/conduit-ops/MKurator/blob/main/.github/gitleaks.toml).
+- Never commit secrets; pre-commit runs gitleaks with [`.github/gitleaks.toml`](https://github.com/platformrelay/MKurator/blob/main/.github/gitleaks.toml).
 
 ## Pull request and CI gates
 

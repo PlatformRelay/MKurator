@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 // Delete-ordering tests document mqweb cleanup semantics for finalizers: both

@@ -7,7 +7,7 @@ Connect MKurator to an existing queue manager and create a local queue.
 Create a `Secret` with username and password keys referenced by
 `QueueManagerConnection.spec.credentialsSecretRef`. See the annotated sample:
 
-[`config/samples/messaging_v1alpha1_queuemanagerconnection.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml)
+[`config/samples/messaging_v1alpha1_queuemanagerconnection.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml)
 
 ## 2. QueueManagerConnection
 
@@ -30,7 +30,7 @@ Full field reference: [INSTALL_AND_USE.md](../INSTALL_AND_USE.md#resource-refere
 
 Apply a `Queue` with `spec.connectionRef` pointing at the QMC name:
 
-[`config/samples/messaging_v1alpha1_queue.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml)
+[`config/samples/messaging_v1alpha1_queue.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml)
 
 Verify on the queue manager:
 
@@ -43,9 +43,9 @@ kubectl describe queue <name>
 
 | Variant | Sample |
 | --- | --- |
-| Alias queue | [queue_alias.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml) |
-| Remote queue | [queue_remote.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml) |
-| Topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
-| Channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
+| Alias queue | [queue_alias.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml) |
+| Remote queue | [queue_remote.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml) |
+| Topic | [topic.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
+| Channel | [channel.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
 
 Attribute drift policy: [ATTRIBUTE_RECONCILIATION.md](../ATTRIBUTE_RECONCILIATION.md).

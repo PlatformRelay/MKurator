@@ -5,7 +5,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 // ConvertTo copies this ChannelAuthRule (v1alpha1 spoke) into the v1beta1 hub.

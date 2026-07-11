@@ -22,7 +22,7 @@ Related: [CONTRIBUTING.md](CONTRIBUTING.md#changelog-and-releases) (commits),
 ## Overview
 
 Releases are **tag-driven**: push an annotated-style lightweight tag `vX.Y.Z` on
-`main` and [`.github/workflows/release.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release.yaml)
+`main` and [`.github/workflows/release.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/release.yaml)
 builds, scans, signs, and publishes artifacts. Version numbers are **not** bumped
 by CI — you commit `Chart.yaml` and `CHANGELOG.md` on `main` first.
 
@@ -63,7 +63,7 @@ task vuln:check        # same as CI test job
 
 ### Automated release gate workflow
 
-Use [`.github/workflows/release-gate.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release-gate.yaml)
+Use [`.github/workflows/release-gate.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/release-gate.yaml)
 (**Actions → Release gate → Run workflow**) on the commit you will tag:
 
 | Input | Meaning |
@@ -89,9 +89,9 @@ Do **not** tag until all three workflow runs succeeded on **`${RELEASE_SHA}`**
 
 | Workflow | File | What it proves |
 |----------|------|----------------|
-| **CI** | [`.github/workflows/ci.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/ci.yaml) | `verify`, `lint`, `test` (+ Codecov upload), `build`, `docker-build`, `helm-lint` |
-| **Integration** | [`.github/workflows/integration.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/integration.yaml) | Live mqweb: queues, topics, channels, CHLAUTH, AUTHREC |
-| **E2E** | [`.github/workflows/e2e.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/e2e.yaml) | Operator on kind + IBM MQ (Kustomize deploy) |
+| **CI** | [`.github/workflows/ci.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/ci.yaml) | `verify`, `lint`, `test` (+ Codecov upload), `build`, `docker-build`, `helm-lint` |
+| **Integration** | [`.github/workflows/integration.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/integration.yaml) | Live mqweb: queues, topics, channels, CHLAUTH, AUTHREC |
+| **E2E** | [`.github/workflows/e2e.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/e2e.yaml) | Operator on kind + IBM MQ (Kustomize deploy) |
 
 On GitHub: **Actions** → select the workflow → open the latest run on `main` →
 confirm the commit SHA matches `${RELEASE_SHA}` (copy from `git rev-parse` or
@@ -122,7 +122,7 @@ task changelog
 ```
 
 Review grouping (Features, Bug Fixes, Breaking Changes). Skipped types: `docs`,
-`test`, `chore`, `ci`, `build`, `style` — see [`cliff.toml`](https://github.com/conduit-ops/MKurator/blob/main/cliff.toml).
+`test`, `chore`, `ci`, `build`, `style` — see [`cliff.toml`](https://github.com/platformrelay/MKurator/blob/main/cliff.toml).
 
 ### 2. Choose the version
 
@@ -134,7 +134,7 @@ Review grouping (Features, Bug Fixes, Breaking Changes). Skipped types: `docs`,
 
 ### 3. Bump the Helm chart
 
-Edit [`charts/mkurator/Chart.yaml`](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/Chart.yaml):
+Edit [`charts/mkurator/Chart.yaml`](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/Chart.yaml):
 
 ```yaml
 version: 0.3.0
@@ -175,12 +175,12 @@ Fix forward with a new patch tag instead.
 
 ## What CI publishes
 
-The [release workflow](https://github.com/conduit-ops/MKurator/actions/workflows/release.yaml)
+The [release workflow](https://github.com/platformrelay/MKurator/actions/workflows/release.yaml)
 (on tag push):
 
 | Output | Location |
 |--------|----------|
-| Container image | `ghcr.io/conduit-ops/mkurator:0.3.0` (and `:v0.3.0`), multi-arch |
+| Container image | `ghcr.io/platformrelay/mkurator:0.3.0` (and `:v0.3.0`), multi-arch |
 | OCI SBOM + SLSA provenance | GHCR attestations on the image |
 | GitHub Release | Notes from git-cliff + install section; attached files below |
 | `install-crds.yaml` | Kustomize CRD bundle |
@@ -188,18 +188,18 @@ The [release workflow](https://github.com/conduit-ops/MKurator/actions/workflows
 | `mkurator-0.3.0.tgz` | Helm chart tarball |
 | `sbom.spdx.json` | SPDX SBOM |
 | `checksums.txt` | SHA256 of release files |
-| Helm chart (OCI) | `oci://ghcr.io/conduit-ops/mkurator` |
+| Helm chart (OCI) | `oci://ghcr.io/platformrelay/mkurator` |
 
 Release notes are assembled by
-[`hack/assemble-release-notes.sh`](https://github.com/conduit-ops/MKurator/blob/main/hack/assemble-release-notes.sh) (git-cliff
+[`hack/assemble-release-notes.sh`](https://github.com/platformrelay/MKurator/blob/main/hack/assemble-release-notes.sh) (git-cliff
 section from `git-cliff-action` output **`content`**, not the `changelog` path +
-[`.github/release-notes-install.md`](https://github.com/conduit-ops/MKurator/blob/main/.github/release-notes-install.md)).
-Committed history lives in repo-root [`CHANGELOG.md`](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md).
+[`.github/release-notes-install.md`](https://github.com/platformrelay/MKurator/blob/main/.github/release-notes-install.md)).
+Committed history lives in repo-root [`CHANGELOG.md`](https://github.com/platformrelay/MKurator/blob/main/CHANGELOG.md).
 
 Local dry-run of install manifests (without pushing):
 
 ```sh
-bash hack/release-assets.sh 0.3.0 ghcr.io/conduit-ops/mkurator
+bash hack/release-assets.sh 0.3.0 ghcr.io/platformrelay/mkurator
 ls -la dist/
 ```
 
@@ -226,26 +226,26 @@ workflow_dispatch after fixing generation on the tagged commit.
 
 ## Verify after release
 
-1. Open [GitHub Releases](https://github.com/conduit-ops/MKurator/releases) — notes, attachments, tag.
-2. Pull the image: `docker pull ghcr.io/conduit-ops/mkurator:0.3.0`
+1. Open [GitHub Releases](https://github.com/platformrelay/MKurator/releases) — notes, attachments, tag.
+2. Pull the image: `docker pull ghcr.io/platformrelay/mkurator:0.3.0`
 3. Optional cosign verify on the container image (substitute digest from GHCR):
 
 ```sh
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp '^https://github.com/conduit-ops/MKurator/.+' \
-  ghcr.io/conduit-ops/mkurator@sha256:<digest>
+  --certificate-identity-regexp '^https://github.com/platformrelay/MKurator/.+' \
+  ghcr.io/platformrelay/mkurator@sha256:<digest>
 ```
 
 4. Optional verify signed release assets (Sigstore bundle):
 
 ```sh
 VERSION=0.6.0   # replace with the tag you published
-curl -sLO "https://github.com/conduit-ops/MKurator/releases/download/v${VERSION}/checksums.txt"
-curl -sLO "https://github.com/conduit-ops/MKurator/releases/download/v${VERSION}/checksums.txt.sigstore.json"
+curl -sLO "https://github.com/platformrelay/MKurator/releases/download/v${VERSION}/checksums.txt"
+curl -sLO "https://github.com/platformrelay/MKurator/releases/download/v${VERSION}/checksums.txt.sigstore.json"
 cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-oidc-issuer \
   https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp '^https://github.com/conduit-ops/MKurator/.+' \
+  --certificate-identity-regexp '^https://github.com/platformrelay/MKurator/.+' \
   --checksum checksums.txt
 ```
 
@@ -253,8 +253,8 @@ cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-oidc-issue
 
 ```sh
 VERSION=0.5.2   # replace with the tag you just published
-curl -sLO "https://github.com/conduit-ops/MKurator/releases/download/v${VERSION}/install-crds.yaml"
-curl -sLO "https://github.com/conduit-ops/MKurator/releases/download/v${VERSION}/install.yaml"
+curl -sLO "https://github.com/platformrelay/MKurator/releases/download/v${VERSION}/install-crds.yaml"
+curl -sLO "https://github.com/platformrelay/MKurator/releases/download/v${VERSION}/install.yaml"
 kubectl apply -f install-crds.yaml
 kubectl apply -f install.yaml
 ```

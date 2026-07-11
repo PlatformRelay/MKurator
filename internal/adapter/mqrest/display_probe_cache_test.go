@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 func TestResolveQueueDriftCheckKeys_LocalProbesAllDefineOnlyCandidates(t *testing.T) {

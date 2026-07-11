@@ -36,9 +36,9 @@ changes only:
    structurally invalid specs at admission time when the API server or webhook is
    available.
 3. **Breaking changes** are called out in commit messages (`!` or
-   `BREAKING CHANGE:`), [CHANGELOG.md](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md), and [UPGRADE.md](UPGRADE.md)
+   `BREAKING CHANGE:`), [CHANGELOG.md](https://github.com/platformrelay/MKurator/blob/main/CHANGELOG.md), and [UPGRADE.md](UPGRADE.md)
    before a release tag ([CONTRIBUTING.md](CONTRIBUTING.md#breaking-changes),
-   [GOVERNANCE.md](https://github.com/conduit-ops/MKurator/blob/main/GOVERNANCE.md)).
+   [GOVERNANCE.md](https://github.com/platformrelay/MKurator/blob/main/GOVERNANCE.md)).
 4. **Status shape** (`conditions`, `observedGeneration`, `desiredMQSC` where
    present) remains the observability contract; new condition reasons may appear
    but existing `Synced` / `Ready` semantics are not removed without a breaking

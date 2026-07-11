@@ -3,7 +3,7 @@ package validation
 import (
 	"fmt"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 const unknownAttrWarningFmt = "attribute key %q is not in the drift-check allow-list; " +

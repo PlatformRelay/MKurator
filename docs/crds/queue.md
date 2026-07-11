@@ -32,9 +32,9 @@ spec:
 ```
 
 An alias queue pointing at a base queue, and a remote-queue definition, are in
-[`config/samples/`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml)
+[`config/samples/`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml)
 and
-[`messaging_v1beta1_queue_remote.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml).
+[`messaging_v1beta1_queue_remote.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml).
 
 ## Fields
 

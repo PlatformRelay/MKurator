@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func webhookTestScheme(t *testing.T) *runtime.Scheme {

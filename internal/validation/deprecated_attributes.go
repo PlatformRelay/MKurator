@@ -3,7 +3,7 @@ package validation
 import (
 	"fmt"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 const deprecatedAttrWarningFmt = `spec.attributes[%q] is deprecated; use %s`

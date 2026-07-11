@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/conduit-ops/mkurator/internal/adapter/mqrest"
+	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 )
 
 func TestClient_PingRetriesServerError(t *testing.T) {

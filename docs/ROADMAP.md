@@ -142,7 +142,7 @@ before access-control work.
 - [x] Thin reconcilers, RBAC, samples under `config/samples/` and
   `charts/mkurator/samples/resources/`.
 - [x] Unit + envtest coverage; [x] e2e scenarios on kind against live `QM1`
-  (Queue, Topic, Channel — see [`test/e2e/mq_e2e_test.go`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/mq_e2e_test.go)).
+  (Queue, Topic, Channel — see [`test/e2e/mq_e2e_test.go`](https://github.com/platformrelay/MKurator/blob/main/test/e2e/mq_e2e_test.go)).
 - [x] [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) — DEFINE vs DISPLAY
   drift matrix per object; user tables in [INSTALL_AND_USE.md](INSTALL_AND_USE.md).
 - [x] `Queue.spec.type` OpenAPI aligned with reconcilers (`local`, `alias`, `remote`).
@@ -177,7 +177,7 @@ Exit criteria: **met** — invalid manifests rejected by `kubectl apply` on kind
 
 Planning doc: [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) (CR sketch mapped from
 reference MQSC; e2e fixture
-[`test/e2e/fixtures/channel-auth-prereq.mqsc`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/fixtures/channel-auth-prereq.mqsc)).
+[`test/e2e/fixtures/channel-auth-prereq.mqsc`](https://github.com/platformrelay/MKurator/blob/main/test/e2e/fixtures/channel-auth-prereq.mqsc)).
 
 **Shipped on `main`:**
 
@@ -185,7 +185,7 @@ reference MQSC; e2e fixture
   `mqrest` adapter (`SET CHLAUTH` / `SET AUTHREC`), thin reconcilers, validating
   webhooks, samples, Docker integration tests (including auth delete/update paths).
 - [x] **E2e on kind** — `ChannelAuthRule` and `AuthorityRecord` reconcile and
-  delete in [`test/e2e/mq_e2e_test.go`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/mq_e2e_test.go); adapter GET
+  delete in [`test/e2e/mq_e2e_test.go`](https://github.com/platformrelay/MKurator/blob/main/test/e2e/mq_e2e_test.go); adapter GET
   helpers for auth assertions; admission negative tests for invalid Queue and
   ChannelAuthRule without a matching Channel.
 - [x] **MQAdmin GET + drift** — `GetChannelAuth` / `GetAuthority`; replace-on-diff
@@ -193,12 +193,12 @@ reference MQSC; e2e fixture
 - [x] Release tags **`v0.5.0`**–**`v0.5.3`** and **`v0.6.0`** with GitHub Releases;
   publish only after the [RELEASE.md](RELEASE.md) gate is green on the tag SHA
   (historical note: **`v0.5.2`** was cut before e2e was consistently green on `main`).
-- [x] **CI ergonomics (Phase 5)** — [`preflight.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/preflight.yaml)
-  (fail-fast `go mod tidy` + `task verify`), [`nightly.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/nightly.yaml)
-  (Mon 03:00 UTC full pyramid), [`release-gate.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/release-gate.yaml)
+- [x] **CI ergonomics (Phase 5)** — [`preflight.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/preflight.yaml)
+  (fail-fast `go mod tidy` + `task verify`), [`nightly.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/nightly.yaml)
+  (Mon 03:00 UTC full pyramid), [`release-gate.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/release-gate.yaml)
   (`workflow_dispatch` on SHA), Phase C PR e2e filter `(smoke || mq) && !slow`,
   JUnit artifacts (`integration-junit.xml`, `e2e-junit.xml`), composite caches under
-  [`.github/actions/`](https://github.com/conduit-ops/MKurator/tree/main/.github/actions) — see [CICD.md](CICD.md).
+  [`.github/actions/`](https://github.com/platformrelay/MKurator/tree/main/.github/actions) — see [CICD.md](CICD.md).
 
 **Remaining:**
 
@@ -209,9 +209,9 @@ reference MQSC; e2e fixture
 - [ ] **`task ci:e2e` green locally** — maintainer verification of full kind + MQ
   stack (Kustomize deploy path); respect `exclusive-test.lock`.
 - [x] Helm **ClusterRole** includes auth CRDs; `hack/helm-verify-rbac.sh` in `task helm:lint`.
-- [x] E2e **BLOCKUSER** `ChannelAuthRule` on kind ([`test/e2e/mq_e2e_test.go`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/mq_e2e_test.go)).
+- [x] E2e **BLOCKUSER** `ChannelAuthRule` on kind ([`test/e2e/mq_e2e_test.go`](https://github.com/platformrelay/MKurator/blob/main/test/e2e/mq_e2e_test.go)).
 - [x] Optional: integration **BLOCKUSER** CHLAUTH
-  ([`test/integration/mq/auth_integration_test.go`](https://github.com/conduit-ops/MKurator/blob/main/test/integration/mq/auth_integration_test.go)).
+  ([`test/integration/mq/auth_integration_test.go`](https://github.com/platformrelay/MKurator/blob/main/test/integration/mq/auth_integration_test.go)).
 - [ ] Additional CHLAUTH rule types (`USERMAP`, `SSLPEERMAP`, …) — schema present;
   extend API fields, integration, and e2e when needed. **Resequenced after
   Phase 7** (2026-06-09 audit): production-hardening table stakes serve
@@ -226,15 +226,15 @@ verification remains a maintainer checklist item.
 ## Repo visibility
 
 - [x] README badges — CI, MIT license, Codecov, Go module / pkg.go.dev
-  ([conduit-ops/MKurator](https://github.com/conduit-ops/MKurator)).
+  ([platformrelay/MKurator](https://github.com/platformrelay/MKurator)).
 - [x] User guide — [INSTALL_AND_USE.md](INSTALL_AND_USE.md) + annotated
-  [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md).
+  [config/samples/README.md](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md).
 - [x] CI coverage export — `coverage.out` artifact, job summary, Codecov upload
   (`codecov.yml`; first green `main` run registers the project).
-- [x] **Go Report Card** — badge in [README.md](https://github.com/conduit-ops/MKurator/blob/main/README.md); refresh at
-  [goreportcard.com/report/github.com/conduit-ops/mkurator](https://goreportcard.com/report/github.com/conduit-ops/mkurator)
+- [x] **Go Report Card** — badge in [README.md](https://github.com/platformrelay/MKurator/blob/main/README.md); refresh at
+  [goreportcard.com/report/github.com/platformrelay/mkurator](https://goreportcard.com/report/github.com/platformrelay/mkurator)
   after significant API changes (uses module path from `go.mod`).
-- [x] Release badge — [`README.md`](https://github.com/conduit-ops/MKurator/blob/main/README.md) links GitHub Releases (latest tag).
+- [x] Release badge — [`README.md`](https://github.com/platformrelay/MKurator/blob/main/README.md) links GitHub Releases (latest tag).
 - [x] [LOCAL_SETUP.md](LOCAL_SETUP.md) — tiered dev tool install (`Brewfile`,
   `task tools:check` / `task tools:install`, updated `.devcontainer/`).
 
@@ -320,7 +320,7 @@ New decisions: [ADR-0021](adr/0021-attribute-api-shape.md) –
   Channel/Topic/AuthorityRecord paths (F07) — lifts `internal/controller`
   coverage (87.6%) honestly. *(v0.8.0)*
 - [x] **E2E flake triage** (ARCH-07): parallel Ginkgo `AfterSuite` deploy race — fixed
-  #57 `SynchronizedAfterSuite` (v0.9.6); E2E green on `bea6b20` [27723178744](https://github.com/conduit-ops/MKurator/actions/runs/27723178744).
+  #57 `SynchronizedAfterSuite` (v0.9.6); E2E green on `bea6b20` [27723178744](https://github.com/platformrelay/MKurator/actions/runs/27723178744).
 - [x] Fix `task changelog` clobbering `CHANGELOG.md` (release audit P1-2:
   `cliff.toml` `output` vs preview tasks). *(v0.7.1)*
 
@@ -418,5 +418,5 @@ channels, AUTHREC channel/namelist profile parity, and kind e2e for new surface 
 - [x] **Admission:** envtest assertion for unknown-attribute warnings (Queue, Topic,
   Channel) via `internal/webhook/v1alpha1/suite_test.go`.
 - [x] **e2e Helm deploy path** (`KURATOR_E2E_DEPLOY=helm`, `task test:e2e:helm`) —
-  CI job `e2e (helm)` on `main` push and `workflow_dispatch` ([`e2e.yaml`](https://github.com/conduit-ops/MKurator/blob/main/.github/workflows/e2e.yaml)).
+  CI job `e2e (helm)` on `main` push and `workflow_dispatch` ([`e2e.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/e2e.yaml)).
 - [x] **Runtime cleanup:** migrated to `mgr.GetEventRecorder` (events.k8s.io API).

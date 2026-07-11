@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/conduit-ops/mkurator/test/utils"
+	"github.com/platformrelay/mkurator/test/utils"
 )
 
 var webhookReady atomic.Bool

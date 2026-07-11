@@ -1,6 +1,6 @@
 # Example values for a published release (align tag with GitHub Release / GHCR).
 # Replace OWNER if you fork or use a different registry namespace.
 image:
-  repository: ghcr.io/conduit-ops/mkurator
+  repository: ghcr.io/platformrelay/mkurator
   tag: "0.11.1"
   pullPolicy: IfNotPresent

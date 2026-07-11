@@ -11,14 +11,14 @@ hide:
 
 <p class="mkurator-badges" markdown="1">
 
-[![CI](https://github.com/conduit-ops/MKurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/ci.yaml)
-[![E2E](https://github.com/conduit-ops/MKurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/e2e.yaml)
-[![Docs](https://github.com/conduit-ops/MKurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/docs.yaml)
+[![CI](https://github.com/platformrelay/MKurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/ci.yaml)
+[![E2E](https://github.com/platformrelay/MKurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/e2e.yaml)
+[![Docs](https://github.com/platformrelay/MKurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/docs.yaml)
 <br />
-[![Release](https://img.shields.io/github/v/release/conduit-ops/MKurator?label=release)](https://github.com/conduit-ops/MKurator/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/conduit-ops/MKurator/blob/main/LICENSE)
-[![Go](https://img.shields.io/github/go-mod/go-version/conduit-ops/mkurator)](https://pkg.go.dev/github.com/conduit-ops/mkurator)
-[![Container](https://img.shields.io/badge/ghcr.io-conduit-ops%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/conduit-ops/packages?repo_name=MKurator)
+[![Release](https://img.shields.io/github/v/release/platformrelay/MKurator?label=release)](https://github.com/platformrelay/MKurator/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/platformrelay/MKurator/blob/main/LICENSE)
+[![Go](https://img.shields.io/github/go-mod/go-version/platformrelay/mkurator)](https://pkg.go.dev/github.com/platformrelay/mkurator)
+[![Container](https://img.shields.io/badge/ghcr.io-platformrelay%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/platformrelay/packages?repo_name=MKurator)
 
 </p>
 
@@ -69,7 +69,7 @@ Custom Resource  →  controller reconcile  →  mqweb REST (MQSC)  →  IBM MQ 
 | Operators | [Install and use](INSTALL_AND_USE.md) · [Upgrade](UPGRADE.md) · [Observability](OBSERVABILITY.md) |
 | Developers | [Development setup](DEVELOPMENT.md) · [Developer guide](DEVELOPER_GUIDE.md) · [CI/CD](CICD.md) |
 | Architects | [Architecture](ARCHITECTURE.md) · [Attribute reconciliation](ATTRIBUTE_RECONCILIATION.md) · [ADRs](adr/README.md) |
-| Contributors | [Contributing](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md) · [Code of Conduct](https://github.com/conduit-ops/MKurator/blob/main/CODE_OF_CONDUCT.md) · [Governance](https://github.com/conduit-ops/MKurator/blob/main/GOVERNANCE.md) |
+| Contributors | [Contributing](https://github.com/platformrelay/MKurator/blob/main/CONTRIBUTING.md) · [Code of Conduct](https://github.com/platformrelay/MKurator/blob/main/CODE_OF_CONDUCT.md) · [Governance](https://github.com/platformrelay/MKurator/blob/main/GOVERNANCE.md) |
 
 ## Examples
 
@@ -77,4 +77,4 @@ Custom Resource  →  controller reconcile  →  mqweb REST (MQSC)  →  IBM MQ 
 - [Channel authentication](examples/channel-authentication.md)
 - [Upgrade walkthrough](examples/upgrade-walkthrough.md)
 
-Sample YAML with field notes: [config/samples README](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md).
+Sample YAML with field notes: [config/samples README](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md).

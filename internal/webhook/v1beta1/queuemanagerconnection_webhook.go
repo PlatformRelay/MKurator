@@ -7,8 +7,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
-	"github.com/conduit-ops/mkurator/internal/validation"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
+	"github.com/platformrelay/mkurator/internal/validation"
 )
 
 //nolint:lll // kubebuilder webhook marker is a single line

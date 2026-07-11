@@ -19,12 +19,12 @@ Pick one:
 | Helm (recommended) | [INSTALL_AND_USE.md — Install the operator](INSTALL_AND_USE.md#install-the-operator) |
 | Kustomize / release manifests | [INSTALL_AND_USE.md — Install the operator](INSTALL_AND_USE.md#install-the-operator) |
 
-Release artifacts: [GitHub Releases](https://github.com/conduit-ops/MKurator/releases) (`install.yaml`,
+Release artifacts: [GitHub Releases](https://github.com/platformrelay/MKurator/releases) (`install.yaml`,
 `install-crds.yaml`, Helm chart on GHCR).
 
 ## Connect and create a queue
 
-1. Create a `Secret` with MQ credentials (see [sample Secret](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/samples/resources/mq-credentials-secret.yaml) or [Credentials secret](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md#credentials-secret)).
+1. Create a `Secret` with MQ credentials (see [sample Secret](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/samples/resources/mq-credentials-secret.yaml) or [Credentials secret](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md#credentials-secret)).
 2. Apply a `QueueManagerConnection` pointing at your mqweb endpoint.
 3. Wait for the connection `Ready` condition.
 4. Apply a `Queue` CR — the operator runs `DEFINE QLOCAL` (or alias/remote) via mqweb.
@@ -46,7 +46,7 @@ MQ-side checks: [IBM_MQ_101.md](IBM_MQ_101.md) (`runmqsc`, MQ console).
 | Topic | Link |
 | --- | --- |
 | All CR kinds | [crds/README.md](crds/README.md) |
-| Sample manifests | [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md) |
+| Sample manifests | [config/samples/README.md](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md) |
 | Upgrade | [UPGRADE.md](UPGRADE.md) |
 | Local dev platform | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | Examples | [examples/README.md](examples/README.md) |

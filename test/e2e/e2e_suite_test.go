@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/conduit-ops/mkurator/test/utils"
+	"github.com/platformrelay/mkurator/test/utils"
 )
 
 const metricsCurlImage = "mkurator-e2e-curl:dev"

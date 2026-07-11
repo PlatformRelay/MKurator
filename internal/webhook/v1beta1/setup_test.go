@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/conduit-ops/mkurator/internal/validation"
+	"github.com/platformrelay/mkurator/internal/validation"
 )
 
 func TestAdmissionResult_WithErrors(t *testing.T) {

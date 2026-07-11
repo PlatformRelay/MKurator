@@ -4,26 +4,26 @@
 
 # MKurator
 
-[![CI](https://github.com/conduit-ops/MKurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/ci.yaml)
-[![Preflight](https://github.com/conduit-ops/MKurator/actions/workflows/preflight.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/preflight.yaml)
-[![E2E](https://github.com/conduit-ops/MKurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/e2e.yaml)
-[![Documentation](https://img.shields.io/badge/documentation-GitHub%20Pages-2ea44f?logo=readthedocs&logoColor=white)](https://conduit-ops.github.io/MKurator/)
-[![Docs CI](https://github.com/conduit-ops/MKurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/docs.yaml)
-[![CodeQL](https://github.com/conduit-ops/MKurator/actions/workflows/codeql.yaml/badge.svg)](https://github.com/conduit-ops/MKurator/actions/workflows/codeql.yaml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/conduit-ops/MKurator/badge)](https://securityscorecards.dev/viewer/?uri=github.com/conduit-ops/MKurator)
-[![License: MIT](https://img.shields.io/github/license/conduit-ops/MKurator)](https://github.com/conduit-ops/MKurator/blob/main/LICENSE)
-[![Release](https://img.shields.io/github/v/release/conduit-ops/MKurator)](https://github.com/conduit-ops/MKurator/releases)
-[![codecov](https://codecov.io/gh/conduit-ops/MKurator/graph/badge.svg)](https://codecov.io/gh/conduit-ops/MKurator)
-[![Go](https://img.shields.io/github/go-mod/go-version/conduit-ops/mkurator)](https://pkg.go.dev/github.com/conduit-ops/mkurator)
-[![Go Reference](https://pkg.go.dev/badge/github.com/conduit-ops/MKurator.svg)](https://pkg.go.dev/github.com/conduit-ops/mkurator)
-[![Go Report Card](https://goreportcard.com/badge/github.com/conduit-ops/mkurator)](https://goreportcard.com/report/github.com/conduit-ops/mkurator)
-[![Container](https://img.shields.io/badge/ghcr.io-conduit-ops%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/conduit-ops/packages?repo_name=MKurator)
+[![CI](https://github.com/platformrelay/MKurator/actions/workflows/ci.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/ci.yaml)
+[![Preflight](https://github.com/platformrelay/MKurator/actions/workflows/preflight.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/preflight.yaml)
+[![E2E](https://github.com/platformrelay/MKurator/actions/workflows/e2e.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/e2e.yaml)
+[![Documentation](https://img.shields.io/badge/documentation-GitHub%20Pages-2ea44f?logo=readthedocs&logoColor=white)](https://platformrelay.github.io/MKurator/)
+[![Docs CI](https://github.com/platformrelay/MKurator/actions/workflows/docs.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/docs.yaml)
+[![CodeQL](https://github.com/platformrelay/MKurator/actions/workflows/codeql.yaml/badge.svg)](https://github.com/platformrelay/MKurator/actions/workflows/codeql.yaml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/platformrelay/MKurator/badge)](https://securityscorecards.dev/viewer/?uri=github.com/platformrelay/MKurator)
+[![License: MIT](https://img.shields.io/github/license/platformrelay/MKurator)](https://github.com/platformrelay/MKurator/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/platformrelay/MKurator)](https://github.com/platformrelay/MKurator/releases)
+[![codecov](https://codecov.io/gh/platformrelay/MKurator/graph/badge.svg)](https://codecov.io/gh/platformrelay/MKurator)
+[![Go](https://img.shields.io/github/go-mod/go-version/platformrelay/mkurator)](https://pkg.go.dev/github.com/platformrelay/mkurator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/platformrelay/MKurator.svg)](https://pkg.go.dev/github.com/platformrelay/mkurator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/platformrelay/mkurator)](https://goreportcard.com/report/github.com/platformrelay/mkurator)
+[![Container](https://img.shields.io/badge/ghcr.io-platformrelay%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/platformrelay/packages?repo_name=MKurator)
 
 A Kubernetes operator for declaratively managing **resources on an existing
 IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
 more later.
 
-**Full documentation:** [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/) — install
+**Full documentation:** [platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/) — install
 guides, examples, ADRs, and engineering standards.
 
 > Status: **`v1beta1` API graduated** (v0.12.0) — all six kinds serve both
@@ -52,9 +52,9 @@ rule-type roadmap. **API stability:**
 [docs/API_STABILITY.md](docs/API_STABILITY.md) (per-version guarantees and the
 `v1beta1` graduation path).
 
-**Repository:** [github.com/conduit-ops/MKurator](https://github.com/conduit-ops/MKurator) — Go module
-[`github.com/conduit-ops/MKurator`](https://pkg.go.dev/github.com/conduit-ops/mkurator), images
-`ghcr.io/conduit-ops/mkurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md), superseded by [ADR-0018](docs/adr/0018-project-rename-mkurator.md)). Your
+**Repository:** [github.com/platformrelay/MKurator](https://github.com/platformrelay/MKurator) — Go module
+[`github.com/platformrelay/MKurator`](https://pkg.go.dev/github.com/platformrelay/mkurator), images
+`ghcr.io/platformrelay/mkurator` ([ADR-0006](docs/adr/0006-project-name-kurator.md), superseded by [ADR-0018](docs/adr/0018-project-rename-mkurator.md)). Your
 local clone directory may differ from the module/repo name (for example
 `IBM-Message-Queue-Operator`).
 
@@ -68,7 +68,7 @@ local clone directory may differ from the module/repo name (for example
 
 Details and commands: [DEVELOPMENT.md#test-tiers](docs/DEVELOPMENT.md#test-tiers).
 
-Latest tagged release: [GitHub Releases](https://github.com/conduit-ops/MKurator/releases)
+Latest tagged release: [GitHub Releases](https://github.com/platformrelay/MKurator/releases)
 (current badge above). `main` may include fixes not yet in a tag. See
 [CHANGELOG.md](CHANGELOG.md) for version history (generated from Conventional Commits).
 
@@ -94,7 +94,7 @@ You declare desired MQ objects as Kubernetes custom resources. The operator watc
 validates specs at admission, and reconcilers call the **mqrest** adapter to execute MQSC through
 **mqweb** on your queue manager. Status conditions report success, drift correction, and errors.
 Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · published docs:
-[conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/).
+[platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/).
 
 ## Repository structure
 
@@ -170,7 +170,7 @@ Verify reconciliation with [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) (`runmqsc`, 
 
 ## Documentation
 
-**Published site:** [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/) — install guides,
+**Published site:** [platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/) — install guides,
 examples, ADRs, and engineering standards.
 
 | | Doc |

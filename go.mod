@@ -1,4 +1,4 @@
-module github.com/conduit-ops/mkurator
+module github.com/platformrelay/mkurator
 
 go 1.26.5
 

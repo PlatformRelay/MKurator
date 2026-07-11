@@ -20,16 +20,16 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
-	"github.com/conduit-ops/mkurator/internal/adapter/mqrest"
-	"github.com/conduit-ops/mkurator/internal/cacheconfig"
-	"github.com/conduit-ops/mkurator/internal/controller"
-	"github.com/conduit-ops/mkurator/internal/health"
-	"github.com/conduit-ops/mkurator/internal/logging"
-	webhookconversion "github.com/conduit-ops/mkurator/internal/webhook/conversion"
-	webhookv1alpha1 "github.com/conduit-ops/mkurator/internal/webhook/v1alpha1"
-	webhookv1beta1 "github.com/conduit-ops/mkurator/internal/webhook/v1beta1"
+	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
+	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
+	"github.com/platformrelay/mkurator/internal/cacheconfig"
+	"github.com/platformrelay/mkurator/internal/controller"
+	"github.com/platformrelay/mkurator/internal/health"
+	"github.com/platformrelay/mkurator/internal/logging"
+	webhookconversion "github.com/platformrelay/mkurator/internal/webhook/conversion"
+	webhookv1alpha1 "github.com/platformrelay/mkurator/internal/webhook/v1alpha1"
+	webhookv1beta1 "github.com/platformrelay/mkurator/internal/webhook/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 

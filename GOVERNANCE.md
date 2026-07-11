@@ -2,7 +2,7 @@
 
 MKurator is an open-source Kubernetes operator for IBM MQ, maintained as a
 personal OSS project under
-[github.com/conduit-ops/MKurator](https://github.com/conduit-ops/MKurator). This document
+[github.com/platformrelay/MKurator](https://github.com/platformrelay/MKurator). This document
 describes how decisions are made, who is responsible for what, and how the
 project continues if the maintainer is unavailable.
 
@@ -12,7 +12,7 @@ This governance model applies to:
 
 - The **MKurator** operator, Helm chart, CRDs, and documentation in this repository
 - Release artifacts published to GHCR and GitHub Releases
-- Public documentation at [conduit-ops.github.io/MKurator](https://conduit-ops.github.io/MKurator/)
+- Public documentation at [platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/)
 
 It does **not** cover downstream deployments, fork-specific policies, IBM MQ
 licensing for your queue managers, or private runbooks.
@@ -63,7 +63,7 @@ MKurator is a solo-maintainer project today. The following continuity measures a
   planning is **konrad.heimel@gmail.com** (same as security contact).
 - **Public commitment** — the maintainer will update this section when a co-maintainer or
   successor is formally appointed, or when the repository moves to an org with multiple owners
-  (planned: **conduit-ops**).
+  (planned: **platformrelay**).
 
 Until a second maintainer is appointed, two-person review and bus-factor ≥ 2 remain
 **documented gaps** ([ADR-0016](docs/adr/0016-release-supply-chain.md)).

@@ -15,24 +15,24 @@ covered: **[QueueManagerConnection](queuemanagerconnection.md)**,
 
 | Kind | Short name | Purpose | Sample YAML |
 | --- | --- | --- | --- |
-| [`QueueManagerConnection`](queuemanagerconnection.md) | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) |
-| [`Queue`](queue.md) | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
-| [`Topic`](topic.md) | `tp` | Administrative topic | [topic.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
-| [`Channel`](channel.md) | `chl` | Server-connection, sender, or receiver channel | [channel.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
-| [`ChannelAuthRule`](channelauthrule.md) | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
-| [`AuthorityRecord`](authorityrecord.md) | `auth` | OAM authority record | [authorityrecord.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) |
+| [`QueueManagerConnection`](queuemanagerconnection.md) | `qmc` | mqweb endpoint, TLS, credential `Secret` reference | [queuemanagerconnection.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) |
+| [`Queue`](queue.md) | `mq` | Local, alias, or remote queue | [queue.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
+| [`Topic`](topic.md) | `tp` | Administrative topic | [topic.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) |
+| [`Channel`](channel.md) | `chl` | Server-connection, sender, or receiver channel | [channel.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) |
+| [`ChannelAuthRule`](channelauthrule.md) | `car` | Channel authentication rule | [channelauthrule.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) |
+| [`AuthorityRecord`](authorityrecord.md) | `auth` | OAM authority record | [authorityrecord.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) |
 
 ## Queue variants
 
 | `spec.type` | MQ object | Sample |
 | --- | --- | --- |
-| `local` (default) | `QLOCAL` | [queue.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
-| `alias` | `QALIAS` | [queue_alias.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml) |
-| `remote` | `QREMOTE` | [queue_remote.yaml](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml) |
+| `local` (default) | `QLOCAL` | [queue.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) |
+| `alias` | `QALIAS` | [queue_alias.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue_alias.yaml) |
+| `remote` | `QREMOTE` | [queue_remote.yaml](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue_remote.yaml) |
 
 ## Further reading
 
 - Field-level install guide: [INSTALL_AND_USE.md — Resource reference](../INSTALL_AND_USE.md#resource-reference)
 - Drift and attribute policy: [ATTRIBUTE_RECONCILIATION.md](../ATTRIBUTE_RECONCILIATION.md)
-- Annotated samples: [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md)
-- OpenAPI golden contracts: [test/schema/README.md](https://github.com/conduit-ops/MKurator/blob/main/test/schema/README.md)
+- Annotated samples: [config/samples/README.md](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md)
+- OpenAPI golden contracts: [test/schema/README.md](https://github.com/platformrelay/MKurator/blob/main/test/schema/README.md)
