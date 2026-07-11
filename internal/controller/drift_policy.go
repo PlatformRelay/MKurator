@@ -8,8 +8,8 @@ import (
 	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 func isObserveOnly(obj client.Object) bool {

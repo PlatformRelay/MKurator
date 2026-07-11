@@ -77,7 +77,7 @@ spec:
 ```
 
 The `ADDRESSMAP` sample is in
-[`config/samples/`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml).
+[`config/samples/`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml).
 
 ## Fields
 

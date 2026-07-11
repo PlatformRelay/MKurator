@@ -5,7 +5,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 // SetupWithManager registers CRD conversion webhooks for all v1beta1 hub kinds.

@@ -38,7 +38,7 @@ kubectl apply -k config/samples/   # or your GitOps manifests
 
 ## Version-to-version notes
 
-Check [CHANGELOG.md](https://github.com/conduit-ops/MKurator/blob/main/CHANGELOG.md) and the GitHub release for breaking changes
+Check [CHANGELOG.md](https://github.com/platformrelay/MKurator/blob/main/CHANGELOG.md) and the GitHub release for breaking changes
 before upgrading.
 
 | From | To | Highlights |
@@ -46,7 +46,7 @@ before upgrading.
 | **0.11.x** | **0.12.x** | **`v1beta1` API** for all six kinds with **conversion webhook** (dual served versions). See [Migrating to v1beta1 (0.11.x → 0.12.x)](#migrating-to-v1beta1-011x--012x) below. |
 | **&lt; 0.5.0** | **0.5.0+** | New CRDs: `ChannelAuthRule`, `AuthorityRecord`. Validating webhooks on by default (cert-manager TLS). Review [INSTALL_AND_USE.md](INSTALL_AND_USE.md) auth sections. |
 | **0.3.x** | **0.4.0+** | Validating webhooks and QMC delete protection. Ensure cert-manager is installed if using Helm/Kustomize webhook bundles. |
-| **0.2.x** | **0.3.0+** | Module and image registry moved to `conduit-ops/MKurator` ([ADR-0006](adr/0006-project-name-kurator.md)). Update `image.repository` / install manifest URLs. |
+| **0.2.x** | **0.3.0+** | Module and image registry moved to `platformrelay/MKurator` ([ADR-0006](adr/0006-project-name-kurator.md)). Update `image.repository` / install manifest URLs. |
 
 Semantic versioning: **patch** — bug fixes, safe rolling image bump; **minor** —
 new CR fields or kinds, may need CRD apply; **major** (or `feat!` / `BREAKING CHANGE`)
@@ -157,7 +157,7 @@ Map-only **`v1alpha1`** manifests are unaffected until you bump `apiVersion`.
 ## CRD schema changes and server-side apply
 
 MKurator CRDs are generated from kubebuilder markers and shipped in release assets
-(`install-crds.yaml`) and [`charts/mkurator/crds/`](https://github.com/conduit-ops/MKurator/tree/main/charts/mkurator/crds).
+(`install-crds.yaml`) and [`charts/mkurator/crds/`](https://github.com/platformrelay/MKurator/tree/main/charts/mkurator/crds).
 
 - Prefer **`kubectl apply --server-side`** (or `kubectl apply --server-side --force-conflicts`
   on the first upgrade after a large schema change) so field management stays consistent
@@ -194,7 +194,7 @@ MKurator does **not** bundle cert-manager. You must install it in the cluster
 
 | Environment | Reference version |
 |-------------|-------------------|
-| Local kind platform | **v1.18.2** (pinned in [`hack/kind-cluster/terraform/cert-manager.tf`](https://github.com/conduit-ops/MKurator/blob/main/hack/kind-cluster/terraform/cert-manager.tf)) |
+| Local kind platform | **v1.18.2** (pinned in [`hack/kind-cluster/terraform/cert-manager.tf`](https://github.com/platformrelay/MKurator/blob/main/hack/kind-cluster/terraform/cert-manager.tf)) |
 | Production | cert-manager **v1.13+** (use a supported release from [cert-manager.io](https://cert-manager.io/docs/installation/supported-releases/); match your platform’s supported chart) |
 
 Upgrade cert-manager on its own lifecycle **before** or **in parallel with** MKurator
@@ -223,12 +223,12 @@ a documented reason.
 ## Operator image upgrade
 
 **Kustomize / manifest install:** apply the new `install.yaml`; the Deployment rolls
-out with the pinned `ghcr.io/conduit-ops/mkurator:<version>` image.
+out with the pinned `ghcr.io/platformrelay/mkurator:<version>` image.
 
 **Helm:**
 
 ```sh
-helm upgrade --install mkurator oci://ghcr.io/conduit-ops/mkurator \
+helm upgrade --install mkurator oci://ghcr.io/platformrelay/mkurator \
   --version "${VERSION}" \
   --namespace mkurator-system \
   --reuse-values \
@@ -236,7 +236,7 @@ helm upgrade --install mkurator oci://ghcr.io/conduit-ops/mkurator \
 ```
 
 Use `--reuse-values` to keep your metrics, webhook, and logging settings; merge in new
-defaults from [charts/mkurator/README.md](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/README.md) when release notes
+defaults from [charts/mkurator/README.md](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/README.md) when release notes
 call them out.
 
 Wait for rollout and webhook availability before changing workload CRs.
@@ -247,8 +247,8 @@ After the operator is healthy:
 
 - Re-apply GitOps manifests or `kubectl apply` changed CRs.
 - New kinds (e.g. auth CRs in 0.5.0) are optional until you need them.
-- Sample YAML in this repo: canonical Kubebuilder tree [`config/samples/`](https://github.com/conduit-ops/MKurator/tree/main/config/samples);
-  Helm copies are synced via `task samples:sync` (see [config/samples/README.md](https://github.com/conduit-ops/MKurator/blob/main/config/samples/README.md)).
+- Sample YAML in this repo: canonical Kubebuilder tree [`config/samples/`](https://github.com/platformrelay/MKurator/tree/main/config/samples);
+  Helm copies are synced via `task samples:sync` (see [config/samples/README.md](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md)).
 
 ## Rollback
 
@@ -269,4 +269,4 @@ operator, then CRDs — see [INSTALL_AND_USE.md#uninstall](INSTALL_AND_USE.md#un
 - [INSTALL_AND_USE.md](INSTALL_AND_USE.md) — install paths and day-2 operations  
 - [OBSERVABILITY.md](OBSERVABILITY.md) — metrics and Prometheus  
 - [RELEASE.md](RELEASE.md) — maintainer release process  
-- [charts/mkurator/README.md](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/README.md) — Helm values reference  
+- [charts/mkurator/README.md](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/README.md) — Helm values reference  

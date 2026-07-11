@@ -11,7 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 
-	"github.com/conduit-ops/mkurator/test/utils"
+	"github.com/platformrelay/mkurator/test/utils"
 )
 
 func e2eVerboseLogs() bool {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 // mqwbAttributeNotDisplayable is returned by mqweb when a keyword is valid on

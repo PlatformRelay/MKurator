@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/conduit-ops/mkurator/internal/logging"
+	"github.com/platformrelay/mkurator/internal/logging"
 )
 
 func TestLoadDefaultsLocal(t *testing.T) {

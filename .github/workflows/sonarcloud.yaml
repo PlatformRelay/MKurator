@@ -1,4 +1,4 @@
-# SonarCloud — DISABLED until the repository moves to the conduit-ops GitHub org.
+# SonarCloud — DISABLED. The repository now lives in the platformrelay GitHub org.
 # To enable: set SONAR_TOKEN secret, set sonar.projectKey below, remove `if: false`.
 name: SonarCloud
 
@@ -14,7 +14,7 @@ jobs:
     if: false
     runs-on: ubuntu-latest
     env:
-      # SONAR_PROJECT_KEY: conduit-ops_mkurator
+      # SONAR_PROJECT_KEY: platformrelay_mkurator
       COVERAGE_MIN: "91"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

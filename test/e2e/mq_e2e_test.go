@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 const (

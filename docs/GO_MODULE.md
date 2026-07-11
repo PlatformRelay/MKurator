@@ -10,13 +10,13 @@ behaviour (manager, reconcilers, webhooks) see
 
 | Item | Value |
 |------|--------|
-| **Module path** | `github.com/conduit-ops/MKurator` |
+| **Module path** | `github.com/platformrelay/MKurator` |
 | **API group** | `messaging.mkurator.dev` |
 | **API version** | `v1alpha1` |
 | **Entrypoint** | `cmd/main.go` |
 | **Go version** | Floor in `go.mod` (`go` directive); CI uses the pinned toolchain via `GOTOOLCHAIN` |
 
-The Git repository is [conduit-ops/MKurator](https://github.com/conduit-ops/MKurator); a local
+The Git repository is [platformrelay/MKurator](https://github.com/platformrelay/MKurator); a local
 clone may use another directory name (for example `IBM-Message-Queue-Operator`).
 
 ## Repository map (Go packages)
@@ -88,7 +88,7 @@ flowchart TB
 
 These rules match how the code is written today and what `task lint` / review
 expect. Run `task arch:lint` (go-arch-lint) via `task lint` — config at
-[`hack/tooling/go-arch-lint.yml`](https://github.com/conduit-ops/MKurator/blob/main/hack/tooling/go-arch-lint.yml).
+[`hack/tooling/go-arch-lint.yml`](https://github.com/platformrelay/MKurator/blob/main/hack/tooling/go-arch-lint.yml).
 
 | Layer | May import | Must not import |
 |-------|------------|-----------------|

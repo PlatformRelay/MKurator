@@ -34,7 +34,7 @@ spec:
 
 The same object can be expressed with the free-form `spec.attributes` map
 (`topstr`, `descr`, `pub`, `sub`) instead of the typed fields — see
-[`config/samples/`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml).
+[`config/samples/`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml).
 A typed field and its matching attribute key are mutually exclusive for the same
 MQSC attribute (admission rejects setting both).
 

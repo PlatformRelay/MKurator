@@ -49,5 +49,5 @@ A change is done when:
 | --- | --- |
 | [coding-standards.md](coding-standards.md) | Go style, lint, CI gates |
 | [testing.md](testing.md) | Test pyramid and coverage |
-| [../CONTRIBUTING.md](https://github.com/conduit-ops/MKurator/blob/main/CONTRIBUTING.md) | PR process and DCO |
-| [../AGENTS.md](https://github.com/conduit-ops/MKurator/blob/main/AGENTS.md) | AI agent workflow |
+| [../CONTRIBUTING.md](https://github.com/platformrelay/MKurator/blob/main/CONTRIBUTING.md) | PR process and DCO |
+| [../AGENTS.md](https://github.com/platformrelay/MKurator/blob/main/AGENTS.md) | AI agent workflow |

@@ -64,7 +64,7 @@ spec:
 ```
 
 The svrconn sample is in
-[`config/samples/`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml).
+[`config/samples/`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml).
 A typed field and its matching attribute key are mutually exclusive for the same
 MQSC attribute (admission rejects setting both).
 

@@ -15,9 +15,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	messagingv1beta1 "github.com/conduit-ops/mkurator/api/v1beta1"
-	"github.com/conduit-ops/mkurator/internal/validation"
+	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
+	"github.com/platformrelay/mkurator/internal/validation"
 )
 
 func repoRoot(t *testing.T) string {

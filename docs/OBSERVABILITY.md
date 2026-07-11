@@ -21,12 +21,12 @@ You need a monitoring stack (or a vendor equivalent) to scrape and alert.
 
 ## Quick start: metrics + dashboard
 
-User-facing samples live under [`config/samples/observability/`](https://github.com/conduit-ops/MKurator/tree/main/config/samples/observability):
+User-facing samples live under [`config/samples/observability/`](https://github.com/platformrelay/MKurator/tree/main/config/samples/observability):
 
 | Artifact | Purpose |
 |----------|---------|
-| [`metrics-helm-values.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/observability/metrics-helm-values.yaml) | Annotated Helm values — `ServiceMonitor` + `PrometheusRule` |
-| [`grafana-dashboard.json`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/observability/grafana-dashboard.json) | Starter Grafana dashboard (panels aligned to MKurator metric names) |
+| [`metrics-helm-values.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/observability/metrics-helm-values.yaml) | Annotated Helm values — `ServiceMonitor` + `PrometheusRule` |
+| [`grafana-dashboard.json`](https://github.com/platformrelay/MKurator/blob/main/config/samples/observability/grafana-dashboard.json) | Starter Grafana dashboard (panels aligned to MKurator metric names) |
 
 ### 1. Enable scrape and starter alerts (Helm)
 
@@ -42,7 +42,7 @@ helm upgrade --install mkurator ./charts/mkurator \
 ```
 
 Local kind dev (image + logging overrides): use
-[`charts/mkurator/samples/values-kind.yaml`](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/samples/values-kind.yaml)
+[`charts/mkurator/samples/values-kind.yaml`](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/samples/values-kind.yaml)
 instead — it enables the same metrics toggles.
 
 Ensure Prometheus can scrape secure metrics: bind **`{release}-metrics-reader`**
@@ -81,8 +81,8 @@ valid Kubernetes service account token (or a subject allowed by RBAC).
 ### Metrics inventory
 
 All MKurator custom metrics are **counters** registered in
-[`internal/metrics/metrics.go`](https://github.com/conduit-ops/MKurator/blob/main/internal/metrics/metrics.go). Label cardinality
-is covered by unit tests in [`internal/metrics/metrics_test.go`](https://github.com/conduit-ops/MKurator/blob/main/internal/metrics/metrics_test.go).
+[`internal/metrics/metrics.go`](https://github.com/platformrelay/MKurator/blob/main/internal/metrics/metrics.go). Label cardinality
+is covered by unit tests in [`internal/metrics/metrics_test.go`](https://github.com/platformrelay/MKurator/blob/main/internal/metrics/metrics_test.go).
 
 | Type | Custom MKurator metrics | Histograms |
 |------|-------------------------|------------|
@@ -163,9 +163,9 @@ the controller-manager pod (requires kube-state-metrics, e.g. kube-prometheus-st
 ## ServiceMonitor scrape configuration
 
 When `metrics.serviceMonitor.enabled=true`, Helm renders
-[`charts/mkurator/templates/servicemonitor.yaml`](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/templates/servicemonitor.yaml)
+[`charts/mkurator/templates/servicemonitor.yaml`](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/templates/servicemonitor.yaml)
 in the release namespace. Kustomize installs can use
-[`config/prometheus/monitor.yaml`](https://github.com/conduit-ops/MKurator/blob/main/config/prometheus/monitor.yaml) (disabled in
+[`config/prometheus/monitor.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/prometheus/monitor.yaml) (disabled in
 the default overlay).
 
 | Field | Helm default | Notes |
@@ -191,7 +191,7 @@ Use this when standing up or reviewing production scrape:
 - [ ] Target **up** in Prometheus: `up{namespace="<release-ns>",service="<release>-metrics"}`
 - [ ] Custom counters present after traffic: `mkurator_reconcile_total`, `mkurator_mq_operations_total`
 - [ ] Optional: `metrics.prometheusRule.enabled=true` for starter alerts
-- [ ] Optional: import [`grafana-dashboard.json`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/observability/grafana-dashboard.json)
+- [ ] Optional: import [`grafana-dashboard.json`](https://github.com/platformrelay/MKurator/blob/main/config/samples/observability/grafana-dashboard.json)
 - [ ] Drift monitoring: `rate(mkurator_drift_detected_total[15m])` or CR `Synced` conditions
 
 ## Enabling Prometheus scrape (Helm)
@@ -208,7 +208,7 @@ helm upgrade --install mkurator ./charts/mkurator \
 
 Adjust `metrics.serviceMonitor.labels` to match your Prometheus `serviceMonitorSelector`.
 The local kind stack uses `release: kube-prometheus-stack` — see
-[`charts/mkurator/samples/values-kind.yaml`](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/samples/values-kind.yaml).
+[`charts/mkurator/samples/values-kind.yaml`](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/samples/values-kind.yaml).
 
 Optional starter alerts:
 
@@ -256,7 +256,7 @@ Prometheus needs permission to scrape. Typical pattern:
    `bearerTokenFile` on the scrape endpoint so the Prometheus pod’s SA token is used.
 
 E2e validates this flow with `mkurator-metrics-reader` — see
-[`test/e2e/e2e_test.go`](https://github.com/conduit-ops/MKurator/blob/main/test/e2e/e2e_test.go).
+[`test/e2e/e2e_test.go`](https://github.com/platformrelay/MKurator/blob/main/test/e2e/e2e_test.go).
 
 If scrapes return **403 Forbidden**, check RoleBindings and that Prometheus runs with
 the bound ServiceAccount.
@@ -285,7 +285,7 @@ In Prometheus UI, query `up{namespace="mkurator-system"}` for the MKurator targe
 ## Dashboards and SLOs
 
 Import the starter dashboard from
-[`config/samples/observability/grafana-dashboard.json`](https://github.com/conduit-ops/MKurator/blob/main/config/samples/observability/grafana-dashboard.json)
+[`config/samples/observability/grafana-dashboard.json`](https://github.com/platformrelay/MKurator/blob/main/config/samples/observability/grafana-dashboard.json)
 (see [Quick start](#quick-start-metrics--dashboard)). Ad-hoc PromQL:
 
 - Reconcile error rate: `rate(mkurator_reconcile_errors_total[5m])` by `controller`
@@ -301,8 +301,8 @@ Align alerting with [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS
 
 ## See also
 
-- [`config/samples/observability/`](https://github.com/conduit-ops/MKurator/tree/main/config/samples/observability) — Helm values + Grafana JSON  
+- [`config/samples/observability/`](https://github.com/platformrelay/MKurator/tree/main/config/samples/observability) — Helm values + Grafana JSON  
 - [LOGGING.md](LOGGING.md) — log levels and formats  
-- [charts/mkurator/README.md](https://github.com/conduit-ops/MKurator/blob/main/charts/mkurator/README.md) — Helm values table  
+- [charts/mkurator/README.md](https://github.com/platformrelay/MKurator/blob/main/charts/mkurator/README.md) — Helm values table  
 - [ARCHITECTURE.md](ARCHITECTURE.md) — metrics component overview  
 - [UPGRADE.md](UPGRADE.md) — upgrade order (operator before changing scrape config)  

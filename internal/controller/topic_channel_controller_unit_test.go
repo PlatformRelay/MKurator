@@ -12,9 +12,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
-	mqadmintest "github.com/conduit-ops/mkurator/test/mocks/mqadmin"
+	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
+	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
 
 func TestToMQTopicSpec(t *testing.T) {

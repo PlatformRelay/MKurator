@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 func TestDefaultRetryPolicy(t *testing.T) {

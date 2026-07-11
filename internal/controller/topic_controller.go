@@ -13,10 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/conduit-ops/mkurator/api/v1alpha1"
-	"github.com/conduit-ops/mkurator/internal/adapter/mqrest"
-	"github.com/conduit-ops/mkurator/internal/metrics"
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
+	"github.com/platformrelay/mkurator/internal/metrics"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 // TopicReconciler reconciles Topic objects into MQSC on IBM MQ.

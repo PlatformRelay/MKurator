@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 func TestBuildSetChannelAuthMQSC(t *testing.T) {

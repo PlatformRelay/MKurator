@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conduit-ops/mkurator/internal/mqadmin"
+	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 // defaultQueueLocalDisplayProbeObject is a stable QLOCAL used to probe DISPLAY
