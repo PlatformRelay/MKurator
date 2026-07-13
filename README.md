@@ -14,6 +14,7 @@
 [![License: MIT](https://img.shields.io/github/license/platformrelay/MKurator)](https://github.com/platformrelay/MKurator/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/platformrelay/MKurator)](https://github.com/platformrelay/MKurator/releases)
 [![codecov](https://codecov.io/gh/platformrelay/MKurator/graph/badge.svg)](https://codecov.io/gh/platformrelay/MKurator)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=PlatformRelay_MKurator&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=PlatformRelay_MKurator)
 [![Go](https://img.shields.io/github/go-mod/go-version/platformrelay/mkurator)](https://pkg.go.dev/github.com/platformrelay/mkurator)
 [![Go Reference](https://pkg.go.dev/badge/github.com/platformrelay/MKurator.svg)](https://pkg.go.dev/github.com/platformrelay/mkurator)
 [![Go Report Card](https://goreportcard.com/badge/github.com/platformrelay/mkurator)](https://goreportcard.com/report/github.com/platformrelay/mkurator)
