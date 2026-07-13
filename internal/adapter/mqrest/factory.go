@@ -5,12 +5,15 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"sync"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -213,6 +216,16 @@ func (f *ClientFactory) buildConfig(
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
 	if conn.Spec.TLS != nil && conn.Spec.TLS.InsecureSkipVerify {
 		tlsCfg.InsecureSkipVerify = true
+		// Insecure TLS must be explicit, logged, opt-in (GUIDELINES §B3).
+		// Purely additive WARN: it does not alter the TLS decision above.
+		// A genuine slog WARN is reached by unwrapping the request-path logr
+		// logger back to its underlying slog handler, so this line still flows
+		// through the app's configured sink (incl. redaction).
+		slog.New(logr.ToSlogHandler(log.FromContext(ctx))).WarnContext(
+			ctx,
+			"TLS certificate verification disabled (insecureSkipVerify) for mqweb connection",
+			"connection", connectionCacheKey(conn),
+		)
 	}
 
 	if conn.Spec.TLS != nil && conn.Spec.TLS.CASecretRef != nil {

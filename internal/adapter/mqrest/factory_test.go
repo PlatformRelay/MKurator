@@ -1,14 +1,17 @@
 package mqrest
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,8 +19,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	"github.com/platformrelay/mkurator/internal/logging"
 )
 
 func TestCredentialsFromSecret(t *testing.T) {
@@ -260,6 +265,98 @@ func TestClientFactory_BuildConfigInsecureTLS(t *testing.T) {
 	}
 	if cfg.TLSConfig == nil || !cfg.TLSConfig.InsecureSkipVerify {
 		t.Fatal("expected InsecureSkipVerify on TLS config")
+	}
+}
+
+// buildConfigCapturingWarn runs buildConfig with a WARN-level logger injected
+// into the context and returns the JSON log lines emitted at WARN level.
+// Level is set to warn on purpose: it is the discriminator. A genuine WARN
+// passes the filter and lands in the buffer; an Info that merely reads "WARN"
+// in its message would be filtered out, so the level assertion is load-bearing.
+func buildConfigCapturingWarn(
+	t *testing.T,
+	insecure bool,
+) []map[string]any {
+	t.Helper()
+	ns := "mkurator-system"
+	s := runtime.NewScheme()
+	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := corev1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns},
+		Data: map[string][]byte{
+			"username":        []byte("admin"),
+			"mqAdminPassword": []byte("passw0rd"),
+		},
+	}
+	tlsCfg := &messagingv1alpha1.TLSConfig{InsecureSkipVerify: insecure}
+	conn := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
+			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+			TLS:                  tlsCfg,
+		},
+	}
+
+	var buf bytes.Buffer
+	logger, err := logging.NewLogger(logging.Config{
+		Level:  logging.LevelWarn,
+		Format: logging.FormatJSON,
+	}, &buf)
+	if err != nil {
+		t.Fatalf("NewLogger: %v", err)
+	}
+	ctx := log.IntoContext(context.Background(), logger)
+
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
+	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn)
+	if err != nil {
+		t.Fatalf("buildConfig: %v", err)
+	}
+	// TLS behavior must be preserved: the flag still flows through unchanged.
+	if cfg.TLSConfig == nil || cfg.TLSConfig.InsecureSkipVerify != insecure {
+		t.Fatalf("InsecureSkipVerify: got %v want %v", cfg.TLSConfig.InsecureSkipVerify, insecure)
+	}
+
+	var entries []map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(buf.String()), "\n") {
+		if line == "" {
+			continue
+		}
+		var entry map[string]any
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			t.Fatalf("unmarshal log line %q: %v", line, err)
+		}
+		entries = append(entries, entry)
+	}
+	return entries
+}
+
+func TestClientFactory_BuildConfigWarnsOnInsecureTLS(t *testing.T) {
+	entries := buildConfigCapturingWarn(t, true)
+	if len(entries) != 1 {
+		t.Fatalf("got %d WARN log lines, want exactly 1:\n%v", len(entries), entries)
+	}
+	entry := entries[0]
+	if level, _ := entry["level"].(string); level != "WARN" {
+		t.Fatalf("log level: got %v want WARN", entry["level"])
+	}
+	// The connection must be named (namespace/name) so operators can act on it.
+	if conn, _ := entry["connection"].(string); conn != "mkurator-system/qm1" {
+		t.Fatalf("connection: got %v want mkurator-system/qm1", entry["connection"])
+	}
+}
+
+func TestClientFactory_BuildConfigNoWarnWhenVerifyEnabled(t *testing.T) {
+	entries := buildConfigCapturingWarn(t, false)
+	if len(entries) != 0 {
+		t.Fatalf("expected no WARN when TLS verification is enabled, got %d:\n%v", len(entries), entries)
 	}
 }
 
