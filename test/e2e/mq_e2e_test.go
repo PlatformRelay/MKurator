@@ -261,7 +261,15 @@ spec:
 		})
 	})
 
-	Describe("channels", Label("mq-channel"), func() {
+	// Ordered: SVRCONN/SDR/RCVR share the namespace-scoped e2e-qm1
+	// QueueManagerConnection, and each spec's DeferCleanup (cleanupMQSpec)
+	// force-deletes it. Under parallel ginkgo procs a finishing sibling would
+	// yank the shared QMC out from under a still-running one, so its
+	// eventuallyExpectQMCReady poll (get-only, never re-applies) sees NotFound
+	// until timeout. Ordered keeps the three specs on one process, in order, so
+	// each re-applies the QMC after the prior cleanup — mirroring the auth
+	// Describe. Other Describes still parallelize on their own namespaces.
+	Describe("channels", Label("mq-channel"), Ordered, func() {
 		var (
 			ns     string
 			prefix string
