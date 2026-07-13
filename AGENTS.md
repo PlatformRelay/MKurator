@@ -365,8 +365,9 @@ CI runs on **GitHub Actions**; the full design is in
   pinned action SHAs, Renovate (weekly workflow).
 - **Release**: [docs/RELEASE.md](docs/RELEASE.md) — tag only after CI +
   integration + e2e are green on the **exact commit SHA** being tagged.
-- CI **fails** on lint, format, codegen drift, test failure, vuln findings, or
-  Codecov upload errors (`fail_ci_if_error` in `ci.yaml`).
+- CI **fails** on lint, format, codegen drift, test failure, or vuln findings.
+  Codecov uploads via GitHub OIDC on same-repo runs (`use_oidc` in `ci.yaml`; fork
+  PR uploads are best-effort and do not fail the job).
 
 ## Commit conventions
 

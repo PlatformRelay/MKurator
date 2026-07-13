@@ -171,10 +171,11 @@ Runs in order within the job:
 
 CI then uploads `coverage.out` as a workflow artifact, prints a **job summary**
 (`go tool cover -func`), and publishes to [Codecov](https://codecov.io/gh/platformrelay/MKurator)
-(`codecov.yml`) via `codecov/codecov-action` using the repository secret
-`CODECOV_TOKEN` with `fail_ci_if_error: true` (upload failures fail the job;
+(`codecov.yml`) via `codecov/codecov-action` with GitHub OIDC (`use_oidc: true`;
+`fail_ci_if_error: false` so fork PRs without OIDC do not fail the job;
 `codecov.yml` uses `target: auto` only — no strict coverage gate in CI).
-Coverage regressions are investigated, not ignored.
+Install the [Codecov GitHub App](https://github.com/apps/codecov) on the repo once
+for reliable PR patch comments. Coverage regressions are investigated, not ignored.
 
 ### `build`
 `task build` — static `CGO_ENABLED=0` manager binary.
