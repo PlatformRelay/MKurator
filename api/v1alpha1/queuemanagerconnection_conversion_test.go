@@ -113,3 +113,32 @@ func TestQueueManagerConnectionConvertToFromRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// TestQueueManagerConnectionLosslessRoundTrip asserts a fully-populated v1alpha1
+// QueueManagerConnection survives a hub round-trip byte-for-byte (reflect.DeepEqual).
+// Storage-migration guardrail: see TestQueueLosslessRoundTrip. Populates the nested
+// TLS + CASecretRef pointers so a dropped nested field is caught.
+func TestQueueManagerConnectionLosslessRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	orig := &QueueManagerConnection{
+		ObjectMeta: testObjectMeta("qmc-lossless"),
+		Spec: QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://mq.example:9443",
+			RESTPrefix:           "/ibmmq/rest/v3",
+			CredentialsSecretRef: SecretReference{Name: "creds"},
+			TLS: &TLSConfig{
+				InsecureSkipVerify: true,
+				CASecretRef:        &SecretReference{Name: "ca"},
+			},
+		},
+		Status: QueueManagerConnectionStatus{
+			Conditions:         testSyncedCondition(),
+			ObservedGeneration: 1,
+		},
+	}
+
+	_, back := roundTripQueueManagerConnection(t, orig.DeepCopy())
+	assertLossless(t, orig, back)
+}

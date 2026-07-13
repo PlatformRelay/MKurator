@@ -125,3 +125,40 @@ func TestChannelAuthRuleConvertToFromRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// TestChannelAuthRuleLosslessRoundTrip asserts a fully-populated v1alpha1
+// ChannelAuthRule survives a hub round-trip byte-for-byte (reflect.DeepEqual).
+// Storage-migration guardrail: see TestQueueLosslessRoundTrip. ChannelAuthRule has
+// no attribute map, so every field is fully lossless.
+func TestChannelAuthRuleLosslessRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	orig := &ChannelAuthRule{
+		ObjectMeta: testObjectMeta("car-lossless"),
+		Spec: ChannelAuthRuleSpec{
+			ConnectionRef:             LocalObjectReference{Name: "qm1"},
+			ChannelName:               "ORDERS.APP",
+			RuleType:                  ChannelAuthRuleTypeAddressMap,
+			Address:                   "10.0.0.0/8",
+			UserList:                  "baduser",
+			ClientUser:                "alice",
+			SslPeerName:               "CN=app",
+			RemoteQueueManager:        "QM2",
+			McaUser:                   "app",
+			UserSource:                ChannelAuthUserSourceMap,
+			CheckClient:               ChannelAuthCheckClientRequired,
+			Description:               "allow app users",
+			Suspend:                   true,
+			WorkloadLifecyclePolicies: testWorkloadPolicies(),
+		},
+		Status: ChannelAuthRuleStatus{
+			Conditions:           testSyncedCondition(),
+			ObservedGeneration:   3,
+			DesiredMQSC:          "SET CHLAUTH(ORDERS.APP) TYPE(ADDRESSMAP)",
+			MQObjectStatusFields: testMQObjectStatus(),
+		},
+	}
+
+	_, back := roundTripChannelAuthRule(t, orig.DeepCopy())
+	assertLossless(t, orig, back)
+}

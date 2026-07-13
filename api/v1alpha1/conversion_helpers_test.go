@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -8,6 +9,19 @@ import (
 
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
+
+// assertLossless fails the test unless orig and back are deeply equal, printing a
+// readable dump of both so a dropped field is obvious. reflect.DeepEqual (not
+// go-cmp) is used deliberately: metav1.Time carries unexported fields that make
+// cmp.Diff panic without cmpopts, and DeepEqual keeps go-cmp out of go.mod's
+// direct requires.
+func assertLossless[T any](t *testing.T, orig, back *T) {
+	t.Helper()
+	if !reflect.DeepEqual(orig, back) {
+		t.Fatalf("round-trip is lossy: a field was dropped or altered by ConvertTo/ConvertFrom\n"+
+			" orig = %#v\n back = %#v", orig, back)
+	}
+}
 
 func testObjectMeta(name string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{

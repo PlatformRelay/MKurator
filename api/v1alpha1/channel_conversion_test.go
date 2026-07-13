@@ -185,6 +185,47 @@ func TestChannelConvertToFromRoundTrip(t *testing.T) {
 	}
 }
 
+// TestChannelLosslessRoundTrip asserts a fully-populated v1alpha1 Channel survives
+// a hub round-trip byte-for-byte (reflect.DeepEqual). Storage-migration guardrail:
+// see TestQueueLosslessRoundTrip.
+func TestChannelLosslessRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	orig := &Channel{
+		ObjectMeta: testObjectMeta("c-lossless"),
+		Spec: ChannelSpec{
+			ConnectionRef: LocalObjectReference{Name: "qm1"},
+			ChannelName:   "ORDERS.APP",
+			Type:          ChannelTypeSdr,
+			// Non-foldable custom key only; foldable MQSC keys are folded into typed
+			// fields on the hub (intentionally lossy — see TestQueueLosslessRoundTrip).
+			Attributes:                map[string]string{"custom": "keep-me"},
+			Description:               "orders channel",
+			MaxMsgLength:              int32Ptr(1048576),
+			TransportType:             ChannelTransportTypeTCP,
+			ShareConv:                 int32Ptr(10),
+			McaUser:                   "app",
+			MaxInstances:              int32Ptr(100),
+			MaxInstancesClient:        int32Ptr(50),
+			SslCipherSpec:             "TLS_RSA_WITH_AES_256_CBC_SHA256",
+			SslClientAuth:             ChannelSslClientAuthRequired,
+			ConnName:                  "mq.example(1414)",
+			XmitQueue:                 "SYSTEM.XMIT",
+			Suspend:                   true,
+			WorkloadLifecyclePolicies: testWorkloadPolicies(),
+		},
+		Status: ChannelStatus{
+			Conditions:           testSyncedCondition(),
+			ObservedGeneration:   4,
+			DesiredMQSC:          "DEFINE CHANNEL(ORDERS.APP)",
+			MQObjectStatusFields: testMQObjectStatus(),
+		},
+	}
+
+	_, back := roundTripChannel(t, orig.DeepCopy())
+	assertLossless(t, orig, back)
+}
+
 func TestChannelConvertFromHubRoundTrip(t *testing.T) {
 	t.Parallel()
 

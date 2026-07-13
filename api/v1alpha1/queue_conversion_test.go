@@ -216,6 +216,47 @@ func TestQueueConvertToFromRoundTrip(t *testing.T) {
 	}
 }
 
+// TestQueueLosslessRoundTrip asserts that a fully-populated v1alpha1 Queue survives
+// a hub round-trip byte-for-byte (reflect.DeepEqual). v1alpha1 is the storage
+// version, so every field crosses the hub on each read/write; this guards against a
+// converter silently dropping a field during storage migration.
+func TestQueueLosslessRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	orig := &Queue{
+		ObjectMeta: testObjectMeta("q-lossless"),
+		Spec: QueueSpec{
+			ConnectionRef: LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+			Type:          QueueTypeRemote,
+			// Attributes intentionally uses only a non-foldable ("custom") key:
+			// foldable MQSC keys are by-design normalized into typed fields on the hub
+			// (mutually exclusive with them per CRD CEL), so a foldable key would not
+			// round-trip as an attribute. That fold is the one intentionally-lossy path.
+			Attributes:                map[string]string{"custom": "keep-me"},
+			MaxDepth:                  int32Ptr(5000),
+			Description:               "orders queue",
+			DefPersistence:            QueueDefaultPersistenceYes,
+			Get:                       QueueAccessEnabledEnabled,
+			Put:                       QueueAccessEnabledDisabled,
+			TargetQueue:               "TARGET.Q",
+			XmitQueue:                 "SYSTEM.XMIT",
+			RemoteQueueManager:        "QM2",
+			Suspend:                   true,
+			WorkloadLifecyclePolicies: testWorkloadPolicies(),
+		},
+		Status: QueueStatus{
+			Conditions:           testSyncedCondition(),
+			ObservedGeneration:   7,
+			DesiredMQSC:          "DEFINE QLOCAL(APP.ORDERS)",
+			MQObjectStatusFields: testMQObjectStatus(),
+		},
+	}
+
+	_, back := roundTripQueue(t, orig.DeepCopy())
+	assertLossless(t, orig, back)
+}
+
 func TestQueueConvertFromHubRoundTrip(t *testing.T) {
 	t.Parallel()
 

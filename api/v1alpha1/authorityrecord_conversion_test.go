@@ -94,3 +94,36 @@ func TestAuthorityRecordConvertToFromRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// TestAuthorityRecordLosslessRoundTrip asserts a fully-populated v1alpha1
+// AuthorityRecord survives a hub round-trip byte-for-byte (reflect.DeepEqual).
+// Storage-migration guardrail: see TestQueueLosslessRoundTrip. Principal and Group
+// are mutually exclusive per CRD CEL, so this fixture populates only Principal; the
+// Group copy is guarded independently by the sibling
+// TestAuthorityRecordConvertToFromRoundTrip "group principal" case, so an empty Group
+// here is a valid natural value rather than a masked drop.
+func TestAuthorityRecordLosslessRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	orig := &AuthorityRecord{
+		ObjectMeta: testObjectMeta("auth-lossless"),
+		Spec: AuthorityRecordSpec{
+			ConnectionRef:             LocalObjectReference{Name: "qm1"},
+			Profile:                   "APP.ORDERS",
+			ObjectType:                AuthorityObjectTypeQueue,
+			Principal:                 "app",
+			Authorities:               []string{"GET", "PUT", "CONNECT"},
+			Suspend:                   true,
+			WorkloadLifecyclePolicies: testWorkloadPolicies(),
+		},
+		Status: AuthorityRecordStatus{
+			Conditions:           testSyncedCondition(),
+			ObservedGeneration:   6,
+			DesiredMQSC:          "SET AUTHREC PROFILE(APP.ORDERS)",
+			MQObjectStatusFields: testMQObjectStatus(),
+		},
+	}
+
+	_, back := roundTripAuthorityRecord(t, orig.DeepCopy())
+	assertLossless(t, orig, back)
+}

@@ -161,6 +161,42 @@ func TestTopicConvertToFromRoundTrip(t *testing.T) {
 	}
 }
 
+// TestTopicLosslessRoundTrip asserts a fully-populated v1alpha1 Topic survives a
+// hub round-trip byte-for-byte (reflect.DeepEqual). Storage-migration guardrail:
+// see TestQueueLosslessRoundTrip.
+func TestTopicLosslessRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	orig := &Topic{
+		ObjectMeta: testObjectMeta("t-lossless"),
+		Spec: TopicSpec{
+			ConnectionRef: LocalObjectReference{Name: "qm1"},
+			TopicName:     "RETAIL.ORDERS",
+			// Non-foldable custom key only; foldable MQSC keys are folded into typed
+			// fields on the hub (intentionally lossy — see TestQueueLosslessRoundTrip).
+			Attributes:                map[string]string{"custom": "keep-me"},
+			TopicString:               "retail/orders",
+			Description:               "retail topic",
+			Publish:                   TopicAccessEnabledEnabled,
+			Subscribe:                 TopicAccessEnabledDisabled,
+			DefPersistence:            QueueDefaultPersistenceYes,
+			PublishScope:              "ALL",
+			SubscribeScope:            "QMGR",
+			Suspend:                   true,
+			WorkloadLifecyclePolicies: testWorkloadPolicies(),
+		},
+		Status: TopicStatus{
+			Conditions:           testSyncedCondition(),
+			ObservedGeneration:   2,
+			DesiredMQSC:          "DEFINE TOPIC(RETAIL.ORDERS)",
+			MQObjectStatusFields: testMQObjectStatus(),
+		},
+	}
+
+	_, back := roundTripTopic(t, orig.DeepCopy())
+	assertLossless(t, orig, back)
+}
+
 func TestTopicConvertFromHubRoundTrip(t *testing.T) {
 	t.Parallel()
 
