@@ -60,6 +60,10 @@ linters:
     goconst:
       min-len: 3
       min-occurrences: 3
+      # Count occurrences in non-test code only. Table-driven tests legitimately repeat
+      # MQSC attribute-key literals ("get", "maxmsgl", …) that the production folds already
+      # define; without this, test literals would push production keys over the threshold.
+      ignore-tests: true
     gocyclo:
       min-complexity: 20
     govet:
