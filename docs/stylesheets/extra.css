@@ -24,6 +24,12 @@
   border-bottom: 1px solid rgba(50, 108, 229, 0.18);
 }
 
+/* Header logo — dark mark on slate scheme */
+[data-md-color-scheme="slate"] .md-header__button.md-logo img,
+[data-md-color-scheme="slate"] .md-nav__button.md-logo img {
+  content: url(../images/logo-dark-512.png);
+}
+
 .mkurator-hero {
   text-align: center;
   margin: 0 auto 2rem;
