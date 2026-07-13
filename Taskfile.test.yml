@@ -43,11 +43,12 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        rm -f coverage.out coverage-summary.txt
-        # Non-internal packages (e.g. test/schema) run without -coverprofile so they do not
-        # append to coverage.out; mixed cache + multi-package cover merge can corrupt the
-        # profile (go tool cover: token too long / malformed import path).
-        other_pkgs="$(go list ./... | grep -v /e2e | grep -v '/internal/' || true)"
+        rm -f coverage.out coverage-api.out coverage-summary.txt coverage-api-summary.txt
+        # Non-internal, non-api packages (e.g. test/schema) run without -coverprofile so they do
+        # not append to a coverage profile; mixed cache + multi-package cover merge can corrupt the
+        # profile (go tool cover: token too long / malformed import path). internal/ and api/ each
+        # get their own dedicated, floored coverprofile run below.
+        other_pkgs="$(go list ./... | grep -v /e2e | grep -v '/internal/' | grep -v '/api/' || true)"
         if [ -n "${other_pkgs}" ]; then
           go test -race ${other_pkgs}
         fi
@@ -60,6 +61,17 @@ tasks:
         pct="$(awk '/^total:/ {gsub(/%/,"",$3); print $3}' coverage-summary.txt)"
         min=90
         awk -v p="${pct}" -v m="${min}" 'BEGIN { if (p+0 < m+0) { printf "internal/ coverage %.1f%% is below %d%% floor\n", p, m; exit 1 } }'
+        # api/ hub types: CEL markers + v1alpha1<->v1beta1 conversion + deepcopy. Floored separately
+        # from internal/ so the ~3.2k-LOC hub API is measured, not just exercised (HA-S2).
+        go test -race -count=1 -p 1 -coverpkg=./api/... -coverprofile=coverage-api.out ./api/...
+        if [ ! -s coverage-api.out ] || [ "$(wc -l < coverage-api.out)" -lt 2 ]; then
+          echo "coverage-api.out missing or empty after go test ./api/..."
+          exit 1
+        fi
+        go tool cover -func=coverage-api.out | tee coverage-api-summary.txt | tail -1
+        api_pct="$(awk '/^total:/ {gsub(/%/,"",$3); print $3}' coverage-api-summary.txt)"
+        api_min=75
+        awk -v p="${api_pct}" -v m="${api_min}" 'BEGIN { if (p+0 < m+0) { printf "api/ coverage %.1f%% is below %d%% floor\n", p, m; exit 1 } }'
 
   e2e:
     desc: Run end-to-end tests (requires kind cluster; set KURATOR_E2E_MQ=1 for IBM MQ scenarios)

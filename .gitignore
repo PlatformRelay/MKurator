@@ -18,6 +18,7 @@ artifacts/
 *.out
 coverage.*
 coverage-summary.txt
+coverage-api-summary.txt
 *.coverprofile
 profile.cov
 

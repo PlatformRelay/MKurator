@@ -20,7 +20,10 @@ schema golden layer; L5 is reserved for performance and fuzz work.
 
 ## Coverage
 
-- **Floor:** ~**91%** statement coverage on `./internal/...` enforced in CI (`Taskfile.test.yml`).
+- **Floors** (both enforced in CI via `Taskfile.test.yml`, each with its own coverprofile):
+  - `./internal/...` — ~**91%** statement coverage (`coverage.out`).
+  - `./api/...` — **75%** statement coverage (`coverage-api.out`), covering the hub CEL
+    validation, v1alpha1↔v1beta1 conversion, attribute folding, and generated deepcopy.
 - Coverage regressions are investigated — not silently ignored.
 - Race detector (`-race`) on L0/L1 in CI.
 
