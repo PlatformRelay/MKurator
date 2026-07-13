@@ -220,6 +220,12 @@ ls -la dist/
 
 Use **workflow_dispatch** on the Release workflow with the existing tag name
 (e.g. `v0.3.0`). This rebuilds and re-uploads GitHub Release assets without a new commit.
+The `tag` input reaches the shell only as an `env:` variable (`TAG_INPUT`) and is
+validated against the `vX.Y.Z` regex before any asset is built, signed, or published, so a
+malformed or malicious tag fails fast with the literal value echoed and nothing is
+published. (The initial `checkout` resolves `refs/tags/<tag>` as a git ref via `format()`,
+not a shell command — a non-existent tag simply fails to check out.) See the
+"No expression injection" principle in [CICD.md](CICD.md#principles).
 
 ### Changelog wrong on GitHub Release
 

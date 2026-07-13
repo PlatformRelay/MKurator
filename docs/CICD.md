@@ -25,6 +25,13 @@ stability — always confirm green workflows on the **exact release SHA** via
   pinned to commit SHAs; `go.sum` committed.
 - **Least privilege**: workflows request only the permissions they need;
   registry/release credentials are scoped and only used on protected refs.
+- **No expression injection**: never interpolate a `${{ … }}` expression
+  directly inside a `run:` script body. Pass it through the step's `env:`
+  block and reference the shell variable (`env: { TAG_INPUT: ${{ inputs.tag }} }`
+  → `"${TAG_INPUT}"`), so `workflow_dispatch` inputs and other context reach the
+  shell as literal data and metacharacters can never break out and execute.
+  Validate untrusted inputs (e.g. the `vX.Y.Z` tag regex) *after* they are in a
+  variable. Enforced by SonarCloud `githubactions:S7630`/`S8264`.
 
 ## Pipeline overview
 

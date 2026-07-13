@@ -150,7 +150,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           POLL_TIMEOUT_MINUTES: ${{ inputs.poll_timeout_minutes }}
-        run: bash hack/ci/wait-release-gate-checks.sh "${{ needs.resolve-sha.outputs.sha }}"
+          RELEASE_SHA: ${{ needs.resolve-sha.outputs.sha }}
+        run: bash hack/ci/wait-release-gate-checks.sh "${RELEASE_SHA}"
 
   # Fails with a copy-paste checklist when poll-external-checks did not succeed.
   # Tag only after a green E2E (kustomize) workflow run whose headSha matches the
@@ -165,6 +166,7 @@ jobs:
         env:
           RELEASE_SHA: ${{ needs.resolve-sha.outputs.sha }}
           SHORT_SHA: ${{ needs.resolve-sha.outputs.short_sha }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           {
@@ -182,7 +184,7 @@ jobs:
             echo "The tag must match a **green** E2E run whose \`headSha\` equals \`${RELEASE_SHA}\`."
             echo "Re-dispatch **Release gate** after CI / Integration / E2E are green, or fix failures first."
             echo ""
-            echo "See [docs/RELEASE.md](https://github.com/${{ github.repository }}/blob/main/docs/RELEASE.md#automated-release-gate-workflow)."
+            echo "See [docs/RELEASE.md](https://github.com/${REPO}/blob/main/docs/RELEASE.md#automated-release-gate-workflow)."
           } >> "${GITHUB_STEP_SUMMARY}"
           exit 1
 
