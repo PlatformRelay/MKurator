@@ -36,8 +36,13 @@
   max-width: 52rem;
 }
 
-.mkurator-hero-logo {
-  max-width: 200px;
+/* Scope under .md-typeset img so this wins the cascade over
+   Material's `.md-typeset img { max-width: 100% }` (specificity 0,2,1 > 0,1,1). */
+.md-typeset img.mkurator-hero-logo {
+  display: block;
+  width: 200px;
+  max-width: 100%;
+  height: auto;
   margin: 1rem auto;
 }
 
