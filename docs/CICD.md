@@ -46,6 +46,7 @@ flowchart LR
   pr --> docker["docker-build"]
   pr --> helmlint["helm-lint"]
   pr --> auditrbac["audit-rbac"]
+  pr --> fuzz["fuzz (conversion round-trip, 6 kinds)"]
   lint["lint (format:check + golangci-lint)"]
   test["test (unit + envtest, govulncheck, coverage)"]
   pr --> integration["integration (Docker IBM MQ)"]
@@ -62,7 +63,7 @@ what each job runs, not execution order.
 | Event | Runs |
 |-------|------|
 | PR / push to `main` | `preflight.yaml`: `go mod tidy` + `go mod verify` + `task verify` + markdown/shell lint (5 min cap) |
-| PR / push to `main` | `ci.yaml`: gitleaks, verify, **audit-rbac**, lint, test, build, docker-build, helm-lint (eight parallel jobs) |
+| PR / push to `main` | `ci.yaml`: gitleaks, verify, **audit-rbac**, lint, test, build, docker-build, helm-lint, **fuzz** (nine parallel jobs; `fuzz` is a 6-way matrix, one entry per converted kind) |
 | PR / push to `main` | `codeql.yaml`: Go SAST (weekly schedule + PR/push) |
 | Push to `main` | `scorecard.yaml`: OpenSSF Scorecard (weekly schedule + push) |
 | Schedule (Mon 04:12 UTC) + `workflow_dispatch` | `vulncheck.yaml`: standalone govulncheck |
@@ -200,6 +201,20 @@ then [`hack/helm-verify-admission.sh`](https://github.com/platformrelay/MKurator
 webhook and manager ClusterRole templates stay aligned with
 `config/webhook/manifests.yaml` and `config/rbac/role.yaml`.
 Runs in parallel with other `ci.yaml` jobs; no cluster or MQ required.
+
+### `fuzz`
+6-way matrix (`fail-fast: false`), one entry per converted kind
+(`FuzzQueue/Topic/Channel/ChannelAuthRule/AuthorityRecord/QueueManagerConnectionConversionRoundTrip`).
+Each entry runs `go test -run='^$' -fuzz=<Target> -fuzztime=30s ./api/v1alpha1/`
+(`CGO_ENABLED=0`, `timeout-minutes: 5`) to drive arbitrary v1alpha1 spoke objects
+through `ConvertTo`/`ConvertFrom` and assert no panic and a `reflect.DeepEqual`
+round-trip. The 30 s corpus lives only in the runner's `GOCACHE` — the fuzz
+**seeds** also run as ordinary unit tests in the `test` job, so a regression is
+caught even without `-fuzz`. Kollect discipline: only transient failures are
+retried (up to 3 attempts); if a run writes a **new** corpus file under
+`api/v1alpha1/testdata/fuzz/` the job emits a `::error` and fails immediately with
+no retry, so a genuine crash finding is never masked. Runs in parallel with other
+`ci.yaml` jobs; no cluster or MQ required.
 
 ### `integration`
 Dedicated workflow [`.github/workflows/integration.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/integration.yaml):

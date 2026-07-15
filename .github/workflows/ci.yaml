@@ -173,3 +173,69 @@ jobs:
         run: task helm:lint
         env:
           CI: "true"
+
+  fuzz:
+    name: fuzz (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    # One entry per kind so a crash in any converter is isolated; fail-fast: false
+    # keeps the other five running so a single flake does not mask a real finding.
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - FuzzQueueConversionRoundTrip
+          - FuzzTopicConversionRoundTrip
+          - FuzzChannelConversionRoundTrip
+          - FuzzChannelAuthRuleConversionRoundTrip
+          - FuzzAuthorityRecordConversionRoundTrip
+          - FuzzQueueManagerConnectionConversionRoundTrip
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/go-cache
+      - name: Fuzz ${{ matrix.target }}
+        env:
+          CI: "true"
+          CGO_ENABLED: "0"
+          FUZZ_TARGET: ${{ matrix.target }}
+        # Kollect pattern: a NEW corpus file under testdata/fuzz means the fuzzer
+        # found a crash — that is a real finding and must NEVER be retried or masked,
+        # so we emit a ::error and fail immediately. Only transient infra failures
+        # (network, cache) are retried, up to 2 extra attempts.
+        run: |
+          set -uo pipefail
+          run_fuzz() {
+            go test -run='^$' -fuzz="^${FUZZ_TARGET}$" -fuzztime=30s ./api/v1alpha1/
+          }
+          crash_corpus_present() {
+            git status --porcelain -- api/v1alpha1/testdata/fuzz | grep -q '.'
+          }
+          attempt=0
+          max_attempts=3
+          while :; do
+            attempt=$((attempt + 1))
+            echo "::group::fuzz ${FUZZ_TARGET} (attempt ${attempt}/${max_attempts})"
+            if run_fuzz; then
+              echo "::endgroup::"
+              echo "fuzz ${FUZZ_TARGET} passed"
+              exit 0
+            else
+              # Capture run_fuzz's exit code here: after a failed `if` condition,
+              # $? on the compound is 0, so the code must be read in this else branch
+              # before any other command runs.
+              status=$?
+            fi
+            echo "::endgroup::"
+            if crash_corpus_present; then
+              echo "::error title=Fuzz crash::${FUZZ_TARGET} produced a new corpus file under api/v1alpha1/testdata/fuzz — a real finding, not retrying."
+              git status --porcelain -- api/v1alpha1/testdata/fuzz
+              exit 1
+            fi
+            if [ "${attempt}" -ge "${max_attempts}" ]; then
+              echo "::error title=Fuzz failed::${FUZZ_TARGET} failed after ${max_attempts} attempts (no crash corpus; likely transient)."
+              exit "${status}"
+            fi
+            echo "::warning::${FUZZ_TARGET} attempt ${attempt} failed without a crash corpus; retrying (transient)."
+          done

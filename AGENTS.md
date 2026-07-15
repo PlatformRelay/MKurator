@@ -272,6 +272,16 @@ via `hack/ci/suite-lock.sh` — only one suite at a time per host.
   created/updated/deleted, including Phase 5 `ChannelAuthRule` and
   `AuthorityRecord`. Gated behind a build tag (`//go:build e2e`). Use
   `task test:e2e:helm` for the Helm deploy path (`KURATOR_E2E_DEPLOY=helm`).
+- **Conversion fuzz**: native Go fuzz targets in `api/v1alpha1/conversion_fuzz_test.go`
+  (`Fuzz<Kind>ConversionRoundTrip`, one per kind) build arbitrary v1alpha1 spoke
+  objects from primitive fuzz args and assert `ConvertTo`→`ConvertFrom` never panics
+  and round-trips `reflect.DeepEqual` (reusing the HA-S3 `assertLossless` /
+  `roundTrip*` helpers). All six kinds are lossless by construction — the fuzzed
+  `Attributes` map uses only the non-foldable `custom` key so the intentionally-lossy
+  MQSC attribute fold is avoided. Minimal+maximal `f.Add` seeds run as ordinary unit
+  tests every CI run; the `fuzz` matrix job (`ci.yaml`) also runs each target under
+  `-fuzz -fuzztime=30s` and bails immediately if a new `testdata/fuzz/` corpus file
+  appears (a real crash finding, never retried).
 - Track coverage (`-cover -coverprofile`) and keep it high on `internal/`; CI
   reports coverage and treats a regression as a failure to investigate.
 
