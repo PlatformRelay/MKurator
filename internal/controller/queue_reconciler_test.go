@@ -115,7 +115,9 @@ var _ = Describe("QueueReconciler", func() {
 
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().
-			ForConnection(mock.Anything, mock.Anything).
+			ForConnection(mock.Anything, mock.MatchedBy(func(c *messagingv1alpha1.QueueManagerConnection) bool {
+				return c.Name == "qm1" && c.Namespace == ns
+			})).
 			Return(mockAdmin, nil)
 
 		recorder := events.NewFakeRecorder(2)

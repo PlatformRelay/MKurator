@@ -106,7 +106,11 @@ var _ = Describe("ChannelReconciler", func() {
 		mockAdmin.EXPECT().DefineChannel(mock.Anything, desired).Return(nil)
 
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
-		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+		mockFactory.EXPECT().
+			ForConnection(mock.Anything, mock.MatchedBy(func(c *messagingv1alpha1.QueueManagerConnection) bool {
+				return c.Name == "qm1" && c.Namespace == ns
+			})).
+			Return(mockAdmin, nil)
 
 		rec := &ChannelReconciler{
 			Client:    k8sClient,

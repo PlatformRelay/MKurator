@@ -65,7 +65,11 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		mockAdmin.EXPECT().Ping(mock.Anything).Return(nil)
 
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
-		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+		mockFactory.EXPECT().
+			ForConnection(mock.Anything, mock.MatchedBy(func(c *messagingv1alpha1.QueueManagerConnection) bool {
+				return c.Name == key && c.Namespace == ns
+			})).
+			Return(mockAdmin, nil)
 
 		rec := &QueueManagerConnectionReconciler{
 			Client:    k8sClient,
