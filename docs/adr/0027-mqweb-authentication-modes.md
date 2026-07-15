@@ -1,7 +1,8 @@
 # ADR-0027: mqweb admin authentication modes — token-first, mTLS-next, Basic-compatible
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-07-15
+- **Maintainer LGTM**: Konrad Heimel — 2026-07-15 (via `/open-questions`; honest LTPA-vs-mTLS delta reviewed, LTPA-first accepted as a strategic ordering; hard constraints acknowledged: union lands only after v1beta1 storage, LTPA re-auth in-client not TTL-eviction)
 - **Deciders**: Konrad Heimel (maintainer) — architecture + security posture change; **maintainer LGTM required** per [GOVERNANCE.md](../../GOVERNANCE.md) (CRD shape + security posture)
 - **Relates to**: [ADR-0002](0002-manage-mq-via-mqweb-rest.md) (manage MQ via mqweb REST), [ADR-0003](0003-connection-model.md) (connection model), [ADR-0023](0023-connection-client-cache-lifecycle.md) (client cache lifecycle), [ADR-0025](0025-cel-first-admission-validation.md) (CEL-first validation), [ADR-0026](0026-v1beta1-graduation-plan.md) (v1beta1 graduation)
 - **External relation (different surface, does NOT supersede)**: SEVEN `mq-on-k8s` ADR-0009 — Prefer token-based (OIDC/JWT) authentication for IBM MQ (`/Users/A242168/Projects/SEVEN/IBM_MQ/mq-on-k8s/docs/adr/0009-prefer-token-based-authentication.md`)
