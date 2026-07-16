@@ -32,7 +32,6 @@ helm.sh/chart: {{ include "mkurator.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-app.kubernetes.io/name: mkurator
 {{- end }}
 
 {{- define "mkurator.selectorLabels" -}}
