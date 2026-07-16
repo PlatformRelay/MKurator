@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.12.2   # target release
+VERSION=0.13.0   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -74,7 +74,7 @@ critical steps are:
    objects convert on read.
 
 ```sh
-VERSION=0.12.2   # target release
+VERSION=0.13.0   # target release
 
 # 1. CRDs (includes conversion webhook clientConfig)
 kubectl apply --server-side -f install-crds.yaml

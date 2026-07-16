@@ -31,7 +31,7 @@ guides, examples, ADRs, and engineering standards.
 > `v1alpha1` and `v1beta1` behind a conversion webhook. **Phase 9 breadth on
 > `main`** — SDR/RCVR channels, AUTHREC channel/namelist profiles, DISPLAY
 > capability probing for local queues, with Docker integration and kind e2e
-> coverage. Latest release: **`v0.12.2`**. Extended CHLAUTH rule types remain in
+> coverage. Latest release: **`v0.13.0`**. Extended CHLAUTH rule types remain in
 > the [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
 
 ## What ships today
