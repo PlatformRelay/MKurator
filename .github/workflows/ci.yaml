@@ -169,8 +169,18 @@ jobs:
         with:
           version: 3.51.1
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - name: Install helm-unittest plugin
+        # --verify=false is required on Helm 4 (plugin has no provenance data);
+        # the fallback keeps the step working if the runner ships Helm 3.
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version 0.5.1 --verify=false \
+            || helm plugin install https://github.com/helm-unittest/helm-unittest --version 0.5.1
       - name: Lint Helm chart
         run: task helm:lint
+        env:
+          CI: "true"
+      - name: Run Helm unit tests
+        run: task helm:test
         env:
           CI: "true"
 

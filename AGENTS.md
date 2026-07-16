@@ -318,6 +318,7 @@ via `hack/ci/suite-lock.sh` — only one suite at a time per host.
 | `task undeploy` / `task undeploy:helm` | Remove operator |
 | `task helm:package` | Package `charts/mkurator` for publish |
 | `task helm:lint` | `helm lint` + admission/RBAC template verify (`hack/helm-verify-*.sh`) |
+| `task helm:test` | helm-unittest specs for chart templates (`charts/mkurator/tests/`) |
 | `task test:run` | Run unit + envtest suites (Ginkgo) |
 | `task test:integration` | MQ integration tests vs Docker mqweb (`KURATOR_INTEGRATION_MQ=1`) |
 | `task test:integration:local` | `mq:integration:up` + wait + `test:integration` |

@@ -200,6 +200,14 @@ then [`hack/helm-verify-admission.sh`](https://github.com/platformrelay/MKurator
 [`hack/helm-verify-rbac.sh`](https://github.com/platformrelay/MKurator/blob/main/hack/helm-verify-rbac.sh) to assert rendered
 webhook and manager ClusterRole templates stay aligned with
 `config/webhook/manifests.yaml` and `config/rbac/role.yaml`.
+The job then runs `task helm:test` — [helm-unittest](https://github.com/helm-unittest/helm-unittest)
+(plugin pinned to v0.5.1) specs in `charts/mkurator/tests/` asserting rendered
+templates: the container image comes from `image.repository`/`image.tag` via the
+`mkurator.image` helper, and the `rbac.create`, `webhooks.enabled`,
+`webhooks.certManager.create`, `metrics.serviceMonitor.enabled`,
+`metrics.prometheusRule.enabled`, and `createNamespace` toggles gate their
+manifests in both directions. A template regression fails the PR here instead of
+surfacing minutes into the kind e2e Helm lane.
 Runs in parallel with other `ci.yaml` jobs; no cluster or MQ required.
 
 ### `fuzz`
