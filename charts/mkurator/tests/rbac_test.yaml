@@ -1,0 +1,52 @@
+suite: rbac toggle
+templates:
+  - templates/clusterrole.yaml
+  - templates/clusterrolebinding.yaml
+release:
+  name: mkurator
+  namespace: mkurator-system
+tests:
+  - it: renders manager, metrics-auth, and metrics-reader ClusterRoles by default (rbac.create=true)
+    template: templates/clusterrole.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: mkurator-manager
+          any: true
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: mkurator-metrics-auth
+          any: true
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: mkurator-metrics-reader
+          any: true
+
+  - it: renders manager and metrics-auth ClusterRoleBindings by default (rbac.create=true)
+    template: templates/clusterrolebinding.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: mkurator-manager
+          any: true
+      - containsDocument:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: mkurator-metrics-auth
+          any: true
+
+  - it: omits ClusterRole and ClusterRoleBinding when rbac.create=false
+    set:
+      rbac:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0

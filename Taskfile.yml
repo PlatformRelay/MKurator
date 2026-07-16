@@ -293,6 +293,11 @@ tasks:
       - bash hack/helm-verify-rbac.sh
       - bash hack/helm-verify-crds.sh
 
+  helm:test:
+    desc: Run helm-unittest specs against charts/mkurator (requires the helm-unittest plugin)
+    cmds:
+      - helm unittest ./charts/mkurator
+
   helm:package:
     desc: Package charts/mkurator to dist/
     deps: [helm:sync-crds]

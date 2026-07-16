@@ -1,0 +1,22 @@
+suite: namespace toggle
+templates:
+  - templates/namespace.yaml
+release:
+  name: mkurator
+  namespace: mkurator-system
+tests:
+  - it: omits the Namespace by default (createNamespace=false)
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders the release Namespace when createNamespace=true
+    set:
+      createNamespace: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: Namespace
+          apiVersion: v1
+          name: mkurator-system
