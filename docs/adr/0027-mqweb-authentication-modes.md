@@ -3,7 +3,7 @@
 - **Status**: Accepted
 - **Date**: 2026-07-15
 - **Maintainer LGTM**: Konrad Heimel — 2026-07-15 (via `/open-questions`; honest LTPA-vs-mTLS delta reviewed, LTPA-first accepted as a strategic ordering; hard constraints acknowledged: union lands only after v1beta1 storage, LTPA re-auth in-client not TTL-eviction)
-- **Deciders**: Konrad Heimel (maintainer) — architecture + security posture change; **maintainer LGTM required** per [GOVERNANCE.md](../../GOVERNANCE.md) (CRD shape + security posture)
+- **Deciders**: Konrad Heimel (maintainer) — architecture + security posture change; **maintainer LGTM required** per [GOVERNANCE.md](https://github.com/platformrelay/MKurator/blob/main/GOVERNANCE.md) (CRD shape + security posture)
 - **Relates to**: [ADR-0002](0002-manage-mq-via-mqweb-rest.md) (manage MQ via mqweb REST), [ADR-0003](0003-connection-model.md) (connection model), [ADR-0023](0023-connection-client-cache-lifecycle.md) (client cache lifecycle), [ADR-0025](0025-cel-first-admission-validation.md) (CEL-first validation), [ADR-0026](0026-v1beta1-graduation-plan.md) (v1beta1 graduation)
 - **External relation (different surface, does NOT supersede)**: SEVEN `mq-on-k8s` ADR-0009 — Prefer token-based (OIDC/JWT) authentication for IBM MQ (`/Users/A242168/Projects/SEVEN/IBM_MQ/mq-on-k8s/docs/adr/0009-prefer-token-based-authentication.md`)
 - **Supersedes**: nothing (additive to the QMC spec)
@@ -92,6 +92,7 @@ The union is naturally expressible on the **v1beta1 hub**. Per ADR-0026 the firs
 **Decision (operator-confirmed 2026-07-15): option (2) — sequence the union to land only after v1beta1 becomes etcd storage.** This gives the simplest, non-lossy conversion story and preserves the ADR-0026 round-trip guarantee exactly; the cost is that the feature waits on the v1beta1 storage migration. This sequencing is a **hard prerequisite** the implementing lane must honour — no auth-union type change lands while `v1alpha1` is storage.
 
 Alternatives, recorded and rejected for now:
+
 1. **Mirror the union onto `v1alpha1`** as well — keeps round-trip exact and ships before storage migration, at the cost of duplicated CEL per version (per ADR-0026 §Consequences). **Documented fallback** if the feature is needed before storage migration.
 3. **Preserve via conversion annotations** on the v1alpha1 spoke — fragile; **rejected**.
 
