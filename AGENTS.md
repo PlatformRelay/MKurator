@@ -188,14 +188,23 @@ Dependency hygiene:
 - Run `govulncheck ./...` in CI and act on findings.
 - Pin GitHub Actions to commit SHAs, not floating tags.
 
-Branch policy (enforced by a GitHub ruleset on `main`):
+Branch policy (enforced by GitHub ruleset **`protect-main`** on `main`):
 
-- **Never push directly to `main`.** Every change — including docs, config, and
-  dependency bumps — lands via a pull request with code review and green
-  required checks. This also feeds the OpenSSF Scorecard Branch-Protection and
-  Code-Review checks.
-- Force pushes and branch deletion on `main` are blocked.
-- The same policy applies to **Kollect** (`PlatformRelay/Kollect`).
+- **Never push directly to `main`.** Every change lands via a pull request with
+  green required checks. Force pushes and branch deletion on `main` are blocked.
+- **1 approving review** + last-push approval + dismiss-stale are required for
+  non-bypass actors (OpenSSF Scorecard Branch-Protection Tier 2+).
+- Required checks include `preflight`, `lint`, `test`, `build`, `verify`,
+  `gitleaks`, `helm-lint`, `audit-rbac`, `docker-build`, and `Analyze (Go)`
+  (CodeQL), with branches required up-to-date before merge. Merge method:
+  **rebase only**.
+- **Solo-maintainer bypass:** Repository **Admin** is a bypass actor with
+  `bypass_mode: pull_request` only — self-authored PRs merge via
+  `gh pr merge --rebase --admin` without a second human. Direct push and
+  force-push stay blocked. Scorecard will still report that admins can bypass;
+  expect Branch-Protection ~6–8, not 10, while solo.
+- **Code-Review** (second-person approved changesets) remains deferred until a
+  second maintainer joins.
 
 ## Go conventions
 

@@ -27,11 +27,19 @@ with sibling project kollect, and adds security CI jobs that must stay explicit 
 | **L4 e2e** | `e2e.yaml` | Optional (latency) | Recommended |
 | **L5 soak/bench** | — | No | No |
 | **Nightly** | `nightly.yaml` | No | No |
-| **SAST** | `codeql.yaml` | Runs on PR; not branch-protection required initially | Yes (signal) |
+| **SAST** | `codeql.yaml` → `Analyze (Go)` | Yes (ruleset required) | Yes |
 | **Scorecard** | `scorecard.yaml` | No | Weekly + push |
 | **Vulncheck schedule** | `vulncheck.yaml` | No | Weekly |
 
 Docs-only PRs (markdown / `docs/**` / chart README) skip integration and e2e per existing path filters.
+CodeQL has no `paths-ignore` and is a required status check so OpenSSF Scorecard SAST sees analysis
+on every merge to `main`.
+
+### Solo-maintainer ruleset (`protect-main`, 2026-07-17)
+
+- **1 approval**, last-push approval, dismiss stale, rebase-only merges, strict up-to-date checks.
+- **Admin** bypass in `pull_request` mode only — maintainer merges with `gh pr merge --rebase --admin`.
+- Does not satisfy Scorecard **Code-Review** (needs a second person); Branch-Protection target is ~6–8.
 
 ### Release gate (unchanged)
 
