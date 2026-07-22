@@ -144,7 +144,8 @@ func setQueueStorageVersion(version string) {
 	}
 	patch := fmt.Sprintf(`[{"op":"replace","path":"/spec/versions/0/storage","value":%s},`+
 		`{"op":"replace","path":"/spec/versions/1/storage","value":%s}]`, alphaStorage, betaStorage)
-	_, err := runKubectl("patch", "crd", "queues.messaging.mkurator.dev", "--type=json", "-p", patch)
+	_, err := runKubectl("patch", "crd", "queues.messaging.mkurator.dev", "--type=json",
+		"--field-manager=kubectl", "-p", patch)
 	Expect(err).NotTo(HaveOccurred())
 }
 
