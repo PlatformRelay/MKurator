@@ -56,7 +56,7 @@ IBM MQ security involves two independent authentication surfaces. MKurator sits 
 
 **We choose Option A**: retain HTTP Basic as the default/compatible mode, add an explicit `spec.authentication` **union** to the `QueueManagerConnection` CRD, and prioritise a **token mode first, then client-certificate (mTLS) next** for the *mqweb admin identity* — accepting the added CRD/conversion and in-client session-state complexity, over Basic-only (no token path) and over mTLS-first (larger first lift, against operator direction).
 
-The concrete token mechanism MKurator targets **first is LTPA**, because it is *the* documented, universally-servable non-Basic token path on mqweb/Liberty's REST API and requires no queue-manager-side identity infrastructure. An **OIDC-session** path is explicitly deferred behind capability validation (Open Questions), not committed here.
+The concrete token mechanism MKurator targets **first is LTPA**, because it is the token mechanism that IBM documents for the mqweb REST API and it requires no queue-manager-side identity infrastructure. An **OIDC-session** path is not part of this decision: Liberty has configurable OIDC support, but IBM MQ does not document OIDC as an authentication mechanism for this REST API on distributed MQ. See the dated AUTH-10 findings below.
 
 > **Y-statement**: In the context of MKurator authenticating to the **mqweb admin REST API** (not the MQ channel), facing an operator preference for token-based identity and a need to preserve existing Basic deployments, we chose to **add an explicit `authentication` union to the QMC CRD with Basic (default), LTPA-token (first non-Basic target), and client-certificate/mTLS (next) modes**, and to implement re-authentication *inside the cached mqrest client* rather than via cache eviction, accepting **new public-API surface, a CEL "exactly one of" rule, lossy-conversion risk against `v1alpha1` storage, and LTPA cookie/CSRF/expiry state**, in order to **offer a non-password admin identity aligned with the org token direction while keeping every existing Basic connection working unchanged** — over **Basic-only** (no token path) and **mTLS-first** (heavier first cut, against the stated direction). This governs a *different surface* than SEVEN ADR-0009 (MQ channel), which it relates to but does not supersede.
 
@@ -121,8 +121,8 @@ Weights sum to 100. Scores 1 (poor) – 5 (excellent), oriented so higher = bett
 - **Conversion**: honour the sequencing decision above (land after v1beta1 storage); add a round-trip envtest for the union (ADR-0026 slice 8d-3 style) before `v1alpha1` is unserved.
 - **Cache (ADR-0023) — sharpest constraint**:
   - The `cacheFingerprint` in `factory.go` (`{generation, credRV, caRV}`) **must gain the resourceVersion of any new auth Secret** (the client-cert keypair Secret; the LTPA login Secret if distinct) — otherwise rotation of the new material will not invalidate the cached client.
-  - **LTPA session state (cookie + CSRF token + expiry) expires on a timer independent of generation/resourceVersion.** ADR-0023 rejected TTL caching, so re-login must be handled **transparently inside the cached client** (e.g. re-authenticate on a 401 and retry once, refreshing cookie+CSRF), **not** by evicting/replacing the cache entry. Implementing LTPA via TTL eviction would directly contradict ADR-0023 and must be rejected in review.
-  - `internal/adapter/mqrest/client.go` gains an auth strategy seam so `SetBasicAuth` (two call sites) is replaced by a per-mode request decorator (Basic header / LTPA cookie+CSRF / mTLS handled at transport). CSRF handling (`ibm-mq-rest-csrf-token`) already exists for mutations; LTPA adds a *login* CSRF/state dimension.
+  - **LTPA session state (cookie + expiry) expires on a timer independent of generation/resourceVersion.** ADR-0023 rejected TTL caching, so re-login must be handled **transparently inside the cached client**, **not** by evicting/replacing the cache entry. The precise expired-cookie signal and safe retry rule remain blocked on a live pinned-build observation; AUTH-13 must not assume that every 401 is retryable. Implementing LTPA via TTL eviction would directly contradict ADR-0023 and must be rejected in review.
+  - `internal/adapter/mqrest/client.go` gains an auth strategy seam so `SetBasicAuth` (two call sites) is replaced by a per-mode request decorator (Basic header / LTPA cookie + request CSRF header / mTLS handled at transport). The LTPA login POST itself is a distinct JSON login resource and IBM's documented example does not send the CSRF header. Authenticated state-changing REST requests continue to send `ibm-mq-rest-csrf-token`; this is a request header with an arbitrary value, not a server-issued CSRF token that must be refreshed alongside the cookie.
 
 ### Security review & governance
 
@@ -132,13 +132,34 @@ Weights sum to 100. Scores 1 (poor) – 5 (excellent), oriented so higher = bett
 
 1. Honour the served-version sequencing: **the union lands only after v1beta1 becomes etcd storage** — no auth-union type change before then.
 2. Add the union + CEL exclusivity (ADR-0025) with per-version golden tests.
-3. Refactor `mqrest` request auth into a per-mode strategy; implement **LTPA login → cookie+CSRF → transparent re-login on 401** inside the cached client (no TTL cache).
+3. Refactor `mqrest` request auth into a per-mode strategy; implement **LTPA login → cookie → transparent re-login inside the cached client** (no TTL cache). The retry trigger and body classification are conditional on the live expiry proof required by AUTH-13; do not treat every authorization failure as an expired session.
 4. Extend `cacheFingerprint` with the new auth-Secret resourceVersion(s); extend `secret_watch.go` to watch the new Secret ref(s).
 5. Keep Basic the default; prove an existing Basic manifest reconciles unchanged (regression).
 6. mTLS as the **next** slice after LTPA lands.
 
-### Open questions / validate against a real mqweb
+### AUTH-10 validation findings (2026-07-23)
 
-- **OIDC-session for the admin REST API**: does the *target mqweb build/version* actually serve an OIDC bearer/session for `/ibmmq/rest/v3/admin/...`, or is **LTPA the only non-Basic token path**? Confidence is **LOW**; this ADR does **not** assert IBM support and **gates** the OIDC mode on validating against the real mqweb + current IBM/Liberty docs. LTPA-first stands regardless.
-- **LTPA specifics to validate**: cookie name (`LtpaToken2`) and lifetime on the target build; whether login requires a distinct CSRF/login endpoint vs the mutation CSRF header already handled; behaviour on cookie expiry mid-batch (drives the transparent-re-login retry design).
-- **mTLS specifics to validate**: mqweb/Liberty client-certificate authentication config and the **certificate DN → MQ user** registry mapping required on the mqweb side (a deployment prerequisite, not something MKurator configures) — mirrors ADR-0002's "mqweb enabled is a prerequisite, not a goal" stance.
+These findings deliberately distinguish facts observed from the pinned artifact and host from facts documented by IBM or Open Liberty. No server configuration was changed.
+
+#### Observed artifact and host facts
+
+- The integration configuration pins `icr.io/ibm-messaging/mq:9.4.5.1-r1`. Its registry manifest list (digest `sha256:28cd7e9dc413eced83b21e02cd3683966f19ef22867bbc7ca8c1ed19d062f986`, inspected 2026-07-23) contains `linux/amd64`, `linux/s390x`, and `linux/ppc64le` manifests, but no `linux/arm64` manifest.
+- The available Docker server reports `linux/arm64`. The preceding 8d-7 bounded live-suite probe also established that emulated amd64 startup cannot bootstrap the pinned image on this Apple Silicon host. AUTH-10 therefore did not repeat that identical failing approach or start mqweb. Cookie attributes, `dspmqweb properties -a`, and the expired-cookie response are **not live-observed facts in this spike**.
+
+#### IBM-documented LTPA mechanics
+
+- Login is a distinct `POST /ibmmq/rest/v3/login` call with a JSON body containing `username` and `password`. On success the response body is empty and mqweb returns an LTPA cookie. The cookie name starts with `LtpaToken2` on distributed platforms and normally has a restart-dependent suffix; operators can configure a stable name. The default expiry is 120 minutes and `dspmqweb properties -a` reports `ltpaCookieName` and `ltpaExpiration`. Sources: [IBM MQ 9.4 token authentication](https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=security-using-token-based-authentication-rest-api) and [LTPA configuration](https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=api-configuring-ltpa-token).
+- IBM's login example sends `Content-Type: application/json` but no `ibm-mq-rest-csrf-token`. Subsequent authenticated requests carry the cookie; state-changing REST requests carry the CSRF header, whose value can be arbitrary (including blank). The existing mqrest value `1` is therefore compatible. There is no separate server-issued CSRF value to capture or refresh.
+- IBM documents HTTP 401 as "not authenticated" / invalid credentials for protected resources and for `GET /login`, but does not specify an expiry-specific response body that a client can safely distinguish from other 401 causes. Source: [IBM MQ 9.4 `GET /login`](https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=login-get). The exact status/body emitted by **this pinned build** after expiry remains unobserved.
+
+#### OIDC conclusion for mqweb admin REST
+
+- IBM's MQ 9.4 documentation enumerates Basic, LTPA token, and client-certificate authentication for the distributed mqweb REST API; it does not document an OIDC bearer or OIDC login mode for `/ibmmq/rest/v3/admin/...`. Consequently MKurator must treat OIDC for this target as **not product-supported by evidence**, not as a fourth selectable mode.
+- Open Liberty can validate OIDC/JWT bearer tokens when an administrator adds an `openidConnectClient` and routes requests with an authentication filter; that is application/server configuration, not evidence that the pinned MQ image exposes the feature for mqweb. Source: [Open Liberty `openidConnectClient` examples](https://openliberty.io/docs/latest/reference/feature/openidConnectClient/examples.html). Any future OIDC work requires an IBM-supported mqweb recipe plus a configured-server integration proof; generic Liberty capability is insufficient.
+- IBM MQ Appliance has separate OIDC documentation, but appliance behavior is not transferable to this pinned distributed container.
+
+#### Blocker carried into AUTH-13
+
+AUTH-13 may implement login, cookie-jar handling, request CSRF headers, and single-flight session refresh from the documented contract. Its expiry/retry acceptance criterion is **blocked and conditional** until a compatible amd64/Power/s390x runner captures, verbatim, the pinned `9.4.5.1-r1` response status, headers, and body for an LTPA cookie that expires between two admin REST operations. That proof must also compare an expired cookie with invalid/absent credentials before choosing a retry classifier. Until then, the design must not claim an observed `401` body, must not retry every 401 blindly, and must not mark AUTH-13 complete.
+
+The remaining mTLS deployment question is unchanged: validate the mqweb/Liberty client-certificate configuration and certificate DN → MQ user registry mapping as an external prerequisite, mirroring ADR-0002's "mqweb enabled is a prerequisite, not a goal" stance.
