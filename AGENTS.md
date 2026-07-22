@@ -203,6 +203,16 @@ Branch policy (enforced by GitHub ruleset **`protect-main`** on `main`):
   `gh pr merge --rebase --admin` without a second human. Direct push and
   force-push stay blocked. Scorecard will still report that admins can bypass;
   expect Branch-Protection ~6–8, not 10, while solo.
+- **Merge discipline — wait for fresh-head checks.** The admin `pull_request`
+  bypass makes required checks *advisory* for maintainer-driven merges: an
+  `--admin` merge goes through even while checks on the just-pushed head are
+  pending or red (2026-07-15 incident: PR #128 was rebase-force-pushed and
+  merged in the same second, before any check on the final head reported; a
+  strict-fatal docs error reached `main`). Therefore, after the pre-merge
+  rebase force-push, **always wait for the fresh head's required checks to
+  pass** — `gh pr checks <n> --watch --fail-fast` (confirm the run is for the
+  current head SHA) — before `gh pr merge`. Never merge on a green run from a
+  pre-rebase head.
 - **Code-Review** (second-person approved changesets) remains deferred until a
   second maintainer joins.
 

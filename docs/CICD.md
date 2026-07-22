@@ -65,6 +65,7 @@ what each job runs, not execution order.
 | PR / push to `main` | `preflight.yaml`: `go mod tidy` + `go mod verify` + `task verify` + markdown/shell lint (5 min cap) |
 | PR / push to `main` | `ci.yaml`: gitleaks, verify, **audit-rbac**, lint, test, build, docker-build, helm-lint, **fuzz** (nine parallel jobs; `fuzz` is a 6-way matrix, one entry per converted kind) |
 | PR / push to `main` | `codeql.yaml`: Go SAST (weekly schedule + PR/push) |
+| Every PR; push to `main` (docs paths) | `docs.yaml`: **`Build MkDocs site`** always reports on PRs (short-circuits green when no `docs/**`/`mkdocs.yml`/`docs.yaml` change); `mkdocs build --strict` otherwise; Pages deploy on `main`/dispatch only |
 | Push to `main` | `scorecard.yaml`: OpenSSF Scorecard (weekly schedule + push) |
 | Schedule (Mon 04:12 UTC) + `workflow_dispatch` | `vulncheck.yaml`: standalone govulncheck |
 | PR / push to `main` (non-docs paths) | `integration.yaml`: Docker IBM MQ integration tests |
@@ -88,7 +89,7 @@ group with `ci.yaml` or each other.
 | Workflow | `cancel-in-progress` | Effect |
 |----------|----------------------|--------|
 | `e2e`, `integration` on **PR** | `true` | A new push cancels the in-flight run for that PR ref (saves runner time). |
-| `e2e`, `integration` on **`main`** | `false` | Rapid pushes do not cancel a run already on the cluster; newer runs **queue** until the group is free, so each finished run keeps a visible result. |
+| `e2e`, `integration` on **`main`** | `false` | Rapid pushes do not cancel a run already on the cluster; newer runs **queue** until the group is free — the latest run always completes, though a superseded still-**pending** run may show cancelled (GitHub keeps at most one queued run per group). |
 
 `ci.yaml` has no concurrency block (jobs always run in parallel per trigger).
 
@@ -100,6 +101,18 @@ local `exclusive-test.lock` discipline.
 
 `preflight.yaml` has no concurrency block; it runs in parallel with `ci.yaml` and
 the heavy workflows.
+
+`docs.yaml` uses a **per-ref** workflow group
+(`docs-Docs-${{ github.ref }}`), with `cancel-in-progress` only on PRs — so a
+push-to-`main` Docs run can never cancel an in-flight PR build (the 2026-07-15
+incident: a global `pages` group with `cancel-in-progress: true` let the `main`
+run kill PR #128's build 3 s after it started, silently skipping the strict
+check). On `main`, superseding pushes queue — the latest run always completes,
+though a superseded still-queued run may show cancelled. Only the **deploy**
+job serializes on the global `pages` group (`cancel-in-progress: false`), so
+Pages deployments still never overlap. The PR change-detection step fails
+closed: an unreachable base SHA builds anyway, and a `git diff` error fails
+the check — a skip can only come from a verified no-docs-change diff.
 
 ## Workflow caching
 
@@ -150,7 +163,9 @@ Local equivalent: `go mod tidy && git diff --exit-code go.sum` then `task verify
 
 Recommend requiring check name **`preflight`** on `main` (fail-fast before
 integration/e2e). `ci.yaml` still runs its own **`verify`** job in parallel for
-parity.
+parity. Same for **`Build MkDocs site`** (`docs.yaml`): it always reports on
+PRs and its per-ref concurrency group means a `main` push can no longer cancel
+a PR build (see [Concurrency](#concurrency)), so it is safe to require.
 
 ### `gitleaks`
 Secret scan on PRs and `main` pushes (`gitleaks/gitleaks-action` with full git
@@ -397,6 +412,11 @@ on `GITHUB_TOKEN` job permissions.
 Recommended **required status checks** for `main` (names match `jobs.<id>.name` in
 the workflow files). No direct pushes to `main`.
 
+The `protect-main` ruleset currently requires this **10-check set** (verified
+2026-07-16): `preflight`, `lint`, `test`, `build`, `verify`, `gitleaks`,
+`helm-lint`, `audit-rbac`, `docker-build`, `Analyze (Go)`. Add
+**`Build MkDocs site`** once the always-report `docs.yaml` change is live.
+
 ### Require on every PR and `main` push
 
 | Check name | Workflow | What it runs |
@@ -410,6 +430,8 @@ the workflow files). No direct pushes to `main`.
 | `build` | CI | `task build` |
 | `docker-build` | CI | `task docker:build` |
 | `helm-lint` | CI | `task helm:lint` |
+| `Analyze (Go)` | CodeQL | Go SAST |
+| `Build MkDocs site` | Docs | `mkdocs build --strict`; short-circuits green on PRs with no docs changes, so it always reports |
 
 ### Require when path filters run (non-docs changes)
 
@@ -418,7 +440,8 @@ the workflow files). No direct pushes to `main`.
 | `integration` | Integration | Docker IBM MQ + `task test:integration` + JUnit artifact |
 
 Skipped when a PR changes only `**.md`, `docs/**`, or `charts/**/README.md`.
-Docs-only PRs need **`preflight`** plus the eight **`ci.yaml`** jobs only.
+Docs-only PRs need **`preflight`**, the eight **`ci.yaml`** jobs,
+**`Analyze (Go)`**, and **`Build MkDocs site`** only.
 
 ### E2E — optional on PRs, recommended on `main` when stable
 
