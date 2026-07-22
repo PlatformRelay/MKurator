@@ -8,18 +8,20 @@ on:
       - 'mkdocs.yml'
       - '.github/workflows/docs.yaml'
   pull_request:
-    paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - '.github/workflows/docs.yaml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Per-ref group: a push-to-main run must never cancel an in-flight PR build
+# (GATE-1 incident: global `pages` group cancelled PR #128's build). Superseded
+# builds on the same ref are cancelled on PRs; main pushes queue instead — the
+# latest run always completes, though superseded still-queued runs may show
+# cancelled. Pages deploys serialize separately on the `pages` group at the
+# deploy job below.
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: docs-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -29,18 +31,57 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      # The pull_request trigger is unfiltered so this check always reports a
+      # conclusion and can be a required status check; non-docs PRs
+      # short-circuit green here instead of hanging on "Expected".
+      #
+      # Fail-closed by construction: an unreachable base SHA degrades to
+      # docs=true (build anyway, never skip); a git diff error fails the step
+      # red (the assignment runs as a standalone command under `bash -e`, not
+      # inside an if condition where -e is suspended); only a genuine
+      # no-docs-change diff yields docs=false.
+      - name: Detect docs changes
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          elif ! git cat-file -e "$BASE_SHA^{commit}"; then
+            echo "Base SHA $BASE_SHA is unreachable; failing closed and building anyway."
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          else
+            # core.quotePath=false: otherwise non-ASCII paths are emitted
+            # octal-escaped in double quotes (e.g. "docs/\303\274ber.md") and
+            # the anchored ^docs/ match would miss them — a silent skip.
+            CHANGED=$(git -c core.quotePath=false diff --name-only "$BASE_SHA...HEAD")
+            if printf '%s\n' "$CHANGED" \
+                | grep -qE '^(docs/|mkdocs\.yml$|\.github/workflows/docs\.yaml$)'; then
+              echo "docs=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No docs/**, mkdocs.yml, or docs.yaml changes; reporting success without building."
+              echo "docs=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: steps.changes.outputs.docs == 'true'
         with:
           python-version: '3.12'
 
       - name: Install MkDocs Material
+        if: steps.changes.outputs.docs == 'true'
         run: pip install --require-hashes -r docs/requirements-docs.txt
 
       - name: Build site
+        if: steps.changes.outputs.docs == 'true'
         run: mkdocs build --strict
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        if: steps.changes.outputs.docs == 'true'
         with:
           path: site
 
@@ -49,6 +90,11 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    # Only deploys serialize on the global Pages group; never cancel an
+    # in-flight deployment.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     permissions:
       pages: write
       id-token: write
