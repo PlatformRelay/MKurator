@@ -44,18 +44,21 @@ type Config struct {
 	TLSConfig    *tls.Config
 	HTTPClient   *http.Client
 	Resilience   ResilienceConfig
+
+	// authenticator is selected by the factory for the configured authentication mode.
+	// A nil value preserves the legacy Basic authentication behaviour.
+	authenticator requestAuthenticator
 }
 
 // Client implements mqadmin.Admin over the mqweb /mqsc endpoint.
 type Client struct {
-	mqscURL      string
-	adminQMURL   string
-	queueManager string
-	httpClient   *http.Client
-	username     string
-	password     string
-	retry        retryPolicy
-	breaker      *circuitBreaker
+	mqscURL       string
+	adminQMURL    string
+	queueManager  string
+	httpClient    *http.Client
+	authenticator requestAuthenticator
+	retry         retryPolicy
+	breaker       *circuitBreaker
 
 	displayProbeMu    sync.Mutex
 	displayProbeCache map[string]bool
@@ -87,16 +90,19 @@ func NewClient(cfg Config) (*Client, error) {
 		}
 		hc = &http.Client{Timeout: 60 * time.Second, Transport: tr}
 	}
+	authenticator := cfg.authenticator
+	if authenticator == nil {
+		authenticator = basicRequestAuthenticator{username: cfg.Username, password: cfg.Password}
+	}
 
 	return &Client{
-		mqscURL:      mqscURL,
-		adminQMURL:   adminQMURL,
-		queueManager: cfg.QueueManager,
-		httpClient:   hc,
-		username:     cfg.Username,
-		password:     cfg.Password,
-		retry:        retryPolicyFromResilience(cfg.Resilience),
-		breaker:      newCircuitBreaker(circuitBreakerConfigFromResilience(cfg.Resilience)),
+		mqscURL:       mqscURL,
+		adminQMURL:    adminQMURL,
+		queueManager:  cfg.QueueManager,
+		httpClient:    hc,
+		authenticator: authenticator,
+		retry:         retryPolicyFromResilience(cfg.Resilience),
+		breaker:       newCircuitBreaker(circuitBreakerConfigFromResilience(cfg.Resilience)),
 	}, nil
 }
 
@@ -123,7 +129,9 @@ func (c *Client) Ping(ctx context.Context) error {
 		if reqErr != nil {
 			return nil, reqErr
 		}
-		req.SetBasicAuth(c.username, c.password)
+		if authErr := c.authenticator.authenticate(ctx, req); authErr != nil {
+			return nil, fmt.Errorf("authenticate mqweb ping request: %w", authErr)
+		}
 		return req, nil
 	})
 	if err != nil {
@@ -386,7 +394,9 @@ func (c *Client) postMQSC(ctx context.Context, body any) (*mqscResponse, error) 
 		}
 		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 		req.Header.Set(csrfHeader, "1")
-		req.SetBasicAuth(c.username, c.password)
+		if authErr := c.authenticator.authenticate(ctx, req); authErr != nil {
+			return nil, fmt.Errorf("authenticate mqweb MQSC request: %w", authErr)
+		}
 		return req, nil
 	})
 	if err != nil {

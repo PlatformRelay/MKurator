@@ -259,12 +259,13 @@ func (f *ClientFactory) buildConfig(
 	}
 
 	return Config{
-		Endpoint:     endpoint,
-		RESTPrefix:   prefix,
-		QueueManager: conn.Spec.QueueManager,
-		Username:     user,
-		Password:     pass,
-		TLSConfig:    tlsCfg,
+		Endpoint:      endpoint,
+		RESTPrefix:    prefix,
+		QueueManager:  conn.Spec.QueueManager,
+		Username:      user,
+		Password:      pass,
+		TLSConfig:     tlsCfg,
+		authenticator: basicRequestAuthenticator{username: user, password: pass},
 	}, nil
 }
 
