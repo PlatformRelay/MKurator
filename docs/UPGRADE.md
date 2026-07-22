@@ -107,11 +107,27 @@ to read objects stored in the other version.
 5. Rewrite stored objects and prune `status.storedVersions` only after the
    verification below succeeds.
 
-```sh
+```bash
+set -euo pipefail
+
 # Healthy 0.12.x conversion webhook is a prerequisite.
 kubectl -n mkurator-system rollout status deployment/mkurator-controller-manager
 kubectl -n mkurator-system wait --for=condition=Ready certificate/webhook-server-cert --timeout=120s
-kubectl get queues.v1beta1.messaging.mkurator.dev -A >/dev/null
+
+# For every kind that has stored objects, read one through v1beta1 so the API
+# server must call the 0.12.x conversion webhook. Any list/read failure stops
+# the upgrade before the storage marker changes.
+for resource in queuemanagerconnections queues topics channels channelauthrules authorityrecords; do
+  objects=$(
+    kubectl get "${resource}.v1alpha1.messaging.mkurator.dev" -A \
+      -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
+  )
+  [ -n "${objects}" ] || continue
+  first_object=${objects%%$'\n'*}
+  IFS=$'\t' read -r namespace name <<<"${first_object}"
+  kubectl get "${resource}.v1beta1.messaging.mkurator.dev" "${name}" \
+    -n "${namespace}" >/dev/null
+done
 
 # Then apply 0.13.x CRDs before rolling out the matching controller image.
 kubectl apply --server-side -f install-crds.yaml
@@ -162,6 +178,14 @@ serialize this with GitOps writers so resource-version conflicts are retried.
 set -u
 failed=0
 for resource in queuemanagerconnections queues topics channels channelauthrules authorityrecords; do
+  if ! objects=$(
+    kubectl get "${resource}.v1beta1.messaging.mkurator.dev" -A \
+      -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
+  ); then
+    echo "failed to list ${resource}; do not prune storedVersions" >&2
+    failed=1
+    continue
+  fi
   while IFS=$'\t' read -r namespace name; do
     [ -n "${name}" ] || continue
     replaced=false
@@ -177,10 +201,7 @@ for resource in queuemanagerconnections queues topics channels channelauthrules 
       echo "failed to rewrite ${resource}/${namespace}/${name}" >&2
       failed=1
     fi
-  done < <(
-    kubectl get "${resource}.v1beta1.messaging.mkurator.dev" -A \
-      -o jsonpath='{range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\n"}{end}'
-  )
+  done <<<"${objects}"
 done
 
 if [ "${failed}" -ne 0 ]; then
