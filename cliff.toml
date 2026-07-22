@@ -34,7 +34,7 @@ body = """
     - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
       {% if commit.breaking %}[**breaking**] {% endif %}\
       {{ commit.message | upper_first }} \
-      {% if commit.remote.pr_number %}([#{{ commit.remote.pr_number }}](https://github.com/platformrelay/MKurator/pull/{{ commit.remote.pr_number }}), ){% endif %}\
+      {% if commit.remote.pr_number %}([#{{ commit.remote.pr_number }}](https://github.com/platformrelay/MKurator/pull/{{ commit.remote.pr_number }})) {% endif %}\
       [{{ commit.id | truncate(length=7, end="") }}](https://github.com/platformrelay/MKurator/commit/{{ commit.id }})
   {% endfor %}
 {% endfor %}
@@ -50,8 +50,10 @@ protect_breaking_commits = true
 tag_pattern = "v[0-9].*"
 sort_commits = "newest"
 
+# :bug: fix(scope): summary  ->  fix(scope): summary  (gitmoji-first subjects)
 # feat(scope): :sparkles: summary  ->  feat(scope): summary  (preserve breaking !)
 commit_preprocessors = [
+  { pattern = '^:[a-z0-9_+-]+: ', replace = "" },
   { pattern = '^(\w+)(\([^)]*\))?(!)?: :[a-z0-9_]+: ', replace = "${1}${2}${3}: " },
 ]
 
@@ -60,8 +62,9 @@ commit_parsers = [
   { message = "^fix", group = "Bug Fixes" },
   { message = "^perf", group = "Performance" },
   { message = "^refactor", group = "Refactoring" },
-  { message = "!", group = "Breaking Changes" },
+  { message = '^\w+(\([^)]*\))?!:', group = "Breaking Changes" },
   { message = "^docs", skip = true },
   { message = "^(test|chore|ci|build|style)", skip = true },
+  { message = "^merge", skip = true },
   { message = "^revert", group = "Reverts" },
 ]
