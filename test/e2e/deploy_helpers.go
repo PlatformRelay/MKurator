@@ -180,8 +180,8 @@ func waitForMKuratorCRDsEstablished() {
 // upgradeMKuratorCRDs reapplies the current CRD bundle (dual-version + conversion webhook),
 // simulating an operator upgrade on a cluster that already holds v1alpha1 stored objects.
 func upgradeMKuratorCRDs() {
-	By("re-applying upgraded MKurator CRD bundle (task install:crds)")
-	cmd := exec.Command("task", "install:crds")
+	By("re-applying upgraded MKurator CRD bundle and reclaiming storage-version ownership")
+	cmd := exec.Command("kubectl", "apply", "--server-side", "--force-conflicts", "-k", "config/crd")
 	cmd.Env = taskEnv()
 	_, err := utils.Run(cmd)
 	Expect(err).NotTo(HaveOccurred(), "Failed to re-apply CRDs")
