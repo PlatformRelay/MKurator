@@ -249,6 +249,9 @@ func deployOperatorForE2EHelm() {
 	cmd = exec.Command("task", "deploy:helm:operator")
 	cmd.Env = taskEnv()
 	_, err = utils.Run(cmd)
+	if err != nil {
+		dumpHelmDeployFailureDiagnostics()
+	}
 	Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager via Helm")
 
 	By("labeling the namespace to enforce the restricted security policy")
