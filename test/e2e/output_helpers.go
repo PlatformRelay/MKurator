@@ -34,6 +34,42 @@ func e2eSpecLine(state, fullText string) {
 	_, _ = fmt.Fprintf(os.Stdout, "[e2e] %s %s\n", state, fullText)
 }
 
+// dumpHelmDeployFailureDiagnostics captures the manager rollout state at the moment the
+// Helm same-cluster deploy fails, before the AfterSuite tears the cluster state down. It is a
+// temporary diagnostic to discriminate why the controller-manager never reaches Ready on the
+// v1beta1 storage flip: conversion-webhook/TLS failure vs leftover not-Ready CRs vs pod crash.
+func dumpHelmDeployFailureDiagnostics() {
+	e2eBy("collecting Helm deploy failure diagnostics")
+
+	dump := func(label string, args ...string) {
+		cmd := exec.Command("kubectl", args...)
+		out, err := utils.Run(cmd)
+		if err != nil {
+			_, _ = fmt.Fprintf(GinkgoWriter, "==DIAG %s== error: %s\n%s\n", label, err, out)
+			return
+		}
+		_, _ = fmt.Fprintf(GinkgoWriter, "==DIAG %s==\n%s\n", label, out)
+	}
+
+	dump("pods", "get", "pods", "-n", namespace, "-o", "wide")
+	dump("describe-deploy", "describe", "deployment", "mkurator-controller-manager", "-n", namespace)
+	dump("manager-logs", "logs", "deployment/mkurator-controller-manager", "-n", namespace, "--tail=120")
+	dump("manager-logs-prev", "logs", "deployment/mkurator-controller-manager", "-n", namespace, "--previous", "--tail=120")
+	dump("events", "get", "events", "-n", namespace, "--sort-by=.lastTimestamp")
+
+	// The single best discriminator: does listing the non-storage (v1alpha1) version across all
+	// namespaces error (conversion/TLS), return leftover objects, or return empty?
+	for _, kind := range mkuratorE2ECRDs {
+		plural := kind[:len(kind)-len(".messaging.mkurator.dev")]
+		dump("list-v1alpha1-"+plural, "get", plural+".v1alpha1.messaging.mkurator.dev", "-A")
+		dump("list-v1beta1-"+plural, "get", plural+".v1beta1.messaging.mkurator.dev", "-A")
+	}
+
+	// CRD storedVersions + conversion caBundle presence for one representative kind.
+	dump("crd-storedversions", "get", "crd", "queuemanagerconnections.messaging.mkurator.dev",
+		"-o", "jsonpath={.status.storedVersions}{\"\\n\"}{.spec.conversion.webhook.clientConfig.caBundle}")
+}
+
 // dumpFailureDiagnostics collects kubectl context on spec failure without full JSON logs by default.
 func dumpFailureDiagnostics(controllerPodName string) {
 	e2eBy("collecting failure diagnostics")
