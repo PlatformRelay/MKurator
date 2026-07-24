@@ -7,6 +7,12 @@ metadata:
   labels:
     {{- include "mkurator.labels" . | nindent 4 }}
 spec:
+  # The manager serves the CRD conversion webhook itself. With v1beta1 storage and controllers
+  # watching the v1alpha1 spoke, the informer LIST at startup must convert stored objects via
+  # this Service before the pod passes its readiness probe. Publishing the not-ready address lets
+  # that bootstrap conversion reach the already-serving pod instead of deadlocking (cache sync
+  # waits on the webhook, readiness waits on cache sync).
+  publishNotReadyAddresses: true
   ports:
     - port: 443
       protocol: TCP
