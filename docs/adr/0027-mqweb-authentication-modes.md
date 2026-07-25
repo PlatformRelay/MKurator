@@ -137,20 +137,52 @@ Weights sum to 100. Scores 1 (poor) – 5 (excellent), oriented so higher = bett
 5. Keep Basic the default; prove an existing Basic manifest reconciles unchanged (regression).
 6. mTLS as the **next** slice after LTPA lands.
 
-### AUTH-10 validation findings (2026-07-23)
+### AUTH-10 validation findings (2026-07-23, amended 2026-07-25)
 
-These findings deliberately distinguish facts observed from the pinned artifact and host from facts documented by IBM or Open Liberty. No server configuration was changed.
+These findings deliberately distinguish facts observed from the pinned artifact and host from facts documented by IBM or Open Liberty.
 
-#### Observed artifact and host facts
+#### Observed artifact and host facts (2026-07-23 — Apple Silicon)
 
 - The integration configuration pins `icr.io/ibm-messaging/mq:9.4.5.1-r1`. Its registry manifest list (digest `sha256:28cd7e9dc413eced83b21e02cd3683966f19ef22867bbc7ca8c1ed19d062f986`, inspected 2026-07-23) contains `linux/amd64`, `linux/s390x`, and `linux/ppc64le` manifests, but no `linux/arm64` manifest.
-- The available Docker server reports `linux/arm64`. The preceding 8d-7 bounded live-suite probe also established that emulated amd64 startup cannot bootstrap the pinned image on this Apple Silicon host. AUTH-10 therefore did not repeat that identical failing approach or start mqweb. Cookie attributes, `dspmqweb properties -a`, and the expired-cookie response are **not live-observed facts in this spike**.
+- The available Docker server on the laptop reports `linux/arm64`. Emulated amd64 startup cannot bootstrap the pinned image there. The 2026-07-23 spike therefore did **not** start mqweb on that host.
+
+#### Live amd64 probe (2026-07-25 — Ubuntu host Docker)
+
+Ran `hack/mq-docker` on an x86_64 host (`Docker ServerArch=x86_64`) with the pinned image digest above. Temporary probe toggles used `setmqweb properties -k ltpaExpiration`; the container was recreated / torn down afterward (no persistent mqweb configuration left behind).
+
+**Login and cookie (live):**
+
+- `POST /ibmmq/rest/v3/login` with `Content-Type: application/json` and
+  `{"username":"admin","password":"passw0rd"}` → **HTTP 204**, empty body.
+- `Set-Cookie` (value redacted): `LtpaToken2_<suffix>=…; Path=/; Secure; HttpOnly; SameSite=Strict`
+  (suffix observed as a large decimal, matching the `LtpaToken2_${env.MQWEB_LTPA_SUFFIX}` template).
+- Admin `GET /ibmmq/rest/v3/admin/qmgr/QM1` with that cookie → **HTTP 200** JSON qmgr running.
+
+**`dspmqweb properties -a` (live):**
+
+- `ltpaCookieName` = `LtpaToken2_${env.MQWEB_LTPA_SUFFIX}`
+- `ltpaExpiration` = `120` (default); probe set to `1` via `setmqweb properties -k ltpaExpiration -v 1` (command reported success; `-u`/`-a` then showed `1`).
+- `secureLtpa` = `true`
+
+**401 classifiers (live, healthy instance — critical for AUTH-13):**
+
+| Case | Status | `msgId` | Notes |
+| --- | --- | --- | --- |
+| No `Cookie` header | **401** | **`MQWB0104E`** | “not authenticated” / credentials omitted; body ~894 bytes; **no** `Set-Cookie` clear |
+| Garbage or truncated `LtpaToken2_*` value | **401** | **`MQWB0112E`** | “authentication token cookie failed verification”; response **clears** the cookie (`Set-Cookie: LtpaToken2_…=""; Expires=Thu, 01 Jan 1970…` observed as past-date clear) |
+| Valid LTPA cookie | **200** | — | |
+
+**Natural expiry attempt (live — still incomplete):**
+
+- After `ltpaExpiration=1`, a fresh login, and **idle** waits of ~95s and ~185s **without** intervening requests, the same cookie still returned **HTTP 200**. Polling every 15s for 4 minutes also stayed **200**.
+- Conclusion: on this build, setting `ltpaExpiration` to `1` did **not** produce an observable mid-session expiry within several minutes. `endmqweb`/`strmqweb` after the property change left **all** auth broken (login and basic both `401`/`MQWB0104E`) until the container was recreated — so that recycle path is **not** a usable probe recipe here.
+- **Verbatim expired-cookie status/body remains unobserved.** Do not invent one. Prefer treating live **`MQWB0112E`** as the “token failed verification → re-login” signal, and **`MQWB0104E`** as “no usable credentials on the wire,” until a future probe captures true timer expiry (e.g. wait the default 120 minutes, or find a recycle recipe that applies LTPA key changes without breaking the registry).
 
 #### IBM-documented LTPA mechanics
 
 - Login is a distinct `POST /ibmmq/rest/v3/login` call with a JSON body containing `username` and `password`. On success the response body is empty and mqweb returns an LTPA cookie. The cookie name starts with `LtpaToken2` on distributed platforms and normally has a restart-dependent suffix; operators can configure a stable name. The default expiry is 120 minutes and `dspmqweb properties -a` reports `ltpaCookieName` and `ltpaExpiration`. Sources: [IBM MQ 9.4 token authentication](https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=security-using-token-based-authentication-rest-api) and [LTPA configuration](https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=api-configuring-ltpa-token).
 - IBM's login example sends `Content-Type: application/json` but no `ibm-mq-rest-csrf-token`. Subsequent authenticated requests carry the cookie; state-changing REST requests carry the CSRF header, whose value can be arbitrary (including blank). The existing mqrest value `1` is therefore compatible. There is no separate server-issued CSRF value to capture or refresh.
-- IBM documents HTTP 401 as "not authenticated" / invalid credentials for protected resources and for `GET /login`, but does not specify an expiry-specific response body that a client can safely distinguish from other 401 causes. Source: [IBM MQ 9.4 `GET /login`](https://www.ibm.com/docs/en/ibm-mq/9.4.x?topic=login-get). The exact status/body emitted by **this pinned build** after expiry remains unobserved.
+- IBM documents HTTP 401 as "not authenticated" / invalid credentials for protected resources and for `GET /login`, but does not specify an expiry-specific response body. Live evidence above shows at least two distinct 401 bodies (`MQWB0104E` vs `MQWB0112E`); timer-expiry may or may not match `MQWB0112E`.
 
 #### OIDC conclusion for mqweb admin REST
 
@@ -158,8 +190,11 @@ These findings deliberately distinguish facts observed from the pinned artifact 
 - Open Liberty can validate OIDC/JWT bearer tokens when an administrator adds an `openidConnectClient` and routes requests with an authentication filter; that is application/server configuration, not evidence that the pinned MQ image exposes the feature for mqweb. Source: [Open Liberty `openidConnectClient` examples](https://openliberty.io/docs/latest/reference/feature/openidConnectClient/examples.html). Any future OIDC work requires an IBM-supported mqweb recipe plus a configured-server integration proof; generic Liberty capability is insufficient.
 - IBM MQ Appliance has separate OIDC documentation, but appliance behavior is not transferable to this pinned distributed container.
 
-#### Blocker carried into AUTH-13
+#### Blocker carried into AUTH-13 (narrowed 2026-07-25)
 
-AUTH-13 may implement login, cookie-jar handling, request CSRF headers, and single-flight session refresh from the documented contract. Its expiry/retry acceptance criterion is **blocked and conditional** until a compatible amd64/Power/s390x runner captures, verbatim, the pinned `9.4.5.1-r1` response status, headers, and body for an LTPA cookie that expires between two admin REST operations. That proof must also compare an expired cookie with invalid/absent credentials before choosing a retry classifier. Until then, the design must not claim an observed `401` body, must not retry every 401 blindly, and must not mark AUTH-13 complete.
+AUTH-13 may implement login, cookie-jar handling, request CSRF headers, and single-flight session refresh from the documented contract **plus** the live classifiers above.
+
+- **May use now:** on `401` + `MQWB0112E`, clear the jar and re-`POST /login` once (token failed verification — same signal as garbage/truncated cookie). Do **not** treat every `401` as retryable: `MQWB0104E` means credentials were omitted / not applied, not “session expired.”
+- **Still blocked for completion:** claiming a **timer-expired** cookie’s verbatim status/headers/body on `9.4.5.1-r1`. Until that capture exists (or an ADR explicitly accepts `MQWB0112E` as the expiry stand-in), AUTH-13 must not mark expiry-AC done and must not retry blindly on all 401s.
 
 The remaining mTLS deployment question is unchanged: validate the mqweb/Liberty client-certificate configuration and certificate DN → MQ user registry mapping as an external prerequisite, mirroring ADR-0002's "mqweb enabled is a prerequisite, not a goal" stance.
