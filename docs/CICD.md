@@ -413,10 +413,9 @@ on `GITHUB_TOKEN` job permissions.
 Recommended **required status checks** for `main` (names match `jobs.<id>.name` in
 the workflow files). No direct pushes to `main`.
 
-The `protect-main` ruleset currently requires this **10-check set** (verified
-2026-07-16): `preflight`, `lint`, `test`, `build`, `verify`, `gitleaks`,
-`helm-lint`, `audit-rbac`, `docker-build`, `Analyze (Go)`. Add
-**`Build MkDocs site`** once the always-report `docs.yaml` change is live.
+The `protect-main` ruleset currently requires this **11-check set** (verified
+2026-07-25): `preflight`, `lint`, `test`, `build`, `verify`, `gitleaks`,
+`helm-lint`, `audit-rbac`, `docker-build`, `Analyze (Go)`, **`Build MkDocs site`**.
 
 ### Require on every PR and `main` push
 
@@ -434,15 +433,17 @@ The `protect-main` ruleset currently requires this **10-check set** (verified
 | `Analyze (Go)` | CodeQL | Go SAST |
 | `Build MkDocs site` | Docs | `mkdocs build --strict`; short-circuits green on PRs with no docs changes, so it always reports |
 
-### Require when path filters run (non-docs changes)
+### Advisory when path filters run (not ruleset-required) — [ADR-0028](adr/0028-integration-advisory-merge-gate.md)
 
 | Check name | Workflow | What it runs |
 |------------|----------|--------------|
 | `integration` | Integration | Docker IBM MQ + `task test:integration` + JUnit artifact |
 
-Skipped when a PR changes only `**.md`, `docs/**`, or `charts/**/README.md`.
-Docs-only PRs need **`preflight`**, the eight **`ci.yaml`** jobs,
-**`Analyze (Go)`**, and **`Build MkDocs site`** only.
+Runs on non-docs PRs/pushes but is **not** a `protect-main` required check (promoting
+a path-filtered job without an always-report short-circuit freezes docs-only PRs on
+"Expected"). Release-gate still waits on green Integration before tags. Skipped when a
+PR changes only `**.md`, `docs/**`, or `charts/**/README.md`. Docs-only PRs need the
+11 required checks only.
 
 ### E2E — optional on PRs, recommended on `main` when stable
 
