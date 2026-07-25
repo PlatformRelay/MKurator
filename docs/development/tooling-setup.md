@@ -16,23 +16,26 @@ Controllers must depend on `mqadmin` / adapter ports, not vice versa. See [GO_MO
 Configured in [`.golangci.yaml`](https://github.com/platformrelay/MKurator/blob/main/.golangci.yaml). Denies `logrus`, `pkg/errors`, and `io/ioutil` —
 use `log/slog` and stdlib errors.
 
-## SonarCloud (disabled)
+## SonarCloud (CI-5)
 
-SonarCloud analysis is **scaffolded but disabled** until the repository moves to the **platformrelay**
-GitHub organization.
+CI-based analysis runs as the advisory `sonarcloud` job in
+[`.github/workflows/ci.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/ci.yaml)
+(`needs: [test]`, reuses the `coverage` artifact). A
+[`workflow_dispatch` shim](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/sonarcloud.yaml)
+remains for on-demand re-scans. **Not** a `protect-main` required check.
 
 | Item | Status |
 | --- | --- |
-| Workflow | [`.github/workflows/sonarcloud.yaml`](https://github.com/platformrelay/MKurator/blob/main/.github/workflows/sonarcloud.yaml) (`if: false`) |
-| Token | Set `SONAR_TOKEN` in repo secrets when enabling |
-| Project key | `platformrelay_mkurator` (placeholder in workflow) |
+| Project key | `PlatformRelay_MKurator` ([`sonar-project.properties`](https://github.com/platformrelay/MKurator/blob/main/sonar-project.properties)) |
+| Organization | `platformrelay` |
+| Token | Repo secret `SONAR_TOKEN` (already provisioned) |
+| Fork PRs | Warn-skip when the secret is withheld — job stays green |
 
-To enable after org migration:
+Before the first green CI analysis with coverage:
 
-1. Create SonarCloud project under **platformrelay**.
-2. Add `SONAR_TOKEN` secret.
-3. Remove `if: false` from the workflow job.
-4. Uncomment `SONAR_PROJECT_KEY` in workflow env.
+1. On [sonarcloud.io](https://sonarcloud.io) → project **PlatformRelay_MKurator** → **Administration → Analysis Method**: **disable Automatic Analysis** (mutually exclusive with CI analysis; Automatic Analysis cannot import Go coverage).
+2. Confirm `SONAR_TOKEN` is set under repo **Settings → Secrets → Actions**.
+3. Land/merge CI-5; first same-repo PR or push to `main` should show non-zero Go coverage on the dashboard.
 
 ## Polaris / kubeaudit (RBAC)
 
