@@ -23,7 +23,7 @@ with sibling project kollect, and adds security CI jobs that must stay explicit 
 | **Build** | `ci.yaml` → `build`, `docker-build`, `helm-lint` | Yes | Yes |
 | **Secrets** | `ci.yaml` → `gitleaks` | Yes | Yes |
 | **RBAC audit** | `ci.yaml` → `audit-rbac` | Yes | Yes |
-| **L3 integration** | `integration.yaml` | When path filter runs | When path filter runs |
+| **L3 integration** | `integration.yaml` | Advisory (runs when path filter matches; **not** ruleset-required — [ADR-0028](0028-integration-advisory-merge-gate.md)) | Same |
 | **L4 e2e** | `e2e.yaml` | Optional (latency) | Recommended |
 | **L5 soak/bench** | — | No | No |
 | **Nightly** | `nightly.yaml` | No | No |

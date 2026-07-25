@@ -52,3 +52,5 @@ supersedes the old one rather than editing history.
 | [0024](0024-mqsc-command-construction-hygiene.md) | MQSC command construction hygiene (structured-first) | Accepted |
 | [0025](0025-cel-first-admission-validation.md) | CEL-first admission validation; webhooks for stateful checks | Accepted |
 | [0026](0026-v1beta1-graduation-plan.md) | `v1beta1` graduation plan — conversion scope and deprecation policy | Accepted |
+| [0027](0027-mqweb-authentication-modes.md) | mqweb admin authentication modes (basic → LTPA → OIDC) | Accepted |
+| [0028](0028-integration-advisory-merge-gate.md) | Keep `integration` advisory (not `protect-main` required) | Accepted |
