@@ -24,6 +24,14 @@ while IFS= read -r -d '' f; do
   files+=("$f")
 done < <(git ls-files -z)
 
+# Fail closed: an empty path list makes `rg`/`grep` search the cwd (or stdin),
+# which can miss tracked leaks or scan untracked junk. Never treat "no files"
+# as a clean tree.
+if [ "${#files[@]}" -eq 0 ]; then
+  echo "scrub-tree: no tracked files to scan (unexpected empty git ls-files)" >&2
+  exit 1
+fi
+
 set +e
 if command -v rg >/dev/null 2>&1; then
   hits="$(rg -il -f hack/scrub-patterns.txt -- "${files[@]}")"
