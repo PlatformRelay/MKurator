@@ -294,7 +294,7 @@ func serviceAccountToken() (string, error) {
 
 		By("parsing the JSON output to extract the token")
 		var token tokenRequest
-		err = json.Unmarshal(output, &token)
+		err = json.Unmarshal([]byte(output), &token)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		out = token.Status.Token
