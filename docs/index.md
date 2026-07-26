@@ -26,10 +26,11 @@ hide:
 objects** on an **existing queue manager** — queues, topics, channels, channel auth rules,
 and authority records — via the mqweb REST API.
 
-`messaging.mkurator.dev/v1alpha1` · event-driven · TLS-first · Helm-ready
+`messaging.mkurator.dev/v1beta1` (recommended) · event-driven · TLS-first · Helm-ready
 
 [Quick start :octicons-arrow-right-24:](QUICKSTART.md){ .md-button .md-button--primary }
 [Install guide :octicons-arrow-right-24:](INSTALL_AND_USE.md){ .md-button }
+[Upgrade :octicons-arrow-right-24:](UPGRADE.md){ .md-button }
 
 </div>
 
@@ -39,7 +40,10 @@ You declare desired MQ state in Kubernetes custom resources. The operator reconc
 that state against your queue manager through HTTPS mqweb, reports **conditions** on each
 CR, and removes MQ objects when you delete a resource (finalizers).
 
-MKurator does **not** install or scale queue managers — it connects to one you already run.
+!!! important "Requires an existing queue manager with mqweb"
+    MKurator does **not** install or scale queue managers. Point a
+    `QueueManagerConnection` at a QM that already exposes the Administrative REST API
+    (`mqweb`) over HTTPS.
 
 ## How it works
 
@@ -58,15 +62,16 @@ Custom Resource  →  controller reconcile  →  mqweb REST (MQSC)  →  IBM MQ 
 | `ChannelAuthRule` | `SET CHLAUTH` |
 | `AuthorityRecord` | `SET AUTHREC` (OAM) |
 
-!!! info "v1alpha1 status"
-    Phase 5 auth (`ChannelAuthRule`, `AuthorityRecord`) is shipped on `main`. Latest release:
-    **v0.6.0**. See the [roadmap](ROADMAP.md) for remaining items.
+!!! info "API version"
+    Prefer **`v1beta1`** for new manifests. `v1alpha1` remains served via the conversion
+    webhook. Release tags are on [GitHub Releases](https://github.com/platformrelay/MKurator/releases)
+    (see also the badge above). Roadmap: [ROADMAP.md](ROADMAP.md).
 
 ## Documentation map
 
 | Audience | Start here |
 | --- | --- |
-| Operators | [Install and use](INSTALL_AND_USE.md) · [Upgrade](UPGRADE.md) · [Observability](OBSERVABILITY.md) |
+| Operators | [Quick start](QUICKSTART.md) · [Install and use](INSTALL_AND_USE.md) · [Upgrade](UPGRADE.md) · [Observability](OBSERVABILITY.md) · [FAQ](FAQ.md) |
 | Developers | [Development setup](DEVELOPMENT.md) · [Developer guide](DEVELOPER_GUIDE.md) · [CI/CD](CICD.md) |
 | Architects | [Architecture](ARCHITECTURE.md) · [Attribute reconciliation](ATTRIBUTE_RECONCILIATION.md) · [ADRs](adr/README.md) |
 | Contributors | [Contributing](https://github.com/platformrelay/MKurator/blob/main/CONTRIBUTING.md) · [Code of Conduct](https://github.com/platformrelay/MKurator/blob/main/CODE_OF_CONDUCT.md) · [Governance](https://github.com/platformrelay/MKurator/blob/main/GOVERNANCE.md) |
