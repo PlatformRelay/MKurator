@@ -24,15 +24,22 @@ esac
 
 echo ""
 echo "Installing kubectl and helm..."
+# Pinned helm release (REQ-SONAR-MK-03) — download official release tarball, not an installer script.
+HELM_VERSION="v3.17.3"
 if ! command -v kubectl >/dev/null 2>&1; then
-  KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
-  curl -fsSL -o /usr/local/bin/kubectl \
+  KUBECTL_VERSION="$(curl --proto '=https' --tlsv1.2 -fsSL https://dl.k8s.io/release/stable.txt)"
+  curl --proto '=https' --tlsv1.2 -fsSL -o /usr/local/bin/kubectl \
     "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
   chmod +x /usr/local/bin/kubectl
 fi
 
 if ! command -v helm >/dev/null 2>&1; then
-  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  HELM_ARCHIVE="helm-${HELM_VERSION}-linux-${ARCH}.tar.gz"
+  curl --proto '=https' --tlsv1.2 -fsSL -o "/tmp/${HELM_ARCHIVE}" \
+    "https://get.helm.sh/${HELM_ARCHIVE}"
+  tar -xzf "/tmp/${HELM_ARCHIVE}" -C /tmp "linux-${ARCH}/helm"
+  install -m 0755 "/tmp/linux-${ARCH}/helm" /usr/local/bin/helm
+  rm -rf "/tmp/${HELM_ARCHIVE}" "/tmp/linux-${ARCH}"
 fi
 
 echo ""
