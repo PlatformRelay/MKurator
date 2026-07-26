@@ -18,6 +18,7 @@ var (
 	driftResyncLower = defaultDriftResyncLower
 	driftResyncUpper = defaultDriftResyncUpper
 	//nolint:gosec // G404: math/rand is intentional for non-cryptographic requeue jitter.
+	// Sonar go:S2245 accepted SAFE: control-plane drift resync scheduling only — not tokens/secrets.
 	driftResyncRand = func() float64 { return rand.Float64() }
 )
 
@@ -38,6 +39,7 @@ func SetDriftResyncRand(fn func() float64) {
 	driftResyncMu.Lock()
 	if fn == nil {
 		//nolint:gosec // G404: math/rand is intentional for non-cryptographic requeue jitter.
+		// Sonar go:S2245 accepted SAFE: control-plane drift resync scheduling only — not tokens/secrets.
 		driftResyncRand = func() float64 { return rand.Float64() }
 	} else {
 		driftResyncRand = fn
