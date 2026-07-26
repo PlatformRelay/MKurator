@@ -20,18 +20,29 @@
 [![Container](https://img.shields.io/badge/ghcr.io-platformrelay%2Fmkurator-2496ED?logo=docker&logoColor=white)](https://github.com/orgs/platformrelay/packages?repo_name=MKurator)
 
 A Kubernetes operator for declaratively managing **resources on an existing
-IBM MQ Queue Manager** — queues, topics, SVRCONN channels; users/authorities and
-more later.
+IBM MQ Queue Manager** — queues, topics, channels, channel auth, and authority
+records — over the mqweb REST API.
 
-**Full documentation:** [platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/) — install
-guides, examples, ADRs, and engineering standards.
+### Operator docs (start here)
 
-> Status: **`v1beta1` API graduated** (v0.12.0) — all six kinds serve both
-> `v1alpha1` and `v1beta1` behind a conversion webhook. **Phase 9 breadth on
-> `main`** — SDR/RCVR channels, AUTHREC channel/namelist profiles, DISPLAY
-> capability probing for local queues, with Docker integration and kind e2e
-> coverage. Latest release: **`v0.13.0`**. Extended CHLAUTH rule types remain in
-> the [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
+Published site: **[platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/)**
+
+| Goal | Guide |
+| --- | --- |
+| First queue in minutes | [Quick start](https://platformrelay.github.io/MKurator/QUICKSTART/) |
+| Install + connect + day-2 use | [Install and use](https://platformrelay.github.io/MKurator/INSTALL_AND_USE/) |
+| Upgrade / webhook notes | [Upgrade](https://platformrelay.github.io/MKurator/UPGRADE/) |
+| Metrics & scraping | [Observability](https://platformrelay.github.io/MKurator/OBSERVABILITY/) |
+
+> [!IMPORTANT]
+> MKurator manages objects **on an IBM MQ queue manager you already run**. It does
+> **not** deploy or scale queue managers. The target QM must expose **mqweb**
+> (Administrative REST) over HTTPS; credentials come from a Kubernetes `Secret`.
+
+Status: recommended API is **`messaging.mkurator.dev/v1beta1`** (conversion webhook
+keeps `v1alpha1` served). Latest release: see the badge above or
+[GitHub Releases](https://github.com/platformrelay/MKurator/releases). Extended
+CHLAUTH rule types remain on the [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
 
 ## What ships today
 
@@ -170,12 +181,12 @@ Verify reconciliation with [docs/IBM_MQ_101.md](docs/IBM_MQ_101.md) (`runmqsc`, 
 
 ## Documentation
 
-**Published site:** [platformrelay.github.io/MKurator](https://platformrelay.github.io/MKurator/) — install guides,
-examples, ADRs, and engineering standards.
+Operator guides live on the **published site** (table under [Operator docs](#operator-docs-start-here)).
+Source Markdown under `docs/` is for contributors editing the site.
 
 | | Doc |
 |---|-----|
-| 🎯 **Use MKurator** | [Quick start](docs/QUICKSTART.md) · [Install and use](docs/INSTALL_AND_USE.md) · [FAQ](docs/FAQ.md) · [Glossary](docs/GLOSSARY.md) |
+| 🎯 **Use MKurator** | [Quick start](https://platformrelay.github.io/MKurator/QUICKSTART/) · [Install and use](https://platformrelay.github.io/MKurator/INSTALL_AND_USE/) · [FAQ](https://platformrelay.github.io/MKurator/FAQ/) · [Glossary](https://platformrelay.github.io/MKurator/GLOSSARY/) |
 | 🛠️ **Develop** | [Development guide](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [CI/CD](docs/CICD.md) |
 | 🏗️ **Design** | [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/) · [Changelog](CHANGELOG.md) |
 
