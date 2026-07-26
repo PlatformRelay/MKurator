@@ -43,11 +43,31 @@ func TestExecEnv_PreservesCallerExtras(t *testing.T) {
 	}
 }
 
-func TestPinnedExecPath_Order(t *testing.T) {
+func TestExecEnv_KeepsHostedToolcacheBeforeUsrBin(t *testing.T) {
+	tool := "/opt/hostedtoolcache/go/1.26.5/x64/bin"
+	t.Setenv("PATH", "/tmp/evil:"+tool+":/usr/bin")
+	cmd := exec.Command("true")
+	ApplyPinnedExecEnv(cmd, "/proj/bin")
+	path := envValue(cmd.Env, "PATH")
+	if !pathHas(path, tool) {
+		t.Fatalf("toolcache dir dropped: %q", path)
+	}
+	if strings.Contains(path, "/tmp/evil") {
+		t.Fatalf("evil ambient retained: %q", path)
+	}
+	toolIdx := pathIndex(path, tool)
+	usrIdx := pathIndex(path, "/usr/bin")
+	if toolIdx < 0 || usrIdx < 0 || toolIdx > usrIdx {
+		t.Fatalf("toolcache must precede /usr/bin: %q", path)
+	}
+}
+
+func TestPinnedExecPath_ProjectBinFirst(t *testing.T) {
+	t.Setenv("PATH", "/usr/bin")
 	p := PinnedExecPath(filepath.Join("repo", "bin"))
 	parts := strings.Split(p, string(os.PathListSeparator))
-	if len(parts) < 3 || parts[0] != "/usr/bin" || parts[1] != "/bin" {
-		t.Fatalf("unexpected PATH order: %q", p)
+	if len(parts) < 1 || parts[0] != filepath.Join("repo", "bin") {
+		t.Fatalf("project bin should lead PATH: %q", p)
 	}
 }
 
@@ -62,10 +82,14 @@ func envValue(env []string, key string) string {
 }
 
 func pathHas(path, dir string) bool {
-	for _, p := range strings.Split(path, string(os.PathListSeparator)) {
+	return pathIndex(path, dir) >= 0
+}
+
+func pathIndex(path, dir string) int {
+	for i, p := range strings.Split(path, string(os.PathListSeparator)) {
 		if p == dir {
-			return true
+			return i
 		}
 	}
-	return false
+	return -1
 }

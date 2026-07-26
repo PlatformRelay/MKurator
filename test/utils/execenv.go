@@ -9,18 +9,52 @@ import (
 )
 
 // PinnedExecPath returns the allowlisted PATH for test subprocesses (Sonar go:S4036).
-// Base: /usr/bin:/bin:/usr/local/bin — CI installs kubectl/helm/kind/task under /usr/local/bin.
-// Optional projectBin (repo bin/) for tools:install artifacts.
-// On darwin, /opt/homebrew/bin is allowlisted so local Apple Silicon e2e finds brew tools.
+//
+// Order matters: repo bin/ and CI toolchains (hostedtoolcache / setup-go) come before
+// /usr/bin so `go`/`task` resolve to the job's toolchain, not a stale system Go.
+// Ambient PATH entries outside the allowlist (e.g. /tmp/evil-bin) are dropped.
 func PinnedExecPath(projectBin string) string {
-	parts := []string{"/usr/bin", "/bin", "/usr/local/bin"}
-	if projectBin != "" {
-		parts = append(parts, projectBin)
+	seen := make(map[string]struct{}, 16)
+	parts := make([]string, 0, 16)
+	add := func(p string) {
+		if p == "" {
+			return
+		}
+		if _, ok := seen[p]; ok {
+			return
+		}
+		seen[p] = struct{}{}
+		parts = append(parts, p)
 	}
+
+	if projectBin != "" {
+		add(projectBin)
+	}
+	for _, p := range strings.Split(os.Getenv("PATH"), string(os.PathListSeparator)) {
+		if isAllowlistedAmbientPath(p) {
+			add(p)
+		}
+	}
+	add("/usr/local/bin")
+	add("/usr/bin")
+	add("/bin")
 	if runtime.GOOS == "darwin" {
-		parts = append(parts, "/opt/homebrew/bin")
+		add("/opt/homebrew/bin")
 	}
 	return strings.Join(parts, string(os.PathListSeparator))
+}
+
+func isAllowlistedAmbientPath(p string) bool {
+	switch {
+	case strings.HasPrefix(p, "/opt/hostedtoolcache/"):
+		return true
+	case strings.HasPrefix(p, "/home/runner/go/"):
+		return true
+	case strings.HasPrefix(p, "/usr/local/go/"):
+		return true
+	default:
+		return false
+	}
 }
 
 // ApplyPinnedExecEnv sets cmd.Env with a pinned PATH. If cmd.Env is already set,
