@@ -82,7 +82,10 @@ func Run(cmd *exec.Cmd) (string, error) {
 	}
 
 	ensureKubeconfigEnv(dir)
-	cmd.Env = environForSubprocess()
+	if cmd.Env == nil {
+		cmd.Env = environForSubprocess()
+	}
+	ApplyPinnedExecEnv(cmd, projectBinDir())
 	command := strings.Join(cmd.Args, " ")
 	_, _ = fmt.Fprintf(GinkgoWriter, "running: %q\n", command)
 	_, _ = fmt.Fprintf(os.Stderr, ">>> running: %s\n", command)
