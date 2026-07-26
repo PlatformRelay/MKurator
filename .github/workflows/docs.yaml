@@ -10,9 +10,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 # Per-ref group: a push-to-main run must never cancel an in-flight PR build
 # (GATE-1 incident: global `pages` group cancelled PR #128's build). Superseded
 # builds on the same ref are cancelled on PRs; main pushes queue instead — the
@@ -27,6 +24,8 @@ jobs:
   build:
     name: Build MkDocs site
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,7 +73,7 @@ jobs:
 
       - name: Install MkDocs Material
         if: steps.changes.outputs.docs == 'true'
-        run: pip install --require-hashes -r docs/requirements-docs.txt
+        run: pip install --only-binary=:all: --require-hashes -r docs/requirements-docs.txt
 
       - name: Build site
         if: steps.changes.outputs.docs == 'true'
