@@ -289,7 +289,7 @@ func serviceAccountToken() (string, error) {
 			serviceAccountName,
 		), "-f", tokenRequestFile)
 
-		output, err := cmd.CombinedOutput()
+		output, err := utils.Run(cmd)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		By("parsing the JSON output to extract the token")
