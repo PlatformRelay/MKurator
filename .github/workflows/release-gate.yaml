@@ -30,10 +30,6 @@ on:
         type: number
         default: 120
 
-permissions:
-  contents: read
-  checks: read
-
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -41,6 +37,8 @@ jobs:
   resolve-sha:
     name: resolve sha
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
       short_sha: ${{ steps.resolve.outputs.short_sha }}
@@ -69,6 +67,8 @@ jobs:
     name: verify (release gate)
     needs: resolve-sha
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -87,6 +87,8 @@ jobs:
     name: test (release gate)
     needs: resolve-sha
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -108,6 +110,8 @@ jobs:
     needs: resolve-sha
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -140,6 +144,9 @@ jobs:
     needs: [resolve-sha, verify, test, integration]
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.poll_timeout_minutes }}
+    permissions:
+      contents: read
+      checks: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -161,6 +168,8 @@ jobs:
     needs: [resolve-sha, poll-external-checks]
     if: ${{ always() && needs.poll-external-checks.result != 'success' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Confirm E2E on exact SHA before tag
         env:
@@ -198,6 +207,7 @@ jobs:
       - poll-external-checks
     if: always()
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Gate result
         env:
