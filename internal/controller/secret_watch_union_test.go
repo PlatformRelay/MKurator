@@ -122,6 +122,62 @@ func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 	}
 }
 
+// AUTH-14 AC2 (generic over union members): unionSecretRefs returns EVERY set member ref
+// (basic/ltpa/clientCert), independent of mode, so AUTH-13/16 inherit the watch even though
+// only Basic is an accepted enum today. CEL exclusivity is not enforced in unit tests, so we
+// set all three members on the hub to lock the generic extraction the production code claims.
+func TestUnionSecretRefs_ReturnsEveryMemberRef(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unionWatchScheme(t)
+
+	hub := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-all", Namespace: ns},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
+			Authentication: &messagingv1beta1.MQWebAuthentication{
+				Mode:       messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic:      &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "basic-ref"}},
+				LTPA:       &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "ltpa-ref"}},
+				ClientCert: &messagingv1beta1.ClientCertAuth{SecretRef: messagingv1beta1.SecretReference{Name: "cc-ref"}},
+			},
+		},
+	}
+	spoke := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-all", Namespace: ns},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(hub, spoke).Build()
+	got := unionSecretRefs(ctx, cl, spoke)
+
+	want := map[string]bool{"basic-ref": true, "ltpa-ref": true, "cc-ref": true}
+	if len(got) != len(want) {
+		t.Fatalf("unionSecretRefs = %v, want all three member refs %v", got, want)
+	}
+	for _, ref := range got {
+		if !want[ref] {
+			t.Fatalf("unexpected ref %q in %v", ref, got)
+		}
+		delete(want, ref)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing member refs: %v (got %v)", want, got)
+	}
+
+	// And each resolves to an enqueue through connectionReferencesSecret for its own Secret name.
+	for _, name := range []string{"basic-ref", "ltpa-ref", "cc-ref"} {
+		if !connectionReferencesSecret(spoke, name, got...) {
+			t.Fatalf("union member %q should match via connectionReferencesSecret", name)
+		}
+	}
+}
+
 // AUTH-14 AC2 (isolation): a union QMC whose auth Secret is a DIFFERENT name is not enqueued
 // by an unrelated Secret change.
 func TestRequestsForSecret_UnionRefNoMatchForOtherSecret(t *testing.T) {
