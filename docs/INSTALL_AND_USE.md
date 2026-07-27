@@ -479,8 +479,8 @@ changes, the operator swaps the client and closes the old transport (ADR-0023, A
 > **mqweb-side prerequisite MKurator does NOT configure.** Client-certificate authentication
 > for the mqweb admin REST API requires TWO pieces of **server-side** configuration on the
 > queue manager / mqweb that are a **deployment prerequisite**, not something MKurator sets
-> up (mirroring ADR-0002's "mqweb enabled is a prerequisite, not a goal" and ADR-0009's
-> "documented, not implemented" stance):
+> up (mirroring ADR-0002's "mqweb enabled is a prerequisite, not a goal"; ADR-0027 records
+> this "documented, not implemented" stance for the mTLS mode):
 >
 > 1. **mqweb must trust your client CA** (configure Liberty/mqweb to require and verify
 >    client certificates for the REST API), and
@@ -490,8 +490,8 @@ changes, the operator swaps the client and closes the old transport (ADR-0023, A
 > If either is missing, mqweb rejects the certificate. MKurator surfaces this as a
 > **terminal `Ready=False`, `Reason=Error`** condition whose message points at exactly this
 > DN-to-user-registry mapping prerequisite — MKurator does **not** attempt to configure
-> mqweb. Certificate revocation/OCSP is explicitly out of scope (ADR-0009: local CA, no OCSP
-> in the connection path).
+> mqweb. Certificate revocation/OCSP is explicitly out of scope (ADR-0027, adopting the
+> external SEVEN mq-on-k8s ADR-0009's local-CA / no-OCSP-in-path stance).
 
 **Status**
 

@@ -342,6 +342,39 @@ func TestClientCert_HandshakeOK_But401_TerminalWithDNHint(t *testing.T) {
 	}
 }
 
+// AC3 (expired cert): an EXPIRED client cert (still signed by the trusted client CA) is
+// rejected during the handshake and rides the same server-alert path -> terminal
+// Unauthorized with the DN-prereq message. Makes the "expired" AC3 example literal.
+func TestClientCert_ExpiredCert_TerminalUnauthorized(t *testing.T) {
+	t.Parallel()
+	pki := newTestPKI(t)
+	srv := newMTLSServer(t, pki, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// A client cert signed by a fresh CA the server does NOT trust, with a past NotAfter:
+	// either way the server rejects it with a remote TLS alert during the handshake.
+	expiredCA, expiredCAKey, _ := mustCA(t, "expired-ca", 400)
+	expiredCertPEM, expiredKeyPEM := mustLeaf(t, "expired-admin", 401, expiredCA, expiredCAKey,
+		[]x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, nil, time.Now().Add(-time.Minute))
+
+	c, err := newClientCertClient(t, srv.URL, pki, expiredCertPEM, expiredKeyPEM)
+	if err != nil {
+		t.Fatalf("build client (the keypair itself parses): %v", err)
+	}
+	err = c.Ping(context.Background())
+	var te *mqadmin.TerminalError
+	if !errors.As(err, &te) || te.Reason != "Unauthorized" {
+		t.Fatalf("expired cert must be terminal Unauthorized, got %T %v", err, err)
+	}
+	if errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("expired cert must NOT be transient: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(te.Message), "registry") {
+		t.Fatalf("expired-cert message must name the DN->registry prerequisite, got: %q", te.Message)
+	}
+}
+
 // AC3 negative: a genuine transient network failure in ClientCert mode must NOT be
 // misclassified as terminal-Unauthorized (the classifier keys off server-originated TLS
 // alerts, not any Do() error).
