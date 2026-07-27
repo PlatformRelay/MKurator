@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
+## [0.14.0](https://github.com/platformrelay/MKurator/compare/v0.13.0..v0.14.0) - 2026-07-27
+
+### Bug Fixes
+
+- **ci:** Quote docs pip run to fix YAML startup_failure ([#154](https://github.com/platformrelay/MKurator/pull/154)) [47bbef5](https://github.com/platformrelay/MKurator/commit/47bbef56db4d45c9019325816767e2a4f6b075fb)
+
+- **ci:** Scope docs permissions and pin pip wheels ([#151](https://github.com/platformrelay/MKurator/pull/151)) [e838ffe](https://github.com/platformrelay/MKurator/commit/e838ffeeb8deef93e0dc7a3586eb797f6d18fcab)
+
+- **ci:** Enforce HTTPS on gitleaks curl ([#152](https://github.com/platformrelay/MKurator/pull/152)) [a6cc532](https://github.com/platformrelay/MKurator/commit/a6cc532a925084755c0b3402d1b526ce49b2f430)
+
+- **test:** Keep CI toolcache on pinned PATH ([#150](https://github.com/platformrelay/MKurator/pull/150)) [b3455f2](https://github.com/platformrelay/MKurator/commit/b3455f2e015dd31d36af1d5cd6e99813100c44ac)
+
+- **e2e:** Unmarshal utils.Run string as bytes [b7f5de4](https://github.com/platformrelay/MKurator/commit/b7f5de45a9d9251eaaa5702ce23754e16085d201)
+
+- **test:** Pin PATH in exec helpers [213711d](https://github.com/platformrelay/MKurator/commit/213711d821a8e36287bc4d126f510c213dd1f64e)
+
+- **devcontainer:** Pin helm and enforce HTTPS curls ([#149](https://github.com/platformrelay/MKurator/pull/149)) [cd7d3f2](https://github.com/platformrelay/MKurator/commit/cd7d3f2a4287396883511c4b0af7acefec0856a9)
+
+- **ci:** Scope release-gate permissions per job ([#147](https://github.com/platformrelay/MKurator/pull/147)) [ec4ce77](https://github.com/platformrelay/MKurator/commit/ec4ce7734422d359acadcf5a412df9909bab1a57)
+
+- **scrub:** Fail closed when tracked file list is empty [8e9985d](https://github.com/platformrelay/MKurator/commit/8e9985d22dc638db6f6606a5661bd4f43cadceb3)
+
+- **webhook:** Publish not-ready address so conversion bootstraps ([#143](https://github.com/platformrelay/MKurator/pull/143)) [13b3fcb](https://github.com/platformrelay/MKurator/commit/13b3fcb1fb0bdd0394f4ef2df8114ce8d4dc32e8)
+
+
+### Features
+
+- **validation:** Stateful tls.crt/tls.key shape check for ClientCert (AUTH-16) [aec2364](https://github.com/platformrelay/MKurator/commit/aec2364b289ec2eac6129254aeedb33a4e4130e5)
+
+- **mqrest:** MTLS client-certificate auth at the transport (AUTH-16) [0018669](https://github.com/platformrelay/MKurator/commit/0018669c32178f17df4fcff1dda72e0969512433)
+
+- **api:** Accept ClientCert in the mqweb auth mode enum (AUTH-16) [51a6e0e](https://github.com/platformrelay/MKurator/commit/51a6e0e3da1b90b9dffa64a42aa17f91f8d58695)
+
+- **mqrest:** Resolve LTPA mode from the auth union in the factory (AUTH-13) [1eaf549](https://github.com/platformrelay/MKurator/commit/1eaf54973091032f4e6321dd5e76a5832d6fae68)
+
+- **mqrest:** LTPA login-token auth with in-client re-login (AUTH-13) [a1b0613](https://github.com/platformrelay/MKurator/commit/a1b061390a7a767d715b0ad990c2f7c9e7430c90)
+
+- **api:** Accept LTPA in the mqweb auth mode enum (AUTH-13) [7d74239](https://github.com/platformrelay/MKurator/commit/7d74239bf130afe9a3fa9ee29aa0f44e0a18cb96)
+
+- **api:** Reject conflicting Basic creds via CEL (AUTH-15) [b65c7ea](https://github.com/platformrelay/MKurator/commit/b65c7ea66954c6396e80743d44b179b93b2f5cb2)
+
+- **secret-watch:** Enqueue union auth-Secret rotations (AUTH-14) [24b597a](https://github.com/platformrelay/MKurator/commit/24b597a9bb2d8a3a5d6cc79c30044f0b60335c29)
+
+- **mqrest:** Resolve Basic authentication union via v1beta1 hub re-read [8982450](https://github.com/platformrelay/MKurator/commit/89824504424b00644c92e0f219cda80f233083e2)
+
+- **conversion:** Drop authentication union on v1beta1->v1alpha1 down-convert [cb28741](https://github.com/platformrelay/MKurator/commit/cb28741ca10c103097dd5167ede8534ac3138815)
+
+- **api:** Add spec.authentication union + CEL exclusivity to v1beta1 QMC [e796a16](https://github.com/platformrelay/MKurator/commit/e796a16d7a920c9b4c9c6249db66d68fbd238ef9)
+
+- **api:** Store v1beta1 hub [beb43f7](https://github.com/platformrelay/MKurator/commit/beb43f775684d9c0ebdef6f36e6594ac8a7073d8)
+
+
+### Refactoring
+
+- **mqrest:** Add auth strategy seam ([#140](https://github.com/platformrelay/MKurator/pull/140)) [dc6063c](https://github.com/platformrelay/MKurator/commit/dc6063ca233df7f2f589c5c527d2fc4e5e100460)
+
 ## [0.13.0](https://github.com/platformrelay/MKurator/compare/v0.12.2..v0.13.0) - 2026-07-22
 
 ### Bug Fixes
