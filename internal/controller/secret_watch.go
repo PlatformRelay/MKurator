@@ -94,9 +94,12 @@ func unionSecretRefs(
 	hub := &messagingv1beta1.QueueManagerConnection{}
 	if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Name}, hub); err != nil {
 		if !k8serrors.IsNotFound(err) && !meta.IsNoMatchError(err) && !runtime.IsNotRegisteredError(err) {
-			log.FromContext(ctx).V(1).Info(
+			// Log at Error so a transient hub-read failure that silently drops a union-Secret
+			// enqueue is visible in operator logs (the 2-minute backstop requeue recovers it,
+			// but operators should see the miss — ADR-0014 auth-recovery carve-out).
+			log.FromContext(ctx).Error(err,
 				"secret watch: re-read v1beta1 hub for authentication union failed; matching spoke refs only",
-				"connection", conn.Name, "namespace", conn.Namespace, "error", err.Error())
+				"connection", conn.Name, "namespace", conn.Namespace)
 		}
 		return nil
 	}

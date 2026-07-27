@@ -42,3 +42,23 @@ func TestSetTransientRequeueInterval(t *testing.T) {
 		t.Fatalf("got %v", TransientRequeueInterval())
 	}
 }
+
+func TestSetTerminalRetryInterval(t *testing.T) {
+	prev := TerminalRetryInterval()
+	t.Cleanup(func() { SetTerminalRetryInterval(prev) })
+
+	SetTerminalRetryInterval(-1 * time.Second)
+	if TerminalRetryInterval() != prev {
+		t.Fatalf("negative ignored: got %v want %v", TerminalRetryInterval(), prev)
+	}
+
+	SetTerminalRetryInterval(0)
+	if TerminalRetryInterval() != prev {
+		t.Fatalf("zero ignored: got %v want %v", TerminalRetryInterval(), prev)
+	}
+
+	SetTerminalRetryInterval(90 * time.Second)
+	if TerminalRetryInterval() != 90*time.Second {
+		t.Fatalf("got %v", TerminalRetryInterval())
+	}
+}
