@@ -14,8 +14,8 @@ leak secrets or exceed RBAC.
 
 | ID | Requirement | Primary enforcement |
 | --- | --- | --- |
-| SEC-1 | No credentials in CR specs, code, images, or logs; the `spec.authentication` union references all material by `secretRef` (ADR-0027). LTPA (`mode: LTPA`) exchanges credentials for a cached session cookie so they stop crossing the wire per request; the cookie, CSRF token, and credentials are never logged or surfaced in error strings (SEC-5) | NFR doc, gosec, gitleaks, mqrest unit tests |
-| SEC-5 | No Secret values, passwords, LTPA cookies, CSRF headers, or credentialed HTTP bodies at default log levels | redacting handler, LOG-5, mqrest unit tests |
+| SEC-1 | No credentials in CR specs, code, images, or logs; the `spec.authentication` union references all material by `secretRef` (ADR-0027). LTPA (`mode: LTPA`) exchanges credentials for a cached session cookie so they stop crossing the wire per request; ClientCert (`mode: ClientCert`, AUTH-16) authenticates at the TLS transport with a `kubernetes.io/tls` keypair so the admin identity carries no shared secret and sends no `Authorization` header. The cookie, CSRF token, keypair, and credentials are never logged or surfaced in error strings (SEC-5) | NFR doc, gosec, gitleaks, mqrest unit tests (incl. the httptest mTLS handshake) |
+| SEC-5 | No Secret values, passwords, LTPA cookies, CSRF headers, client-certificate key material, or credentialed HTTP bodies at default log levels | redacting handler, LOG-5, mqrest unit tests |
 | SEC-2 | TLS verify on for mqweb; insecure opt-in only | mqrest adapter, NFR SEC-2 |
 | SEC-3 | Least-privilege operator RBAC | `config/rbac/`, `task audit:rbac` |
 | SEC-4 | Distroless nonroot runtime | Dockerfile, Pod securityContext |

@@ -31,15 +31,26 @@ branch receives fixes. The API contract may change between alpha releases.
   Kubernetes `Secret`s only — never in CR specs, code, images, or logs. The
   `spec.authentication` union (ADR-0027) preserves this: every mode references
   its material by `secretRef`. The mqweb admin identity is HTTP Basic
-  (`mode: Basic`, the default when `authentication` is omitted) or LTPA
-  (`mode: LTPA`, AUTH-13). LTPA logs in once and then sends a cached session
+  (`mode: Basic`, the default when `authentication` is omitted), LTPA
+  (`mode: LTPA`, AUTH-13), or client-certificate / mTLS (`mode: ClientCert`,
+  AUTH-16). LTPA logs in once and then sends a cached session
   cookie instead of the credentials on every request, so the shared credentials
   stop crossing the wire per request; the cookie value, the CSRF token, and the
   credentials are never logged or placed in error strings (NFR SEC-5). LTPA is
   login-derived, so it does not remove the credential-rotation burden. Re-login
   is 401-driven and handled in-client (never TTL eviction, ADR-0023). The
-  client-certificate (mTLS) mode is reserved for a later release and is rejected
-  at admission until its runtime ships, so no admitted spec is a dead letter.
+  client-certificate (mTLS) mode is the strongest identity: the `tls.crt`/`tls.key`
+  keypair from a `kubernetes.io/tls` Secret is loaded onto the HTTPS transport and
+  authenticates MKurator at the TLS layer, so the admin identity carries **no
+  shared secret at all** and **no `Authorization` header** is sent. The key
+  material stays in the referenced Secret and never appears in logs or error
+  strings (SEC-5); the keypair-parse error is safe (no key bytes). Enabling
+  client-cert on mqweb and mapping the certificate DN to an mqweb user in the
+  queue manager's user registry is a **deployment prerequisite MKurator does not
+  configure** (ADR-0002 / ADR-0009 "documented, not implemented"); a rejected
+  certificate surfaces a terminal `Ready=False` whose message points at that
+  prerequisite. Certificate revocation / OCSP is out of scope (ADR-0009: local
+  CA, no OCSP in the connection path).
 - **TLS by default**: HTTPS to mqweb with certificate verification on;
   `insecureSkipVerify` is opt-in and intended for local development only.
 - **Least-privilege RBAC**: scoped to the operator's own API group, referenced

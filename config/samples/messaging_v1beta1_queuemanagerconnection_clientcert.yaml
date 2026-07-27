@@ -1,0 +1,41 @@
+# Client-certificate / mTLS authentication (ADR-0027 spec.authentication union, AUTH-16).
+#
+# MKurator authenticates to the mqweb admin REST API with a CLIENT CERTIFICATE at the TLS
+# transport (mTLS). The tls.crt/tls.key keypair from the referenced kubernetes.io/tls Secret
+# is loaded onto the HTTPS transport, so mqweb identifies MKurator by the presented
+# certificate and NO Authorization header is ever sent — the admin identity carries no
+# shared secret at all. A cert-manager-issued Secret rotates cleanly: when its
+# resourceVersion changes the operator swaps the client and closes the old transport
+# (ADR-0023, AUTH-14).
+#
+# spec.tls.caSecretRef is the SERVER-auth trust (verifying the mqweb server certificate); it
+# is independent of and unchanged by the client certificate. You typically set both.
+#
+# mqweb-side PREREQUISITE MKurator does NOT configure (deployment prerequisite, ADR-0002 /
+# ADR-0009 "documented, not implemented"):
+#   1. mqweb must be configured to require and verify client certificates for the REST API,
+#      trusting your client CA; and
+#   2. the certificate's DN must be mapped to an mqweb user in the queue manager's user
+#      registry.
+# If either is missing, mqweb rejects the certificate and MKurator surfaces a terminal
+# Ready=False whose message names this DN-to-user-registry mapping prerequisite. Certificate
+# revocation/OCSP is out of scope (ADR-0009: local CA, no OCSP in the connection path).
+apiVersion: messaging.mkurator.dev/v1beta1
+kind: QueueManagerConnection
+metadata:
+  name: qm1-clientcert
+  namespace: mkurator-system
+spec:
+  queueManager: QM1
+  endpoint: https://ibm-mq.ibm-mq.svc:9443
+  tls:
+    # Server-auth trust for the mqweb server certificate (independent of the client cert).
+    caSecretRef:
+      name: mqweb-server-ca
+  authentication:
+    mode: ClientCert
+    clientCert:
+      # A kubernetes.io/tls Secret holding the client keypair: tls.crt and tls.key.
+      # e.g. produced by a cert-manager Certificate resource.
+      secretRef:
+        name: mkurator-client-cert
