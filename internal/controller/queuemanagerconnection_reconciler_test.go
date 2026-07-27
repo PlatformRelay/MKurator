@@ -94,7 +94,10 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		Expect(updated.Status.ObservedGeneration).To(Equal(updated.Generation))
 	})
 
-	It("sets Error when ping fails with a terminal error", func() {
+	It("sets Error when ping fails with a terminal error and schedules a backstop requeue", func() {
+		// A terminal error (e.g. 401 Unauthorized) must still requeue after TerminalRetryInterval
+		// so the controller self-heals if the Secret-watch enqueue was silently dropped — closing
+		// the stuck-forever gap described in AUTH-14 / ADR-0023.
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
 			Data: map[string][]byte{
@@ -133,10 +136,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		_, err = rec.Reconcile(ctx, ctrl.Request{
+		result, err := rec.Reconcile(ctx, ctrl.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
 		Expect(err).NotTo(HaveOccurred())
+		Expect(result.RequeueAfter).To(Equal(TerminalRetryInterval()),
+			"terminal error must schedule a backstop requeue so the controller self-heals if the watch enqueue was dropped")
 
 		updated := &messagingv1alpha1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())

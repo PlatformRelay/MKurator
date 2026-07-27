@@ -144,7 +144,11 @@ func (r *QueueManagerConnectionReconciler) fail(
 	if errors.Is(err, mqadmin.ErrTransient) {
 		return requeue, nil
 	}
-	return ctrl.Result{}, nil
+	// Backstop requeue: ensures self-healing if the Secret-watch enqueue was silently dropped
+	// (e.g. transient hub re-read failure in a loaded cluster). The watch is still the fast
+	// path; this guards against a permanent stuck state when no other event re-triggers the
+	// reconcile (AUTH-14, ADR-0023 resilience).
+	return ctrl.Result{RequeueAfter: TerminalRetryInterval()}, nil
 }
 
 // SetupWithManager wires the reconciler.

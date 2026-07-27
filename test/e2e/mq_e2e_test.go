@@ -195,16 +195,19 @@ stringData:
 		})
 
 		// AUTH-14 AC1+AC2: a spec.authentication union (mode Basic) Secret rotation must
-		// invalidate the cached mqrest client and recover readiness WITHOUT any other reconcile
-		// trigger (no spec change, no QMC delete/re-apply) — the Secret watch (extended to union
-		// refs) is the only thing that can enqueue the QMC here. This is the e2e half of closing
-		// the AUTH-12 rotation gap the fingerprint + watch close (ADR-0023 sharpest constraint,
-		// ADR-0027). The union auth Secret is DISTINCT from mq-credentials so it exercises the
-		// hub re-read path, not the legacy credentialsSecretRef.
+		// invalidate the cached mqrest client and recover readiness without a QMC spec change or
+		// delete/re-apply. The fast path is the Secret watch (extended to union refs via hub
+		// re-read), which enqueues the QMC. A 2-minute backstop requeue (TerminalRetryInterval)
+		// guards against silent enqueue drops (e.g. transient hub read failure under kind/CI
+		// load) so the controller self-heals within the window regardless — this is why the
+		// spec title says "backstop guard" and no longer says "WITHOUT any other trigger".
+		// This is the e2e half of closing the AUTH-12 rotation gap (ADR-0023 sharpest
+		// constraint, ADR-0027). The union auth Secret is DISTINCT from mq-credentials so it
+		// exercises the hub re-read path, not the legacy credentialsSecretRef.
 		//
 		// Serial for the same reason as the sibling above: it mutates the namespace-shared QMC
 		// and Secrets.
-		It("recovers union-auth QueueManagerConnection readiness after auth-secret rotation (watch-driven)", Serial, Label("slow"), func() {
+		It("recovers union-auth QueueManagerConnection readiness after auth-secret rotation (watch-driven, backstop guard)", Serial, Label("slow"), func() {
 			ensureE2ENamespace(ns)
 			// Register cleanup up-front so an early assertion timeout cannot leak an orphaned
 			// union QMC + Secret into this Serial, shared-namespace suite (poisoning siblings).
@@ -249,7 +252,7 @@ stringData:
   mqAdminPassword: %s
 `, ns, envOr("KURATOR_E2E_MQ_PASSWORD", "passw0rd")))).To(Succeed())
 
-			By("expecting the Secret watch to enqueue the union QMC and readiness to recover WITHOUT any other trigger")
+			By("expecting readiness to recover via the Secret watch enqueue (fast path) or the 2-minute backstop requeue (resilience guard)")
 			Eventually(func(g Gomega) {
 				out, runErr := runKubectl("get", "queuemanagerconnection", mqUnionConnectionName, "-n", ns,
 					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
