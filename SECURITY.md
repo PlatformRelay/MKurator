@@ -28,7 +28,13 @@ branch receives fixes. The API contract may change between alpha releases.
 ## Security posture
 
 - **No inline secrets**: credentials and CA material come from referenced
-  Kubernetes `Secret`s only — never in CR specs, code, images, or logs.
+  Kubernetes `Secret`s only — never in CR specs, code, images, or logs. The
+  `spec.authentication` union (ADR-0027) preserves this: every mode references
+  its material by `secretRef`. The mqweb admin identity is HTTP Basic today
+  (`mode: Basic`, the default when `authentication` is omitted); token (LTPA) and
+  client-certificate (mTLS) modes are reserved for later releases and are
+  rejected at admission until their runtime ships, so no admitted spec is a
+  dead letter.
 - **TLS by default**: HTTPS to mqweb with certificate verification on;
   `insecureSkipVerify` is opt-in and intended for local development only.
 - **Least-privilege RBAC**: scoped to the operator's own API group, referenced

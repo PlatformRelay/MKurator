@@ -20,7 +20,9 @@ Never log credentials or full mqweb bodies at default log levels ([NFR SEC-5](..
 - All mqweb traffic is **HTTPS** with certificate verification on by default ([NFR SEC-2](../NON_FUNCTIONAL_REQUIREMENTS.md)).
 - Custom CA material comes from a referenced `Secret` (`caSecretRef`).
 - `insecureSkipVerify` is **opt-in**, annotation-guarded, dev-only — never default in samples for production paths.
-- Credentials live in Kubernetes `Secret`s referenced by `QueueManagerConnection` only ([NFR SEC-1](../NON_FUNCTIONAL_REQUIREMENTS.md)).
+- Credentials live in Kubernetes `Secret`s referenced by `QueueManagerConnection` only ([NFR SEC-1](../NON_FUNCTIONAL_REQUIREMENTS.md)). This holds for the `spec.authentication` union too: every mode references its material by `secretRef`, never inline. Never fold union secret material into any other field or log it.
+- The mqweb admin auth **mode** is selected by the optional `spec.authentication` union ([ADR-0027](../adr/0027-mqweb-authentication-modes.md)); when omitted it defaults to Basic reading `credentialsSecretRef`. Exactly one credential source must be present (CEL-enforced). Structural exclusivity of the union is **CEL-first** ([ADR-0025](../adr/0025-cel-first-admission-validation.md)); the validating webhook only performs stateful checks (Secret existence/keys), never structural exclusivity.
+- The mqrest `ClientFactory` re-reads the v1beta1 hub to resolve the union's effective credentials Secret, and the client cache fingerprint keys off **that** Secret's resourceVersion (the secret actually used), so rotating union credentials invalidates the cached client ([ADR-0023](../adr/0023-connection-client-cache-lifecycle.md)).
 
 ## Reconciliation robustness
 
