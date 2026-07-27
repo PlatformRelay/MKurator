@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.13.0   # target release
+VERSION=0.14.0   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -43,6 +43,7 @@ before upgrading.
 
 | From | To | Highlights |
 |------|-----|------------|
+| **0.13.x** | **0.14.x** | Additive `spec.authentication` union on `QueueManagerConnection` (Basic / LTPA / ClientCert-mTLS). **No action for existing Basic users** — see [`spec.authentication` union (Basic users: no action)](#specauthentication-union-basic-users-no-action). |
 | **0.12.x** | **0.13.x** | etcd storage moves from `v1alpha1` to the `v1beta1` hub. Complete the staged procedure in [Moving etcd storage to v1beta1 (0.12.x → 0.13.x)](#moving-etcd-storage-to-v1beta1-012x-013x). |
 | **0.11.x** | **0.12.x** | **`v1beta1` API** for all six kinds with **conversion webhook** (dual served versions). See [Migrating to v1beta1 (0.11.x → 0.12.x)](#migrating-to-v1beta1-011x-012x) below. |
 | **&lt; 0.5.0** | **0.5.0+** | New CRDs: `ChannelAuthRule`, `AuthorityRecord`. Validating webhooks on by default (cert-manager TLS). Review [INSTALL_AND_USE.md](INSTALL_AND_USE.md) auth sections. |
