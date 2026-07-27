@@ -151,10 +151,19 @@ func (c *Client) roundTrip(ctx context.Context, build requestBuilder) (*http.Res
 
 		res, err := c.httpClient.Do(req)
 		if err != nil {
-			lastNetErr = err
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
+			// ClientCert (mTLS): a server-originated TLS handshake alert means mqweb
+			// rejected the presented client certificate. That is a terminal Unauthorized
+			// (untrusted/expired/no DN mapping) — never retry it, and never let it hot-loop
+			// as transient (AUTH-16 AC3). A purely local net error (reset/refused/timeout)
+			// does not carry the remote-alert marker and stays transient below.
+			if c.clientCertMode && isClientCertRejection(err) {
+				c.breaker.recordFailure()
+				return nil, clientCertRejectionError()
+			}
+			lastNetErr = err
 			continue
 		}
 
