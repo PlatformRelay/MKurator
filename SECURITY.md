@@ -47,10 +47,11 @@ branch receives fixes. The API contract may change between alpha releases.
   strings (SEC-5); the keypair-parse error is safe (no key bytes). Enabling
   client-cert on mqweb and mapping the certificate DN to an mqweb user in the
   queue manager's user registry is a **deployment prerequisite MKurator does not
-  configure** (ADR-0002 / ADR-0009 "documented, not implemented"); a rejected
+  configure** (ADR-0002 "prerequisite / non-goal to deploy"; ADR-0027 records the
+  "documented, not implemented" stance for the mTLS mode); a rejected
   certificate surfaces a terminal `Ready=False` whose message points at that
-  prerequisite. Certificate revocation / OCSP is out of scope (ADR-0009: local
-  CA, no OCSP in the connection path).
+  prerequisite. Certificate revocation / OCSP is out of scope (ADR-0027, adopting
+  the external SEVEN mq-on-k8s ADR-0009 local-CA / no-OCSP-in-path stance).
 - **TLS by default**: HTTPS to mqweb with certificate verification on;
   `insecureSkipVerify` is opt-in and intended for local development only.
 - **Least-privilege RBAC**: scoped to the operator's own API group, referenced

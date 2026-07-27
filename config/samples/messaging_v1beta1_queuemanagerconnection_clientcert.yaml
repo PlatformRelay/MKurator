@@ -11,15 +11,16 @@
 # spec.tls.caSecretRef is the SERVER-auth trust (verifying the mqweb server certificate); it
 # is independent of and unchanged by the client certificate. You typically set both.
 #
-# mqweb-side PREREQUISITE MKurator does NOT configure (deployment prerequisite, ADR-0002 /
-# ADR-0009 "documented, not implemented"):
+# mqweb-side PREREQUISITE MKurator does NOT configure (deployment prerequisite, ADR-0002
+# "prerequisite / non-goal"; ADR-0027 records the "documented, not implemented" mTLS stance):
 #   1. mqweb must be configured to require and verify client certificates for the REST API,
 #      trusting your client CA; and
 #   2. the certificate's DN must be mapped to an mqweb user in the queue manager's user
 #      registry.
 # If either is missing, mqweb rejects the certificate and MKurator surfaces a terminal
 # Ready=False whose message names this DN-to-user-registry mapping prerequisite. Certificate
-# revocation/OCSP is out of scope (ADR-0009: local CA, no OCSP in the connection path).
+# revocation/OCSP is out of scope (ADR-0027, adopting the external SEVEN mq-on-k8s ADR-0009
+# local-CA / no-OCSP-in-path stance).
 apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
