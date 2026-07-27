@@ -17,6 +17,7 @@ import (
 
 const (
 	mqConnectionName         = "e2e-qm1"
+	mqUnionConnectionName    = "e2e-qm1-union"
 	mqQueueMaxDepthV1        = "1000"
 	mqChannelAuthCRName       = "e2e-dev-app-addressmap"
 	mqChannelBlockAddrCRName  = "e2e-blockaddr-car"
@@ -191,6 +192,68 @@ stringData:
 				g.Expect(runErr).NotTo(HaveOccurred())
 				g.Expect(out).To(Equal("True"))
 			}).WithTimeout(qmcRotationEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+		})
+
+		// AUTH-14 AC1+AC2: a spec.authentication union (mode Basic) Secret rotation must
+		// invalidate the cached mqrest client and recover readiness WITHOUT any other reconcile
+		// trigger (no spec change, no QMC delete/re-apply) — the Secret watch (extended to union
+		// refs) is the only thing that can enqueue the QMC here. This is the e2e half of closing
+		// the AUTH-12 rotation gap the fingerprint + watch close (ADR-0023 sharpest constraint,
+		// ADR-0027). The union auth Secret is DISTINCT from mq-credentials so it exercises the
+		// hub re-read path, not the legacy credentialsSecretRef.
+		//
+		// Serial for the same reason as the sibling above: it mutates the namespace-shared QMC
+		// and Secrets.
+		It("recovers union-auth QueueManagerConnection readiness after auth-secret rotation (watch-driven)", Serial, Label("slow"), func() {
+			ensureE2ENamespace(ns)
+			By("creating intentionally invalid union auth credentials (distinct from mq-credentials)")
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: mq-union-auth-credentials
+  namespace: %s
+type: Opaque
+stringData:
+  username: admin
+  mqAdminPassword: wrong-password
+`, ns))).To(Succeed())
+
+			invalidateWebhookReadyCache()
+			waitForControllerAndWebhookReadyCached()
+			Expect(kubectlApply(unionConnectionManifest(ns))).To(Succeed())
+
+			By("waiting for Ready=False on the union QMC (invalid credentials)")
+			Eventually(func(g Gomega) {
+				out, err := runKubectl("get", "queuemanagerconnection", mqUnionConnectionName, "-n", ns,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("False"))
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
+			By("rotating ONLY the union auth secret to valid credentials (no QMC spec change, no re-apply)")
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
+kind: Secret
+metadata:
+  name: mq-union-auth-credentials
+  namespace: %s
+type: Opaque
+stringData:
+  username: admin
+  mqAdminPassword: %s
+`, ns, envOr("KURATOR_E2E_MQ_PASSWORD", "passw0rd")))).To(Succeed())
+
+			By("expecting the Secret watch to enqueue the union QMC and readiness to recover WITHOUT any other trigger")
+			Eventually(func(g Gomega) {
+				out, runErr := runKubectl("get", "queuemanagerconnection", mqUnionConnectionName, "-n", ns,
+					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
+				g.Expect(runErr).NotTo(HaveOccurred())
+				g.Expect(out).To(Equal("True"))
+			}).WithTimeout(qmcRotationEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+
+			DeferCleanup(func() {
+				_, _ = runKubectl("delete", "queuemanagerconnection", mqUnionConnectionName, "-n", ns, "--ignore-not-found")
+				_, _ = runKubectl("delete", "secret", "mq-union-auth-credentials", "-n", ns, "--ignore-not-found")
+			})
 		})
 	})
 
@@ -1107,4 +1170,29 @@ spec:
   credentialsSecretRef:
     name: mq-credentials
 `, mqConnectionName, ns, envOr("KURATOR_E2E_MQ_QMGR", "QM1"))
+}
+
+// unionConnectionManifest is a v1beta1 QMC that authenticates via the spec.authentication
+// union (mode Basic) against a Secret DISTINCT from the legacy mq-credentials — so rotating it
+// exercises the AUTH-14 hub-re-read + union-aware fingerprint/watch path, not the legacy
+// credentialsSecretRef path (ADR-0027). The union only exists on the v1beta1 hub.
+func unionConnectionManifest(ns string) string {
+	return fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
+kind: QueueManagerConnection
+metadata:
+  name: %s
+  namespace: %s
+  annotations:
+    messaging.mkurator.dev/allow-insecure-tls: "true"
+spec:
+  queueManager: %s
+  endpoint: https://ibm-mq.ibm-mq.svc:9443
+  tls:
+    insecureSkipVerify: true
+  authentication:
+    mode: Basic
+    basic:
+      secretRef:
+        name: mq-union-auth-credentials
+`, mqUnionConnectionName, ns, envOr("KURATOR_E2E_MQ_QMGR", "QM1"))
 }
