@@ -212,6 +212,27 @@ stringData:
 			// Register cleanup up-front so an early assertion timeout cannot leak an orphaned
 			// union QMC + Secret into this Serial, shared-namespace suite (poisoning siblings).
 			DeferCleanup(func() {
+				// On failure, capture the QMC condition (reason+message) and recent
+				// controller-manager logs so the next CI run is self-diagnosing.
+				// This spec is post-merge-only (slow label is filtered on PR CI), so
+				// the only way to get this data is from the actual failing CI run.
+				if CurrentSpecReport().Failed() {
+					if cond, err := runKubectl("get", "queuemanagerconnection", mqUnionConnectionName,
+						"-n", ns, "-o",
+						`jsonpath=Ready={.status.conditions[?(@.type=="Ready")].status} reason={.status.conditions[?(@.type=="Ready")].reason} msg={.status.conditions[?(@.type=="Ready")].message}`); err == nil {
+						_, _ = fmt.Fprintf(GinkgoWriter, "[diag] final QMC condition: %s\n", cond)
+					}
+					if logs, err := runKubectl("logs", "-n", namespace,
+						"-l", "control-plane=controller-manager",
+						"--tail=150", "--since=10m"); err == nil {
+						_, _ = fmt.Fprintf(GinkgoWriter, "[diag] controller-manager logs (tail 150):\n%s\n", logs)
+					}
+					if events, err := runKubectl("get", "events", "-n", ns,
+						"--field-selector", "involvedObject.name="+mqUnionConnectionName,
+						"--sort-by=.lastTimestamp"); err == nil {
+						_, _ = fmt.Fprintf(GinkgoWriter, "[diag] QMC events:\n%s\n", events)
+					}
+				}
 				_, _ = runKubectl("delete", "queuemanagerconnection", mqUnionConnectionName, "-n", ns, "--ignore-not-found")
 				_, _ = runKubectl("delete", "secret", "mq-union-auth-credentials", "-n", ns, "--ignore-not-found")
 			})
@@ -254,10 +275,12 @@ stringData:
 
 			By("expecting readiness to recover via the Secret watch enqueue (fast path) or the 2-minute backstop requeue (resilience guard)")
 			Eventually(func(g Gomega) {
+				// Include reason and message in the output so a timeout failure reveals
+				// the stuck condition without needing a separate diagnostic step.
 				out, runErr := runKubectl("get", "queuemanagerconnection", mqUnionConnectionName, "-n", ns,
-					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
+					"-o", `jsonpath={.status.conditions[?(@.type=="Ready")].status}/{.status.conditions[?(@.type=="Ready")].reason}/{.status.conditions[?(@.type=="Ready")].message}`)
 				g.Expect(runErr).NotTo(HaveOccurred())
-				g.Expect(out).To(Equal("True"))
+				g.Expect(out).To(HavePrefix("True/"))
 			}).WithTimeout(qmcWatchRecoveryEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 		})
 
