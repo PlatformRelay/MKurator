@@ -22,6 +22,7 @@ const (
 	// DefaultRESTPrefix is the mqweb REST API path for IBM MQ 9.3+.
 	DefaultRESTPrefix  = "/ibmmq/rest/v3"
 	csrfHeader         = "ibm-mq-rest-csrf-token"
+	reasonUnauthorized = "Unauthorized"
 	mqscType           = "runCommandJSON"
 	mqscCommandDisplay = "display"
 	mqscCommandDefine  = "define"
@@ -45,6 +46,12 @@ type Config struct {
 	HTTPClient   *http.Client
 	Resilience   ResilienceConfig
 
+	// LTPA, when set, selects LTPA login-token authentication (ADR-0027, AUTH-13):
+	// the client logs in once with these credentials, caches the LTPA cookie, and
+	// re-authenticates in-client on a 401+MQWB0112E. Mutually exclusive with the
+	// legacy Basic path (Username/Password / authenticator).
+	LTPA *LTPAConfig
+
 	// authenticator is selected by the factory for the configured authentication mode.
 	// A nil value preserves the legacy Basic authentication behaviour.
 	authenticator requestAuthenticator
@@ -57,8 +64,12 @@ type Client struct {
 	queueManager  string
 	httpClient    *http.Client
 	authenticator requestAuthenticator
-	retry         retryPolicy
-	breaker       *circuitBreaker
+	// reauth is non-nil only for modes that recover from a mid-request 401 by
+	// re-establishing session state in-client (LTPA). Nil for Basic, so the Basic
+	// request path is unchanged.
+	reauth  reauthenticator
+	retry   retryPolicy
+	breaker *circuitBreaker
 
 	displayProbeMu    sync.Mutex
 	displayProbeCache map[string]bool
@@ -81,6 +92,7 @@ func NewClient(cfg Config) (*Client, error) {
 	qm := url.PathEscape(cfg.QueueManager)
 	mqscURL := fmt.Sprintf("%s/admin/action/qmgr/%s/mqsc", base, qm)
 	adminQMURL := fmt.Sprintf("%s/admin/qmgr/%s", base, qm)
+	loginURL := base + "/login"
 
 	hc := cfg.HTTPClient
 	if hc == nil {
@@ -90,7 +102,18 @@ func NewClient(cfg Config) (*Client, error) {
 		}
 		hc = &http.Client{Timeout: 60 * time.Second, Transport: tr}
 	}
+
+	// Authentication mode selection (ADR-0027). LTPA takes precedence when set;
+	// otherwise fall back to any injected authenticator, then legacy Basic. The
+	// LTPA authenticator owns the login/re-login session state so re-auth stays
+	// in-client (never TTL eviction, ADR-0023).
 	authenticator := cfg.authenticator
+	var reauth reauthenticator
+	if cfg.LTPA != nil {
+		la := newLTPAAuthenticator(loginURL, hc, *cfg.LTPA)
+		authenticator = la
+		reauth = la
+	}
 	if authenticator == nil {
 		authenticator = basicRequestAuthenticator{username: cfg.Username, password: cfg.Password}
 	}
@@ -101,6 +124,7 @@ func NewClient(cfg Config) (*Client, error) {
 		queueManager:  cfg.QueueManager,
 		httpClient:    hc,
 		authenticator: authenticator,
+		reauth:        reauth,
 		retry:         retryPolicyFromResilience(cfg.Resilience),
 		breaker:       newCircuitBreaker(circuitBreakerConfigFromResilience(cfg.Resilience)),
 	}, nil
@@ -124,7 +148,7 @@ func (c *Client) Ping(ctx context.Context) error {
 	var err error
 	defer func() { metrics.RecordMQOperation(metrics.MQOpPing, err) }()
 
-	res, err := c.roundTrip(ctx, func(ctx context.Context) (*http.Request, error) {
+	res, err := c.roundTripWithReauth(ctx, func(ctx context.Context) (*http.Request, error) {
 		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, c.adminQMURL, nil)
 		if reqErr != nil {
 			return nil, reqErr
@@ -141,7 +165,7 @@ func (c *Client) Ping(ctx context.Context) error {
 
 	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
 		return &mqadmin.TerminalError{
-			Reason:  "Unauthorized",
+			Reason:  reasonUnauthorized,
 			Message: fmt.Sprintf("mqweb ping returned HTTP %d", res.StatusCode),
 		}
 	}
@@ -387,7 +411,7 @@ func (c *Client) postMQSC(ctx context.Context, body any) (*mqscResponse, error) 
 		return nil, fmt.Errorf("marshal mqsc request: %w", err)
 	}
 
-	res, err := c.roundTrip(ctx, func(ctx context.Context) (*http.Request, error) {
+	res, err := c.roundTripWithReauth(ctx, func(ctx context.Context) (*http.Request, error) {
 		req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, c.mqscURL, bytes.NewReader(payload))
 		if reqErr != nil {
 			return nil, reqErr
@@ -411,7 +435,7 @@ func (c *Client) postMQSC(ctx context.Context, body any) (*mqscResponse, error) 
 
 	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
 		return nil, &mqadmin.TerminalError{
-			Reason:  "Unauthorized",
+			Reason:  reasonUnauthorized,
 			Message: fmt.Sprintf("mqweb returned HTTP %d", res.StatusCode),
 		}
 	}
