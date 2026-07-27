@@ -597,9 +597,18 @@ Reuse the existing `QueueManagerConnection`; add another `Queue` with a differen
 
 ### Rotate credentials
 
-Update the Secret data. The mqweb client cache includes each referenced Secret's
-`resourceVersion`, so the operator rebuilds the client on the next reconcile
-after the Secret change (no spec bump required).
+Update the Secret data. For a Secret referenced by `credentialsSecretRef` or
+`tls.caSecretRef`, the operator watches the Secret and rebuilds the client on the
+next reconcile after the change (no spec bump required); the mqweb client cache
+includes each such Secret's `resourceVersion`.
+
+> **Note (AUTH-12):** a Secret referenced only by the `spec.authentication` union
+> (e.g. `authentication.basic.secretRef`) is **not** yet watched, and the
+> `QueueManagerConnection` has no periodic-resync backstop, so rotating a
+> union-only secret does not rebuild the client until the next reconcile trigger
+> (a spec change, a `tls.caSecretRef` change, or an operator restart). Closing
+> this gap is tracked as AUTH-14. If you need immediate pickup today, use
+> `credentialsSecretRef` (implicit Basic) or bump the QMC spec after rotating.
 
 ### Delete a queue, topic, or channel
 
