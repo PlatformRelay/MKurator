@@ -926,9 +926,29 @@ var _ = Describe("Validating admission webhooks", func() {
 			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 		})
 
-		It("AC2/enum: still rejects the unimplemented ClientCert mode at the enum, no dead letter", func() {
+		It("AUTH-16: admits a ClientCert mode union with a well-formed tls Secret (runtime shipped)", func() {
 			ctx := context.Background()
+			// ClientCert is now an accepted enum value (AUTH-16); the stateful webhook checks
+			// the referenced Secret carries tls.crt/tls.key.
+			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "mtls-creds", Namespace: ns},
+				Type:       corev1.SecretTypeTLS,
+				Data:       map[string][]byte{"tls.crt": []byte("cert-pem"), "tls.key": []byte("key-pem")},
+			})).To(Succeed())
 			conn := newConn("qmc-clientcert-mode")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeClientCert,
+				ClientCert: &messagingv1beta1.ClientCertAuth{
+					SecretRef: messagingv1beta1.SecretReference{Name: "mtls-creds"},
+				},
+			}
+			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+		})
+
+		It("AUTH-16 AC2: rejects ClientCert when the Secret lacks tls.key (stateful shape check)", func() {
+			ctx := context.Background()
+			// "creds" (BeforeEach) has neither tls.crt nor tls.key.
+			conn := newConn("qmc-clientcert-badsecret")
 			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
 				Mode: messagingv1beta1.MQWebAuthenticationModeClientCert,
 				ClientCert: &messagingv1beta1.ClientCertAuth{
@@ -938,8 +958,8 @@ var _ = Describe("Validating admission webhooks", func() {
 			err := webhookK8sClient.Create(ctx, conn)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err)).To(BeTrue())
-			// Rejected by the enum (ClientCert runtime not shipped), not by exclusivity CEL.
-			Expect(err.Error()).To(ContainSubstring("Unsupported value"))
+			// Rejected by the STATEFUL webhook (missing tls key), NOT by the enum.
+			Expect(err.Error()).To(ContainSubstring("tls."))
 		})
 	})
 
