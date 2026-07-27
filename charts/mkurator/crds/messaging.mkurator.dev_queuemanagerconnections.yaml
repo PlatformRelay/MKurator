@@ -260,7 +260,16 @@ spec:
               \    (implicit Basic) or an explicit authentication union.\n  - structural\
               \ exclusivity of the authentication union: the member struct matching\n\
               \    mode must be set and no other member may be set. Stateful checks\
-              \ (Secret\n    existence and keys) stay in the validating webhook."
+              \ (Secret\n    existence and keys) stay in the validating webhook.\n\
+              \  - Basic-compat non-conflict (ADR-0027 \xA7CRD shape, \"not both authentication\
+              \ and a\n    Basic-implying credentialsSecretRef in conflicting ways\"\
+              ): when BOTH the legacy\n    credentialsSecretRef and an explicit Basic\
+              \ union are supplied they must name the\n    SAME Secret. This is the\
+              \ narrowest rule satisfying AUTH-15 AC3 \u2014 a redundant\n    identical\
+              \ pair is admitted, and each field ALONE stays valid forever, so no\n\
+              \    pre-union manifest is ever false-rejected. The OR-guards short-circuit\n\
+              \    left-to-right so absent fields never trigger a nil traversal in\
+              \ CEL."
             properties:
               authentication:
                 description: 'Authentication selects how MKurator authenticates to
@@ -421,6 +430,11 @@ spec:
             x-kubernetes-validations:
             - message: either credentialsSecretRef or authentication must be set
               rule: has(self.credentialsSecretRef) || has(self.authentication)
+            - message: credentialsSecretRef and authentication.basic.secretRef must
+                name the same Secret
+              rule: '!has(self.credentialsSecretRef) || !has(self.authentication)
+                || !has(self.authentication.basic) || self.authentication.basic.secretRef.name
+                == self.credentialsSecretRef.name'
           status:
             description: QueueManagerConnectionStatus defines the observed state of
               QueueManagerConnection.
