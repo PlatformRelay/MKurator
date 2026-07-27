@@ -278,6 +278,18 @@ admission (no silent merge). Prefer typed fields in new manifests; use
 
 Map-only **`v1alpha1`** manifests are unaffected until you bump `apiVersion`.
 
+## `spec.authentication` union (Basic users: no action)
+
+The `QueueManagerConnection` `spec.authentication` union ([ADR-0027](adr/0027-mqweb-authentication-modes.md))
+is **additive** and defaults to Basic. **No action is required for existing Basic users:** a manifest
+with only `credentialsSecretRef` (and no `spec.authentication`) keeps working byte-for-byte unchanged —
+same reconcile, same mqweb Basic + CSRF headers on the wire.
+
+- `credentialsSecretRef` alone stays valid forever (implicit Basic).
+- `spec.authentication` alone is the explicit form of the same modes.
+- Setting **both** is only rejected when they name **different** Secrets (a genuine conflict); the same
+  Secret in both is accepted. Point them at the same Secret, or drop one.
+
 ## CRD schema changes and server-side apply
 
 MKurator CRDs are generated from kubebuilder markers and shipped in release assets
