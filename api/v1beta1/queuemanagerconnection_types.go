@@ -45,6 +45,15 @@ const AllowInsecureTLSAnnotation = "messaging.mkurator.dev/allow-insecure-tls"
 const QueueFinalizer = "messaging.mkurator.dev/queue"
 
 // QueueManagerConnectionSpec defines how to reach an IBM MQ queue manager.
+//
+// CEL admission (ADR-0025, ADR-0027) enforces:
+//   - a credential source is always present: either the legacy credentialsSecretRef
+//     (implicit Basic) or an explicit authentication union.
+//   - structural exclusivity of the authentication union: the member struct matching
+//     mode must be set and no other member may be set. Stateful checks (Secret
+//     existence and keys) stay in the validating webhook.
+//
+// +kubebuilder:validation:XValidation:rule="has(self.credentialsSecretRef) || has(self.authentication)",message="either credentialsSecretRef or authentication must be set"
 type QueueManagerConnectionSpec struct {
 	// QueueManager is the IBM MQ queue manager name (case-sensitive).
 	// +kubebuilder:validation:Required
@@ -68,8 +77,97 @@ type QueueManagerConnectionSpec struct {
 	// CredentialsSecretRef references a Secret with mqweb credentials.
 	// Required key: password (mqAdminPassword is also accepted). Username is optional:
 	// username, user, or mqAdminUser (defaults to admin when absent; admission warns).
+	//
+	// Optional as of ADR-0027: when omitted, an explicit authentication union must be
+	// supplied instead (CEL-enforced). When present and authentication is absent, the
+	// connection uses HTTP Basic against this Secret — the pre-ADR-0027 behaviour, so
+	// every existing manifest keeps working verbatim.
+	// +optional
+	CredentialsSecretRef *SecretReference `json:"credentialsSecretRef,omitempty"`
+
+	// Authentication selects how MKurator authenticates to the mqweb admin REST API
+	// (ADR-0027). Exactly one mode; the member struct matching mode is required and no
+	// other member may be set (CEL-enforced structural exclusivity). When omitted, the
+	// connection defaults to Basic reading credentialsSecretRef, preserving existing
+	// manifests. This slice ships only the Basic enum value; LTPA and ClientCert land
+	// in later slices (AUTH-13+).
+	// +optional
+	Authentication *MQWebAuthentication `json:"authentication,omitempty"`
+}
+
+// MQWebAuthenticationMode selects the mqweb admin REST authentication mechanism.
+//
+// Only Basic is accepted in this slice (ADR-0027 sequencing): shipping LTPA/ClientCert
+// as accepted enum values before their runtime lands would admit a spec that cannot be
+// reconciled (a "dead letter"). The member structs for LTPA and ClientCert exist on the
+// union so the exclusivity CEL is expressible, but selecting those modes is rejected by
+// the enum until their slices ship.
+// +kubebuilder:validation:Enum=Basic
+type MQWebAuthenticationMode string
+
+const (
+	// MQWebAuthenticationModeBasic authenticates with HTTP Basic against a Secret (username/password).
+	MQWebAuthenticationModeBasic MQWebAuthenticationMode = "Basic"
+	// MQWebAuthenticationModeLTPA authenticates with an LTPA login token (AUTH-13; not yet accepted).
+	MQWebAuthenticationModeLTPA MQWebAuthenticationMode = "LTPA"
+	// MQWebAuthenticationModeClientCert authenticates with a client certificate/mTLS (later slice; not yet accepted).
+	MQWebAuthenticationModeClientCert MQWebAuthenticationMode = "ClientCert"
+)
+
+// MQWebAuthentication is the discriminated union selecting the mqweb admin auth mode.
+//
+// Structural exclusivity is CEL-first (ADR-0025): the member matching mode must be set,
+// and no non-matching member may be set. The validating webhook covers only stateful
+// checks (Secret existence and keys), never structural exclusivity.
+//
+// +kubebuilder:validation:XValidation:rule="self.mode != 'Basic' || has(self.basic)",message="authentication.basic is required when mode is Basic"
+// +kubebuilder:validation:XValidation:rule="self.mode != 'LTPA' || has(self.ltpa)",message="authentication.ltpa is required when mode is LTPA"
+// +kubebuilder:validation:XValidation:rule="self.mode != 'ClientCert' || has(self.clientCert)",message="authentication.clientCert is required when mode is ClientCert"
+// +kubebuilder:validation:XValidation:rule="!has(self.basic) || self.mode == 'Basic'",message="authentication.basic may only be set when mode is Basic"
+// +kubebuilder:validation:XValidation:rule="!has(self.ltpa) || self.mode == 'LTPA'",message="authentication.ltpa may only be set when mode is LTPA"
+// +kubebuilder:validation:XValidation:rule="!has(self.clientCert) || self.mode == 'ClientCert'",message="authentication.clientCert may only be set when mode is ClientCert"
+type MQWebAuthentication struct {
+	// Mode selects the authentication mechanism. Only Basic is accepted in this slice.
 	// +kubebuilder:validation:Required
-	CredentialsSecretRef SecretReference `json:"credentialsSecretRef"`
+	Mode MQWebAuthenticationMode `json:"mode"`
+
+	// Basic authenticates with HTTP Basic against SecretRef (keys: username/password,
+	// mqAdminUser/mqAdminPassword also accepted). Required when mode is Basic.
+	// +optional
+	Basic *BasicAuth `json:"basic,omitempty"`
+
+	// LTPA authenticates with an LTPA login token (AUTH-13). Required when mode is LTPA.
+	// +optional
+	LTPA *LTPAAuth `json:"ltpa,omitempty"`
+
+	// ClientCert authenticates with a client certificate/mTLS (later slice).
+	// Required when mode is ClientCert.
+	// +optional
+	ClientCert *ClientCertAuth `json:"clientCert,omitempty"`
+}
+
+// BasicAuth configures HTTP Basic authentication to the mqweb admin REST API.
+type BasicAuth struct {
+	// SecretRef references a Secret with mqweb credentials.
+	// Required key: password (mqAdminPassword is also accepted). Username is optional:
+	// username, user, or mqAdminUser (defaults to admin when absent; admission warns).
+	// +kubebuilder:validation:Required
+	SecretRef SecretReference `json:"secretRef"`
+}
+
+// LTPAAuth configures LTPA login-token authentication (AUTH-13; runtime not yet wired).
+type LTPAAuth struct {
+	// SecretRef references a Secret holding the login username/password used to obtain
+	// an LTPA cookie. LTPA is login-derived (ADR-0027).
+	// +kubebuilder:validation:Required
+	SecretRef SecretReference `json:"secretRef"`
+}
+
+// ClientCertAuth configures client-certificate/mTLS authentication (later slice; runtime not yet wired).
+type ClientCertAuth struct {
+	// SecretRef references a Secret holding the client keypair (keys tls.crt/tls.key).
+	// +kubebuilder:validation:Required
+	SecretRef SecretReference `json:"secretRef"`
 }
 
 // TLSConfig holds TLS options for mqweb.

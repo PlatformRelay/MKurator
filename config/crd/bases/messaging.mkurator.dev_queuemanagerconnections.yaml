@@ -209,14 +209,114 @@ spec:
           metadata:
             type: object
           spec:
-            description: QueueManagerConnectionSpec defines how to reach an IBM MQ
-              queue manager.
+            description: |-
+              QueueManagerConnectionSpec defines how to reach an IBM MQ queue manager.
+
+              CEL admission (ADR-0025, ADR-0027) enforces:
+                - a credential source is always present: either the legacy credentialsSecretRef
+                  (implicit Basic) or an explicit authentication union.
+                - structural exclusivity of the authentication union: the member struct matching
+                  mode must be set and no other member may be set. Stateful checks (Secret
+                  existence and keys) stay in the validating webhook.
             properties:
+              authentication:
+                description: |-
+                  Authentication selects how MKurator authenticates to the mqweb admin REST API
+                  (ADR-0027). Exactly one mode; the member struct matching mode is required and no
+                  other member may be set (CEL-enforced structural exclusivity). When omitted, the
+                  connection defaults to Basic reading credentialsSecretRef, preserving existing
+                  manifests. This slice ships only the Basic enum value; LTPA and ClientCert land
+                  in later slices (AUTH-13+).
+                properties:
+                  basic:
+                    description: |-
+                      Basic authenticates with HTTP Basic against SecretRef (keys: username/password,
+                      mqAdminUser/mqAdminPassword also accepted). Required when mode is Basic.
+                    properties:
+                      secretRef:
+                        description: |-
+                          SecretRef references a Secret with mqweb credentials.
+                          Required key: password (mqAdminPassword is also accepted). Username is optional:
+                          username, user, or mqAdminUser (defaults to admin when absent; admission warns).
+                        properties:
+                          name:
+                            minLength: 1
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - secretRef
+                    type: object
+                  clientCert:
+                    description: |-
+                      ClientCert authenticates with a client certificate/mTLS (later slice).
+                      Required when mode is ClientCert.
+                    properties:
+                      secretRef:
+                        description: SecretRef references a Secret holding the client
+                          keypair (keys tls.crt/tls.key).
+                        properties:
+                          name:
+                            minLength: 1
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - secretRef
+                    type: object
+                  ltpa:
+                    description: LTPA authenticates with an LTPA login token (AUTH-13).
+                      Required when mode is LTPA.
+                    properties:
+                      secretRef:
+                        description: |-
+                          SecretRef references a Secret holding the login username/password used to obtain
+                          an LTPA cookie. LTPA is login-derived (ADR-0027).
+                        properties:
+                          name:
+                            minLength: 1
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - secretRef
+                    type: object
+                  mode:
+                    description: Mode selects the authentication mechanism. Only Basic
+                      is accepted in this slice.
+                    enum:
+                    - Basic
+                    type: string
+                required:
+                - mode
+                type: object
+                x-kubernetes-validations:
+                - message: authentication.basic is required when mode is Basic
+                  rule: self.mode != 'Basic' || has(self.basic)
+                - message: authentication.ltpa is required when mode is LTPA
+                  rule: self.mode != 'LTPA' || has(self.ltpa)
+                - message: authentication.clientCert is required when mode is ClientCert
+                  rule: self.mode != 'ClientCert' || has(self.clientCert)
+                - message: authentication.basic may only be set when mode is Basic
+                  rule: '!has(self.basic) || self.mode == ''Basic'''
+                - message: authentication.ltpa may only be set when mode is LTPA
+                  rule: '!has(self.ltpa) || self.mode == ''LTPA'''
+                - message: authentication.clientCert may only be set when mode is
+                    ClientCert
+                  rule: '!has(self.clientCert) || self.mode == ''ClientCert'''
               credentialsSecretRef:
                 description: |-
                   CredentialsSecretRef references a Secret with mqweb credentials.
                   Required key: password (mqAdminPassword is also accepted). Username is optional:
                   username, user, or mqAdminUser (defaults to admin when absent; admission warns).
+
+                  Optional as of ADR-0027: when omitted, an explicit authentication union must be
+                  supplied instead (CEL-enforced). When present and authentication is absent, the
+                  connection uses HTTP Basic against this Secret — the pre-ADR-0027 behaviour, so
+                  every existing manifest keeps working verbatim.
                 properties:
                   name:
                     minLength: 1
@@ -256,10 +356,12 @@ spec:
                     type: boolean
                 type: object
             required:
-            - credentialsSecretRef
             - endpoint
             - queueManager
             type: object
+            x-kubernetes-validations:
+            - message: either credentialsSecretRef or authentication must be set
+              rule: has(self.credentialsSecretRef) || has(self.authentication)
           status:
             description: QueueManagerConnectionStatus defines the observed state of
               QueueManagerConnection.
