@@ -824,6 +824,44 @@ var _ = Describe("Validating admission webhooks", func() {
 			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 		})
 
+		// AUTH-15 AC3: the "not both in conflicting ways" rule (ADR-0027 §CRD shape,
+		// line "not both authentication and a Basic-implying credentialsSecretRef in
+		// conflicting ways"). Predicate is the narrowest satisfying AC3: reject ONLY when
+		// both credentialsSecretRef AND authentication.basic.secretRef are set and name
+		// DIFFERENT Secrets. A redundant identical pair is admitted (not gratuitously
+		// rejected), and each field ALONE stays valid forever (asserted above/below).
+		It("AC3: admits both credentialsSecretRef and authentication.basic naming the SAME Secret", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-both-same")
+			conn.Spec.CredentialsSecretRef = &messagingv1beta1.SecretReference{Name: "creds"}
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode:  messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic: &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
+			}
+			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+		})
+
+		It("AC3: rejects credentialsSecretRef and authentication.basic naming DIFFERENT Secrets", func() {
+			ctx := context.Background()
+			// Both Secrets exist, so the CRD-level CEL rule (not the webhook's stateful
+			// Secret-existence check) is the thing that rejects the conflicting pair.
+			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "other-creds", Namespace: ns},
+			})).To(Succeed())
+			conn := newConn("qmc-both-conflict")
+			conn.Spec.CredentialsSecretRef = &messagingv1beta1.SecretReference{Name: "creds"}
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode:  messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic: &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "other-creds"}},
+			}
+			err := webhookK8sClient.Create(ctx, conn)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring(
+				"credentialsSecretRef and authentication.basic.secretRef must name the same Secret",
+			))
+		})
+
 		It("AC1: rejects a QMC with neither credentialsSecretRef nor authentication", func() {
 			ctx := context.Background()
 			conn := newConn("qmc-neither")

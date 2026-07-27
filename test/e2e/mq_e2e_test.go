@@ -257,6 +257,43 @@ stringData:
 				g.Expect(out).To(Equal("True"))
 			}).WithTimeout(qmcRotationEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 		})
+
+		// AUTH-15 AC1+AC4: a pre-union Basic manifest — applied at v1alpha1 (the stored
+		// version through the flip, extending the 8d-6/8d-7 conversion path) with the legacy
+		// credentialsSecretRef and NO spec.authentication — must still reach Ready=True on a
+		// post-union cluster. This is the e2e regression proof for ADR-0027's promise "every
+		// existing Basic connection keeps working unchanged": conversion (union dropped on the
+		// v1alpha1 spoke) + reconcile (hub re-read resolves the legacy Basic path) are green,
+		// and the wire-level header fidelity is pinned separately by the mqrest unit oracle
+		// TestClient_BasicHeadersIdenticalPreAndPostUnion.
+		//
+		// Serial: mutates the namespace-shared QMC (delete/re-apply), same reason as siblings.
+		It("reconciles a pre-union v1alpha1 Basic QueueManagerConnection unchanged post-union", Serial, Label("slow"), func() {
+			ensureE2ENamespace(ns)
+			DeferCleanup(func() {
+				_, _ = runKubectl("delete", "queuemanagerconnection", mqConnectionName, "-n", ns, "--ignore-not-found")
+			})
+
+			invalidateWebhookReadyCache()
+			waitForControllerAndWebhookReadyCached()
+
+			By("applying the pre-union v1alpha1 Basic manifest (credentialsSecretRef only, no authentication)")
+			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
+
+			By("verifying it reaches Ready=True — the legacy Basic path is unchanged after the union shipped")
+			eventuallyExpectQMCReady(ns)
+
+			By("verifying the stored v1alpha1 spec carries credentialsSecretRef and no authentication union")
+			storedRef, err := runKubectl("get", "queuemanagerconnections.v1alpha1.messaging.mkurator.dev",
+				mqConnectionName, "-n", ns, "-o", "jsonpath={.spec.credentialsSecretRef.name}")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(storedRef).To(Equal("mq-credentials"))
+			storedAuth, err := runKubectl("get", "queuemanagerconnections.v1alpha1.messaging.mkurator.dev",
+				mqConnectionName, "-n", ns, "-o", "jsonpath={.spec.authentication}")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(storedAuth).To(BeEmpty(),
+				"v1alpha1 has no authentication field; the union is dropped on down-convert (AUTH-12)")
+		})
 	})
 
 	Describe("topics", Label("mq-topic"), func() {
