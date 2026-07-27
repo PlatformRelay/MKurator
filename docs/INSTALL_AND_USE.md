@@ -391,9 +391,10 @@ verbatim.
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `spec.authentication.mode` | yes (within the union) | `Basic` or `LTPA` (AUTH-13). `ClientCert` is reserved for a later release and is rejected at admission today. |
+| `spec.authentication.mode` | yes (within the union) | `Basic`, `LTPA` (AUTH-13), or `ClientCert` (mTLS, AUTH-16). |
 | `spec.authentication.basic.secretRef.name` | when `mode: Basic` | Secret with `username`/`password` (or `mqAdminUser`/`mqAdminPassword`). |
 | `spec.authentication.ltpa.secretRef.name` | when `mode: LTPA` | Secret with the login `username`/`password` (same keys as Basic). The operator logs in once, caches the LTPA cookie, and re-logs-in on a `MQWB0112E` 401 (see below). |
+| `spec.authentication.clientCert.secretRef.name` | when `mode: ClientCert` | A `kubernetes.io/tls`-shaped Secret with `tls.crt`/`tls.key`. The keypair authenticates MKurator at the TLS transport (mTLS); **no** `Authorization` header is sent (see below). |
 
 Structural exclusivity is enforced CEL-first: the member struct must match `mode`
 (`authentication.basic` is required for and only allowed with `mode: Basic`), so a manifest
@@ -444,6 +445,53 @@ with classifier `MQWB0112E`, the client re-logs-in once and retries; a `MQWB0104
 second consecutive rejection surfaces `Ready=False`, `Reason=Error`. There is no client-side
 expiry timer and no cache-eviction re-auth (ADR-0023). See
 [IBM_MQ_REST_API.md §3.3a](IBM_MQ_REST_API.md) for the full flow and classifier table.
+
+ClientCert / mTLS example (`mode: ClientCert`):
+
+```yaml
+apiVersion: messaging.mkurator.dev/v1beta1
+kind: QueueManagerConnection
+metadata:
+  name: prod-qm1
+  namespace: mkurator-system
+spec:
+  queueManager: QM1
+  endpoint: https://mq.example.com:9443
+  tls:
+    caSecretRef:
+      name: mqweb-server-ca   # server-auth trust (unchanged; independent of the client cert)
+  authentication:
+    mode: ClientCert
+    clientCert:
+      secretRef:
+        name: mkurator-client-cert   # kubernetes.io/tls Secret: tls.crt + tls.key
+```
+
+With `mode: ClientCert`, MKurator authenticates to mqweb with a **client certificate at the
+TLS transport (mTLS)**. The `tls.crt`/`tls.key` keypair from the referenced
+`kubernetes.io/tls` Secret is loaded onto the HTTPS transport, so mqweb identifies MKurator
+by the presented certificate and **no `Authorization` header is ever sent** — the admin
+identity carries no shared secret at all. The `spec.tls.caSecretRef` server-auth trust is
+independent and unchanged; you typically set both (trust the mqweb server cert *and* present
+a client cert). A cert-manager-issued Secret rotates cleanly: when its `resourceVersion`
+changes, the operator swaps the client and closes the old transport (ADR-0023, AUTH-14).
+
+> **mqweb-side prerequisite MKurator does NOT configure.** Client-certificate authentication
+> for the mqweb admin REST API requires TWO pieces of **server-side** configuration on the
+> queue manager / mqweb that are a **deployment prerequisite**, not something MKurator sets
+> up (mirroring ADR-0002's "mqweb enabled is a prerequisite, not a goal" and ADR-0009's
+> "documented, not implemented" stance):
+>
+> 1. **mqweb must trust your client CA** (configure Liberty/mqweb to require and verify
+>    client certificates for the REST API), and
+> 2. **the certificate's Distinguished Name (DN) must be mapped to an mqweb user** in the
+>    queue manager's user registry.
+>
+> If either is missing, mqweb rejects the certificate. MKurator surfaces this as a
+> **terminal `Ready=False`, `Reason=Error`** condition whose message points at exactly this
+> DN-to-user-registry mapping prerequisite — MKurator does **not** attempt to configure
+> mqweb. Certificate revocation/OCSP is explicitly out of scope (ADR-0009: local CA, no OCSP
+> in the connection path).
 
 **Status**
 
