@@ -21,7 +21,7 @@ properties:
       (ADR-0027). Exactly one mode; the member struct matching mode is required and no
       other member may be set (CEL-enforced structural exclusivity). When omitted, the
       connection defaults to Basic reading credentialsSecretRef, preserving existing
-      manifests. Basic and LTPA are accepted; ClientCert lands in a later slice.
+      manifests. Basic, LTPA, and ClientCert (mTLS) are all accepted.
     properties:
       basic:
         description: |-
@@ -45,12 +45,13 @@ properties:
         type: object
       clientCert:
         description: |-
-          ClientCert authenticates with a client certificate/mTLS (later slice).
+          ClientCert authenticates with a client certificate/mTLS (AUTH-16).
           Required when mode is ClientCert.
         properties:
           secretRef:
-            description: SecretRef references a Secret holding the client keypair
-              (keys tls.crt/tls.key).
+            description: |-
+              SecretRef references a kubernetes.io/tls-shaped Secret holding the client keypair
+              (keys tls.crt/tls.key). Existence and shape are checked by the validating webhook.
             properties:
               name:
                 minLength: 1
@@ -81,11 +82,12 @@ properties:
         - secretRef
         type: object
       mode:
-        description: Mode selects the authentication mechanism. Basic and LTPA are
-          accepted.
+        description: Mode selects the authentication mechanism. Basic, LTPA, and ClientCert
+          are accepted.
         enum:
         - Basic
         - LTPA
+        - ClientCert
         type: string
     required:
     - mode

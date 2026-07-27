@@ -107,11 +107,11 @@ API version: `messaging.mkurator.dev/v1beta1` · Kind: `QueueManagerConnection`
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `authentication` | object | no | Authentication selects how MKurator authenticates to the mqweb admin REST API (ADR-0027). Exactly one mode; the member struct matching mode is required and no other member may be set (CEL-enforced structural exclusivity). When omitted, the connection defaults to Basic reading credentialsSecretRef, preserving existing manifests. Basic and LTPA are accepted; ClientCert lands in a later slice. |
+| `authentication` | object | no | Authentication selects how MKurator authenticates to the mqweb admin REST API (ADR-0027). Exactly one mode; the member struct matching mode is required and no other member may be set (CEL-enforced structural exclusivity). When omitted, the connection defaults to Basic reading credentialsSecretRef, preserving existing manifests. Basic, LTPA, and ClientCert (mTLS) are all accepted. |
 | `authentication.basic` | object | no | Basic authenticates with HTTP Basic against SecretRef (keys: username/password, mqAdminUser/mqAdminPassword also accepted). Required when mode is Basic. |
-| `authentication.clientCert` | object | no | ClientCert authenticates with a client certificate/mTLS (later slice). Required when mode is ClientCert. |
+| `authentication.clientCert` | object | no | ClientCert authenticates with a client certificate/mTLS (AUTH-16). Required when mode is ClientCert. |
 | `authentication.ltpa` | object | no | LTPA authenticates with an LTPA login token (AUTH-13). Required when mode is LTPA. |
-| `authentication.mode` | enum(Basic, LTPA) | yes | Mode selects the authentication mechanism. Basic and LTPA are accepted. |
+| `authentication.mode` | enum(Basic, LTPA, ClientCert) | yes | Mode selects the authentication mechanism. Basic, LTPA, and ClientCert are accepted. |
 | `credentialsSecretRef` | object | no | CredentialsSecretRef references a Secret with mqweb credentials. Required key: password (mqAdminPassword is also accepted). Username is optional: username, user, or mqAdminUser (defaults to admin when absent; admission warns). Optional as of ADR-0027: when omitted, an explicit authentication union must be supplied instead (CEL-enforced). When present and authentication is absent, the connection uses HTTP Basic against this Secret — the pre-ADR-0027 behaviour, so every existing manifest keeps working verbatim. |
 | `credentialsSecretRef.name` | string | yes | — |
 | `endpoint` | string | yes | Endpoint is the mqweb base URL, e.g. https://ibm-mq.ibm-mq.svc:9443 |

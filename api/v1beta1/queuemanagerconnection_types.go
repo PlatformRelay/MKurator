@@ -97,19 +97,19 @@ type QueueManagerConnectionSpec struct {
 	// (ADR-0027). Exactly one mode; the member struct matching mode is required and no
 	// other member may be set (CEL-enforced structural exclusivity). When omitted, the
 	// connection defaults to Basic reading credentialsSecretRef, preserving existing
-	// manifests. Basic and LTPA are accepted; ClientCert lands in a later slice.
+	// manifests. Basic, LTPA, and ClientCert (mTLS) are all accepted.
 	// +optional
 	Authentication *MQWebAuthentication `json:"authentication,omitempty"`
 }
 
 // MQWebAuthenticationMode selects the mqweb admin REST authentication mechanism.
 //
-// Basic and LTPA are accepted (ADR-0027 sequencing: AUTH-13 shipped the LTPA runtime).
-// ClientCert is still rejected by the enum because its runtime has not landed — admitting
-// it before then would create a "dead letter" spec that cannot be reconciled. The member
-// struct for ClientCert exists on the union so the exclusivity CEL is expressible, but
-// selecting that mode is rejected until its slice ships.
-// +kubebuilder:validation:Enum=Basic;LTPA
+// Basic, LTPA, and ClientCert are all accepted (ADR-0027 sequencing: AUTH-13 shipped the
+// LTPA runtime, AUTH-16 shipped the mTLS/client-certificate runtime). ClientCert
+// authenticates at the transport (mTLS): the client keypair is loaded into the HTTP
+// transport's tls.Config and NO Authorization header is sent — the admin identity carries
+// no shared secret at all.
+// +kubebuilder:validation:Enum=Basic;LTPA;ClientCert
 type MQWebAuthenticationMode string
 
 const (
@@ -117,7 +117,7 @@ const (
 	MQWebAuthenticationModeBasic MQWebAuthenticationMode = "Basic"
 	// MQWebAuthenticationModeLTPA authenticates with an LTPA login token (AUTH-13).
 	MQWebAuthenticationModeLTPA MQWebAuthenticationMode = "LTPA"
-	// MQWebAuthenticationModeClientCert authenticates with a client certificate/mTLS (later slice; not yet accepted).
+	// MQWebAuthenticationModeClientCert authenticates with a client certificate/mTLS (AUTH-16).
 	MQWebAuthenticationModeClientCert MQWebAuthenticationMode = "ClientCert"
 )
 
@@ -134,7 +134,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="!has(self.ltpa) || self.mode == 'LTPA'",message="authentication.ltpa may only be set when mode is LTPA"
 // +kubebuilder:validation:XValidation:rule="!has(self.clientCert) || self.mode == 'ClientCert'",message="authentication.clientCert may only be set when mode is ClientCert"
 type MQWebAuthentication struct {
-	// Mode selects the authentication mechanism. Basic and LTPA are accepted.
+	// Mode selects the authentication mechanism. Basic, LTPA, and ClientCert are accepted.
 	// +kubebuilder:validation:Required
 	Mode MQWebAuthenticationMode `json:"mode"`
 
@@ -147,7 +147,7 @@ type MQWebAuthentication struct {
 	// +optional
 	LTPA *LTPAAuth `json:"ltpa,omitempty"`
 
-	// ClientCert authenticates with a client certificate/mTLS (later slice).
+	// ClientCert authenticates with a client certificate/mTLS (AUTH-16).
 	// Required when mode is ClientCert.
 	// +optional
 	ClientCert *ClientCertAuth `json:"clientCert,omitempty"`
@@ -176,9 +176,18 @@ type LTPAAuth struct {
 	SecretRef SecretReference `json:"secretRef"`
 }
 
-// ClientCertAuth configures client-certificate/mTLS authentication (later slice; runtime not yet wired).
+// ClientCertAuth configures client-certificate/mTLS authentication (AUTH-16).
+//
+// Authentication happens at the transport: the referenced kubernetes.io/tls-shaped Secret's
+// tls.crt/tls.key keypair is loaded into the HTTP transport's tls.Config.Certificates, so
+// mqweb authenticates MKurator by the presented client certificate and NO Authorization
+// header is ever sent — the admin identity carries no shared secret. Server-auth trust
+// (spec.tls.caSecretRef) is independent and unchanged. Mapping the certificate DN to an
+// mqweb user in the queue-manager registry is a DEPLOYMENT prerequisite MKurator does not
+// configure (ADR-0002 stance).
 type ClientCertAuth struct {
-	// SecretRef references a Secret holding the client keypair (keys tls.crt/tls.key).
+	// SecretRef references a kubernetes.io/tls-shaped Secret holding the client keypair
+	// (keys tls.crt/tls.key). Existence and shape are checked by the validating webhook.
 	// +kubebuilder:validation:Required
 	SecretRef SecretReference `json:"secretRef"`
 }
