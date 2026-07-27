@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -160,6 +161,7 @@ type authMode int
 const (
 	authModeBasic authMode = iota
 	authModeLTPA
+	authModeClientCert
 )
 
 // resolvedAuth is the effective authentication for a connection: the Secret it
@@ -187,15 +189,16 @@ func (f *ClientFactory) resolveCredentialsSecretName(
 //
 // The reconciler passes a v1alpha1 (spoke) QMC whose authentication union was dropped by
 // down-conversion, so we re-read the v1beta1 hub by namespace/name:
-//   - authentication union, mode Basic -> Basic against authentication.basic.secretRef
-//   - authentication union, mode LTPA  -> LTPA against authentication.ltpa.secretRef (AUTH-13)
-//   - union absent (legacy spec)       -> Basic against hub credentialsSecretRef
+//   - authentication union, mode Basic      -> Basic against authentication.basic.secretRef
+//   - authentication union, mode LTPA       -> LTPA against authentication.ltpa.secretRef (AUTH-13)
+//   - authentication union, mode ClientCert -> mTLS against authentication.clientCert.secretRef (AUTH-16)
+//   - union absent (legacy spec)            -> Basic against hub credentialsSecretRef
 //
 // Fallback (legacy behaviour): if the hub is NotFound — including test/fake clients whose
 // scheme has no v1beta1 registered, which surface as NotFound — we use the spoke's
 // CredentialsSecretRef as Basic, preserving pre-ADR-0027 behaviour verbatim. Any other read
 // error is propagated: swallowing it would yield empty credentials and a confusing
-// downstream error. Only Basic and LTPA are accepted enum values, so no other mode reaches here.
+// downstream error. Basic, LTPA, and ClientCert are the accepted enum values.
 func (f *ClientFactory) resolveAuthentication(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
@@ -210,6 +213,8 @@ func (f *ClientFactory) resolveAuthentication(
 				return resolvedAuth{secretName: a.Basic.SecretRef.Name, mode: authModeBasic}, nil
 			case a.Mode == messagingv1beta1.MQWebAuthenticationModeLTPA && a.LTPA != nil:
 				return resolvedAuth{secretName: a.LTPA.SecretRef.Name, mode: authModeLTPA}, nil
+			case a.Mode == messagingv1beta1.MQWebAuthenticationModeClientCert && a.ClientCert != nil:
+				return resolvedAuth{secretName: a.ClientCert.SecretRef.Name, mode: authModeClientCert}, nil
 			}
 		}
 		if hub.Spec.CredentialsSecretRef != nil {
@@ -297,10 +302,17 @@ func (f *ClientFactory) buildConfig(
 	}, credSecret); err != nil {
 		return Config{}, secretLookupError(
 			credName,
-			"credentials",
+			credSecretRole(auth.mode),
 			"",
 			err,
 		)
+	}
+
+	// ClientCert (mTLS): the Secret carries a tls.crt/tls.key keypair, NOT username/password.
+	// Authentication is at the transport, so we skip credentialsFromSecret entirely (a tls
+	// Secret has no password) and defer keypair loading to after the TLS trust block below.
+	if auth.mode == authModeClientCert {
+		return f.buildClientCertConfig(ctx, conn, credName, credSecret)
 	}
 
 	user, pass, err := credentialsFromSecret(credSecret.Data)
@@ -308,49 +320,14 @@ func (f *ClientFactory) buildConfig(
 		return Config{}, err
 	}
 
-	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
-	if conn.Spec.TLS != nil && conn.Spec.TLS.InsecureSkipVerify {
-		tlsCfg.InsecureSkipVerify = true
-		// Insecure TLS must be explicit, logged, opt-in (GUIDELINES §B3).
-		// Purely additive WARN: it does not alter the TLS decision above.
-		// A genuine slog WARN is reached by unwrapping the request-path logr
-		// logger back to its underlying slog handler, so this line still flows
-		// through the app's configured sink (incl. redaction).
-		slog.New(logr.ToSlogHandler(log.FromContext(ctx))).WarnContext(
-			ctx,
-			"TLS certificate verification disabled (insecureSkipVerify) for mqweb connection",
-			"connection", connectionCacheKey(conn),
-		)
-	}
-
-	if conn.Spec.TLS != nil && conn.Spec.TLS.CASecretRef != nil {
-		caSecret := &corev1.Secret{}
-		if getErr := f.K8s.Get(ctx, client.ObjectKey{
-			Namespace: ns,
-			Name:      conn.Spec.TLS.CASecretRef.Name,
-		}, caSecret); getErr != nil {
-			return Config{}, secretLookupError(
-				conn.Spec.TLS.CASecretRef.Name,
-				"CA",
-				"",
-				getErr,
-			)
-		}
-		pool, poolErr := caPoolFromSecret(caSecret.Data)
-		if poolErr != nil {
-			return Config{}, poolErr
-		}
-		tlsCfg.RootCAs = pool
-	}
-
-	endpoint, err := url.Parse(conn.Spec.Endpoint)
+	tlsCfg, err := f.buildServerTLSConfig(ctx, conn)
 	if err != nil {
-		return Config{}, fmt.Errorf("parse endpoint: %w", err)
+		return Config{}, err
 	}
 
-	prefix := conn.Spec.RESTPrefix
-	if prefix == "" {
-		prefix = DefaultRESTPrefix
+	endpoint, prefix, err := endpointAndPrefix(conn)
+	if err != nil {
+		return Config{}, err
 	}
 
 	cfg := Config{
@@ -375,6 +352,111 @@ func (f *ClientFactory) buildConfig(
 	}
 
 	return cfg, nil
+}
+
+// buildClientCertConfig builds the Config for ClientCert (mTLS) mode (ADR-0027, AUTH-16).
+// Server-auth trust (caSecretRef / insecureSkipVerify) is built by the SAME shared helper as
+// Basic/LTPA, so that path is unchanged (AC1). The tls.crt/tls.key keypair from credSecret is
+// loaded onto tlsCfg.Certificates; a malformed/mismatched keypair surfaces as a
+// configuration-class error (AC2). No username/password is read and the request authenticator
+// is a no-op (no Authorization header).
+func (f *ClientFactory) buildClientCertConfig(
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
+	credName string,
+	credSecret *corev1.Secret,
+) (Config, error) {
+	tlsCfg, err := f.buildServerTLSConfig(ctx, conn)
+	if err != nil {
+		return Config{}, err
+	}
+
+	certPEM := firstBytes(credSecret.Data, "tls.crt")
+	keyPEM := firstBytes(credSecret.Data, "tls.key")
+	pair, err := loadClientCertificate(certPEM, keyPEM)
+	if err != nil {
+		// Non-transient configuration error; annotate with the Secret name (never the bytes).
+		var te *mqadmin.TerminalError
+		if errors.As(err, &te) {
+			te.Message = fmt.Sprintf("%s from Secret %q", te.Message, credName)
+		}
+		return Config{}, err
+	}
+	tlsCfg.Certificates = append(tlsCfg.Certificates, pair)
+
+	endpoint, prefix, err := endpointAndPrefix(conn)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return Config{
+		Endpoint:       endpoint,
+		RESTPrefix:     prefix,
+		QueueManager:   conn.Spec.QueueManager,
+		TLSConfig:      tlsCfg,
+		authenticator:  noopRequestAuthenticator{},
+		clientCertMode: true,
+	}, nil
+}
+
+// buildServerTLSConfig builds the SERVER-auth trust portion of the tls.Config (RootCAs from
+// caSecretRef, opt-in insecureSkipVerify) shared by every auth mode. ClientCert mode adds its
+// keypair on top; Basic/LTPA use it as-is — so widening auth modes never perturbs server trust
+// (ADR-0027 AC1: "existing caSecretRef server-auth trust is unchanged").
+func (f *ClientFactory) buildServerTLSConfig(
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
+) (*tls.Config, error) {
+	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
+	if conn.Spec.TLS != nil && conn.Spec.TLS.InsecureSkipVerify {
+		tlsCfg.InsecureSkipVerify = true
+		// Insecure TLS must be explicit, logged, opt-in (GUIDELINES §B3).
+		// Purely additive WARN: it does not alter the TLS decision above.
+		// A genuine slog WARN is reached by unwrapping the request-path logr
+		// logger back to its underlying slog handler, so this line still flows
+		// through the app's configured sink (incl. redaction).
+		slog.New(logr.ToSlogHandler(log.FromContext(ctx))).WarnContext(
+			ctx,
+			"TLS certificate verification disabled (insecureSkipVerify) for mqweb connection",
+			"connection", connectionCacheKey(conn),
+		)
+	}
+
+	if conn.Spec.TLS != nil && conn.Spec.TLS.CASecretRef != nil {
+		caSecret := &corev1.Secret{}
+		if getErr := f.K8s.Get(ctx, client.ObjectKey{
+			Namespace: conn.Namespace,
+			Name:      conn.Spec.TLS.CASecretRef.Name,
+		}, caSecret); getErr != nil {
+			return nil, secretLookupError(conn.Spec.TLS.CASecretRef.Name, "CA", "", getErr)
+		}
+		pool, poolErr := caPoolFromSecret(caSecret.Data)
+		if poolErr != nil {
+			return nil, poolErr
+		}
+		tlsCfg.RootCAs = pool
+	}
+	return tlsCfg, nil
+}
+
+func endpointAndPrefix(conn *messagingv1alpha1.QueueManagerConnection) (*url.URL, string, error) {
+	endpoint, err := url.Parse(conn.Spec.Endpoint)
+	if err != nil {
+		return nil, "", fmt.Errorf("parse endpoint: %w", err)
+	}
+	prefix := conn.Spec.RESTPrefix
+	if prefix == "" {
+		prefix = DefaultRESTPrefix
+	}
+	return endpoint, prefix, nil
+}
+
+// credSecretRole labels the Secret in lookup errors by the mode's material.
+func credSecretRole(mode authMode) string {
+	if mode == authModeClientCert {
+		return "client certificate"
+	}
+	return "credentials"
 }
 
 func credentialsFromSecret(data map[string][]byte) (string, string, error) {

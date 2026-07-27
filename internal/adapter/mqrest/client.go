@@ -55,6 +55,12 @@ type Config struct {
 	// authenticator is selected by the factory for the configured authentication mode.
 	// A nil value preserves the legacy Basic authentication behaviour.
 	authenticator requestAuthenticator
+
+	// clientCertMode is set for ClientCert (mTLS) auth (ADR-0027, AUTH-16). It makes the
+	// client classify a server-originated TLS handshake alert as a terminal Unauthorized
+	// and decorate 401/403 messages with the mqweb DN->user registry mapping prerequisite.
+	// Basic/LTPA leave it false, so their paths are unchanged.
+	clientCertMode bool
 }
 
 // Client implements mqadmin.Admin over the mqweb /mqsc endpoint.
@@ -70,6 +76,12 @@ type Client struct {
 	reauth  reauthenticator
 	retry   retryPolicy
 	breaker *circuitBreaker
+
+	// clientCertMode steers auth-failure classification for ClientCert (mTLS) mode: a
+	// server-originated TLS handshake alert becomes a terminal Unauthorized and 401/403
+	// messages carry the mqweb DN->user registry mapping prerequisite (AUTH-16). False for
+	// Basic/LTPA, so their classification is unchanged.
+	clientCertMode bool
 
 	displayProbeMu    sync.Mutex
 	displayProbeCache map[string]bool
@@ -119,14 +131,15 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	return &Client{
-		mqscURL:       mqscURL,
-		adminQMURL:    adminQMURL,
-		queueManager:  cfg.QueueManager,
-		httpClient:    hc,
-		authenticator: authenticator,
-		reauth:        reauth,
-		retry:         retryPolicyFromResilience(cfg.Resilience),
-		breaker:       newCircuitBreaker(circuitBreakerConfigFromResilience(cfg.Resilience)),
+		mqscURL:        mqscURL,
+		adminQMURL:     adminQMURL,
+		queueManager:   cfg.QueueManager,
+		httpClient:     hc,
+		authenticator:  authenticator,
+		reauth:         reauth,
+		retry:          retryPolicyFromResilience(cfg.Resilience),
+		breaker:        newCircuitBreaker(circuitBreakerConfigFromResilience(cfg.Resilience)),
+		clientCertMode: cfg.clientCertMode,
 	}, nil
 }
 
@@ -166,7 +179,7 @@ func (c *Client) Ping(ctx context.Context) error {
 	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
 		return &mqadmin.TerminalError{
 			Reason:  reasonUnauthorized,
-			Message: fmt.Sprintf("mqweb ping returned HTTP %d", res.StatusCode),
+			Message: c.unauthorizedMessage(fmt.Sprintf("mqweb ping returned HTTP %d", res.StatusCode)),
 		}
 	}
 	if res.StatusCode >= 500 {
@@ -436,7 +449,7 @@ func (c *Client) postMQSC(ctx context.Context, body any) (*mqscResponse, error) 
 	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
 		return nil, &mqadmin.TerminalError{
 			Reason:  reasonUnauthorized,
-			Message: fmt.Sprintf("mqweb returned HTTP %d", res.StatusCode),
+			Message: c.unauthorizedMessage(fmt.Sprintf("mqweb returned HTTP %d", res.StatusCode)),
 		}
 	}
 	if res.StatusCode >= 500 || res.StatusCode == http.StatusServiceUnavailable {
