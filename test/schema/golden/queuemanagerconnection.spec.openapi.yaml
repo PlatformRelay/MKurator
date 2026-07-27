@@ -7,6 +7,13 @@ description: |-
     - structural exclusivity of the authentication union: the member struct matching
       mode must be set and no other member may be set. Stateful checks (Secret
       existence and keys) stay in the validating webhook.
+    - Basic-compat non-conflict (ADR-0027 §CRD shape, "not both authentication and a
+      Basic-implying credentialsSecretRef in conflicting ways"): when BOTH the legacy
+      credentialsSecretRef and an explicit Basic union are supplied they must name the
+      SAME Secret. This is the narrowest rule satisfying AUTH-15 AC3 — a redundant
+      identical pair is admitted, and each field ALONE stays valid forever, so no
+      pre-union manifest is ever false-rejected. The OR-guards short-circuit
+      left-to-right so absent fields never trigger a nil traversal in CEL.
 properties:
   authentication:
     description: |-
@@ -149,3 +156,7 @@ type: object
 x-kubernetes-validations:
 - message: either credentialsSecretRef or authentication must be set
   rule: has(self.credentialsSecretRef) || has(self.authentication)
+- message: credentialsSecretRef and authentication.basic.secretRef must name the same
+    Secret
+  rule: '!has(self.credentialsSecretRef) || !has(self.authentication) || !has(self.authentication.basic)
+    || self.authentication.basic.secretRef.name == self.credentialsSecretRef.name'
