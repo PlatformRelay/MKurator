@@ -19,6 +19,18 @@ func ValidateQueueManagerConnectionSpecV1Beta1(
 	annotations map[string]string,
 	spec *messagingv1beta1.QueueManagerConnectionSpec,
 ) ([]string, field.ErrorList) {
+	// ClientCert (mTLS, AUTH-16) is a DIFFERENT stateful shape: the referenced Secret carries a
+	// tls.crt/tls.key keypair, NOT username/password. Route it to a dedicated keypair check
+	// (existence + both keys present) rather than the username/password path below — otherwise a
+	// tls Secret would draw a spurious "missing username" warning and its keypair would never be
+	// checked. Structural exclusivity of the union is CEL-first (ADR-0025), so by the time this
+	// webhook runs the union is well-formed and clientCert is set iff mode is ClientCert.
+	if a := spec.Authentication; a != nil &&
+		a.Mode == messagingv1beta1.MQWebAuthenticationModeClientCert && a.ClientCert != nil {
+		errs := validateClientCertSecret(ctx, reader, namespace, a.ClientCert.SecretRef.Name)
+		return nil, errs
+	}
+
 	// Resolve the effective credentials Secret for stateful checks. Structural
 	// exclusivity of the authentication union is enforced CEL-first (ADR-0025), so by the
 	// time this webhook runs, the union — when present — is well-formed. We only need the
@@ -27,7 +39,7 @@ func ValidateQueueManagerConnectionSpecV1Beta1(
 	//   - authentication union, mode LTPA  -> authentication.ltpa.secretRef (AUTH-13; the
 	//     LTPA login Secret carries the same username/password keys)
 	//   - legacy credentialsSecretRef (union absent) -> credentialsSecretRef
-	// Basic and LTPA are the accepted enum values, so no other mode reaches here.
+	// Basic and LTPA reach here; ClientCert is handled above.
 	credName := ""
 	if spec.CredentialsSecretRef != nil {
 		credName = spec.CredentialsSecretRef.Name
@@ -65,6 +77,33 @@ func ValidateQueueManagerConnectionSpecV1Beta1(
 		annotations,
 		&alphaSpec,
 	)
+}
+
+// validateClientCertSecret performs the stateful ClientCert (mTLS) keypair check (AUTH-16,
+// ADR-0027 AC2): the referenced Secret must exist and carry BOTH a non-empty tls.crt and
+// tls.key. The keys-existence/shape check lives here in the STATEFUL webhook tier, never in
+// CEL. Deep keypair validity (parse/match) is enforced at client-build time as a
+// configuration-class error; this webhook only guards the presence/shape so a misshapen
+// Secret is rejected at admission with a clear, actionable message.
+func validateClientCertSecret(
+	ctx context.Context,
+	reader client.Reader,
+	namespace, name string,
+) field.ErrorList {
+	path := field.NewPath("spec").Child("authentication").Child("clientCert").Child("secretRef").Child("name")
+	errs, secret := getSecretOrErrors(ctx, reader, namespace, name, path)
+	if len(errs) > 0 || secret == nil {
+		return errs
+	}
+	var out field.ErrorList
+	for _, key := range []string{"tls.crt", "tls.key"} {
+		if v, ok := secret.Data[key]; !ok || len(v) == 0 {
+			out = append(out, field.Invalid(path, name, fmt.Sprintf(
+				"client certificate Secret %q must contain a non-empty %q (a kubernetes.io/tls-shaped Secret)",
+				name, key)))
+		}
+	}
+	return out
 }
 
 // ValidateQueueManagerConnectionDeleteV1Beta1 denies delete while dependents still reference this connection.
