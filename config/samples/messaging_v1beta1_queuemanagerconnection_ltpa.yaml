@@ -1,0 +1,32 @@
+# LTPA login-token authentication (ADR-0027 spec.authentication union, AUTH-13).
+#
+# The operator logs in ONCE with the referenced credentials (POST /ibmmq/rest/v3/login),
+# caches the returned LTPA cookie, and sends the cookie — never an Authorization header —
+# on every subsequent request. This stops the shared credentials from crossing the wire on
+# every request (the one concrete gain over Basic; LTPA is still login-derived, so the
+# credentials must still be rotated — see docs/IBM_MQ_REST_API.md).
+#
+# Re-authentication is 401-driven and handled IN-CLIENT: when mqweb rejects the cookie with
+# MQWB0112E ("authentication token cookie failed verification"), the client re-logs-in once
+# and retries. There is NO client-side expiry timer (timer expiry was not observed on the
+# pinned 9.4.5.1-r1 build) and NO TTL cache eviction (ADR-0023).
+#
+# The referenced Secret uses the same keys as Basic: password (or mqAdminPassword) is
+# required; username is optional (username / user / mqAdminUser, defaults to admin).
+apiVersion: messaging.mkurator.dev/v1beta1
+kind: QueueManagerConnection
+metadata:
+  name: qm1-ltpa
+  namespace: mkurator-system
+  annotations:
+    messaging.mkurator.dev/allow-insecure-tls: "true"
+spec:
+  queueManager: QM1
+  endpoint: https://ibm-mq.ibm-mq.svc:9443
+  tls:
+    insecureSkipVerify: true
+  authentication:
+    mode: LTPA
+    ltpa:
+      secretRef:
+        name: mq-credentials
