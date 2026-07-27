@@ -127,6 +127,12 @@ func (a *ltpaAuthenticator) shouldReauthenticate(status int, body []byte) bool {
 // generation double-check: if the cached generation already advanced past the
 // token the caller saw, another goroutine re-logged in, so this returns without a
 // second login. On success it replaces the cookie jar and bumps the generation.
+//
+// The login network call runs while holding a.mu ON PURPOSE: the lock is the
+// single-flight barrier. Concurrent authenticate/reauthenticate callers block on
+// it until the one in-flight login finishes, which both coalesces N concurrent
+// re-logins into one and prevents any goroutine attaching a half-updated cookie.
+// This is a deliberate lock-across-I/O, not an oversight.
 func (a *ltpaAuthenticator) reauthenticate(ctx context.Context, seenToken uint64) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
