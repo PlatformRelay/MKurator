@@ -786,6 +786,111 @@ var _ = Describe("Validating admission webhooks", func() {
 		})
 	})
 
+	// AUTH-12: spec.authentication union + CEL exclusivity (ADR-0027, ADR-0025).
+	// These assert CRD-level x-kubernetes-validations (evaluated by the API server), with
+	// error-message checks. Structural exclusivity is CEL-first; the webhook is not involved.
+	Describe("v1beta1 QueueManagerConnection authentication union (CEL)", func() {
+		newConn := func(name string) *messagingv1beta1.QueueManagerConnection {
+			return &messagingv1beta1.QueueManagerConnection{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+				Spec: messagingv1beta1.QueueManagerConnectionSpec{
+					QueueManager: "QM1",
+					Endpoint:     "https://mq.example:9443",
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			ctx := context.Background()
+			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
+			})).To(Succeed())
+		})
+
+		It("AC1: admits a legacy QMC (no authentication) treated as Basic-compat", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-legacy-basic")
+			conn.Spec.CredentialsSecretRef = &messagingv1beta1.SecretReference{Name: "creds"}
+			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+		})
+
+		It("AC3: admits an explicit Basic union with basic.secretRef", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-explicit-basic")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode:  messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic: &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
+			}
+			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+		})
+
+		It("AC1: rejects a QMC with neither credentialsSecretRef nor authentication", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-neither")
+			err := webhookK8sClient.Create(ctx, conn)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("either credentialsSecretRef or authentication must be set"))
+		})
+
+		It("AC2: rejects Basic mode with a non-matching member set (wrong member)", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-wrong-member")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeBasic,
+				LTPA: &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
+			}
+			err := webhookK8sClient.Create(ctx, conn)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			// Two rules fire: basic required for Basic, and ltpa only allowed for LTPA.
+			Expect(err.Error()).To(Or(
+				ContainSubstring("authentication.basic is required when mode is Basic"),
+				ContainSubstring("authentication.ltpa may only be set when mode is LTPA"),
+			))
+		})
+
+		It("AC2: rejects Basic mode with no member set (none matching)", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-no-member")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeBasic,
+			}
+			err := webhookK8sClient.Create(ctx, conn)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("authentication.basic is required when mode is Basic"))
+		})
+
+		It("AC2: rejects Basic mode with two members set", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-two-members")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode:  messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic: &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
+				LTPA:  &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
+			}
+			err := webhookK8sClient.Create(ctx, conn)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("authentication.ltpa may only be set when mode is LTPA"))
+		})
+
+		It("AC2/enum: rejects an unimplemented mode (LTPA) at the enum, no dead letter", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-ltpa-mode")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeLTPA,
+				LTPA: &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
+			}
+			err := webhookK8sClient.Create(ctx, conn)
+			Expect(err).To(HaveOccurred())
+			Expect(apierrors.IsInvalid(err)).To(BeTrue())
+			// Rejected by the enum (only Basic accepted), not by the exclusivity CEL.
+			Expect(err.Error()).To(ContainSubstring("Unsupported value"))
+		})
+	})
+
 	Describe("v1beta1 deprecated spec.attributes warnings", func() {
 		BeforeEach(func() {
 			ctx := context.Background()
@@ -847,7 +952,7 @@ func sampleWebhookConnectionV1Beta1(ns, name string) *messagingv1beta1.QueueMana
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "creds",
 			},
 		},

@@ -210,7 +210,7 @@ func TestValidateQueueSpecV1Beta1(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
@@ -241,7 +241,7 @@ func TestValidateQueueManagerConnectionSpecV1Beta1(t *testing.T) {
 	spec := &messagingv1beta1.QueueManagerConnectionSpec{
 		QueueManager:         "QM1",
 		Endpoint:             "https://mq.example:9443",
-		CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+		CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 	}
 	warnings, errs := ValidateQueueManagerConnectionSpecV1Beta1(context.Background(), cl, "ns", nil, spec)
 	if len(errs) > 0 {
@@ -261,7 +261,7 @@ func TestValidateTopicSpecV1Beta1(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
@@ -288,7 +288,7 @@ func TestValidateChannelSpecV1Beta1(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
@@ -321,7 +321,7 @@ func TestValidateChannelAuthRuleSpecV1Beta1(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
@@ -345,7 +345,7 @@ func TestValidateAuthorityRecordSpecV1Beta1(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
@@ -371,7 +371,7 @@ func TestValidateQueueManagerConnectionDeleteV1Beta1(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	queue := &messagingv1beta1.Queue{

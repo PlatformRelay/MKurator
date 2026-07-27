@@ -31,7 +31,7 @@ func sampleWebhookConnV1Beta1(ns string) *messagingv1beta1.QueueManagerConnectio
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 }
@@ -226,7 +226,7 @@ func TestQueueManagerConnectionWebhookValidateInvalidSpec(t *testing.T) {
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1beta1.SecretReference{Name: "missing"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "missing"},
 		},
 	}
 	if _, err := v.validate(context.Background(), conn); err == nil {
