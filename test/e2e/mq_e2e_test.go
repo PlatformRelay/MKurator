@@ -206,6 +206,13 @@ stringData:
 		// and Secrets.
 		It("recovers union-auth QueueManagerConnection readiness after auth-secret rotation (watch-driven)", Serial, Label("slow"), func() {
 			ensureE2ENamespace(ns)
+			// Register cleanup up-front so an early assertion timeout cannot leak an orphaned
+			// union QMC + Secret into this Serial, shared-namespace suite (poisoning siblings).
+			DeferCleanup(func() {
+				_, _ = runKubectl("delete", "queuemanagerconnection", mqUnionConnectionName, "-n", ns, "--ignore-not-found")
+				_, _ = runKubectl("delete", "secret", "mq-union-auth-credentials", "-n", ns, "--ignore-not-found")
+			})
+
 			By("creating intentionally invalid union auth credentials (distinct from mq-credentials)")
 			Expect(kubectlApply(fmt.Sprintf(`apiVersion: v1
 kind: Secret
@@ -249,11 +256,6 @@ stringData:
 				g.Expect(runErr).NotTo(HaveOccurred())
 				g.Expect(out).To(Equal("True"))
 			}).WithTimeout(qmcRotationEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
-
-			DeferCleanup(func() {
-				_, _ = runKubectl("delete", "queuemanagerconnection", mqUnionConnectionName, "-n", ns, "--ignore-not-found")
-				_, _ = runKubectl("delete", "secret", "mq-union-auth-credentials", "-n", ns, "--ignore-not-found")
-			})
 		})
 	})
 
