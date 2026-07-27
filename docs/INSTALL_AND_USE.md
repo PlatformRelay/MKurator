@@ -374,10 +374,47 @@ Details: [ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy](ATTRIBUTE_RECON
 |-------|----------|-------------|
 | `spec.queueManager` | yes | Queue manager name (case-sensitive, e.g. `QM1`) |
 | `spec.endpoint` | yes | mqweb base URL, must start with `https://` |
-| `spec.credentialsSecretRef.name` | yes | Secret in the **same namespace** |
+| `spec.credentialsSecretRef.name` | conditional | Secret in the **same namespace**. Required **unless** `spec.authentication` is set (see below). Present-but-optional as of v1beta1; setting it (with no `authentication`) is the implicit-Basic, backward-compatible shape. |
+| `spec.authentication` | no | Explicit authentication union (see [Authentication modes](#authentication-modes)). When omitted, defaults to Basic reading `credentialsSecretRef`. |
 | `spec.restPrefix` | no | Default `/ibmmq/rest/v3` |
 | `spec.tls.insecureSkipVerify` | no | Dev only — skip TLS verification |
 | `spec.tls.caSecretRef.name` | no | Secret with CA PEM for mqweb |
+
+#### Authentication modes
+
+The mqweb admin identity is selected by the optional `spec.authentication` union
+(ADR-0027). A connection must always carry **exactly one** credential source: either the
+legacy `credentialsSecretRef` (implicit Basic) **or** an explicit `authentication` union.
+This is enforced at admission by a CEL rule (`either credentialsSecretRef or authentication
+must be set`), so an existing manifest that only sets `credentialsSecretRef` keeps working
+verbatim.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `spec.authentication.mode` | yes (within the union) | Currently only `Basic` is accepted. `LTPA` and `ClientCert` are reserved for later releases and are rejected at admission today. |
+| `spec.authentication.basic.secretRef.name` | when `mode: Basic` | Secret with `username`/`password` (or `mqAdminUser`/`mqAdminPassword`). |
+
+Structural exclusivity is enforced CEL-first: the member struct must match `mode`
+(`authentication.basic` is required for and only allowed with `mode: Basic`), so a manifest
+with a mismatched or missing member is rejected at admission with a message naming the rule.
+
+Explicit-Basic example (equivalent to the implicit form above):
+
+```yaml
+apiVersion: messaging.mkurator.dev/v1beta1
+kind: QueueManagerConnection
+metadata:
+  name: prod-qm1
+  namespace: mkurator-system
+spec:
+  queueManager: QM1
+  endpoint: https://mq.example.com:9443
+  authentication:
+    mode: Basic
+    basic:
+      secretRef:
+        name: mq-credentials
+```
 
 **Status**
 

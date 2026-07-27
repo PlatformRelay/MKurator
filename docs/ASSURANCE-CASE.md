@@ -14,7 +14,7 @@ leak secrets or exceed RBAC.
 
 | ID | Requirement | Primary enforcement |
 | --- | --- | --- |
-| SEC-1 | No credentials in CR specs, code, images, or logs | NFR doc, gosec, gitleaks |
+| SEC-1 | No credentials in CR specs, code, images, or logs; the `spec.authentication` union references all material by `secretRef` (ADR-0027) | NFR doc, gosec, gitleaks |
 | SEC-2 | TLS verify on for mqweb; insecure opt-in only | mqrest adapter, NFR SEC-2 |
 | SEC-3 | Least-privilege operator RBAC | `config/rbac/`, `task audit:rbac` |
 | SEC-4 | Distroless nonroot runtime | Dockerfile, Pod securityContext |
@@ -48,7 +48,7 @@ flowchart TB
 | Boundary | Trust assumption | Controls |
 | --- | --- | --- |
 | **Operator ↔ Kubernetes API** | Apiserver authentic; RBAC correct | Scoped ClusterRole; namespace-bound Secret refs |
-| **Operator ↔ Secrets** | Secret readable only where RBAC allows | `credentialsSecretRef` / `caSecretRef` only |
+| **Operator ↔ Secrets** | Secret readable only where RBAC allows | `credentialsSecretRef` / `authentication.*.secretRef` / `caSecretRef` only |
 | **Operator ↔ mqweb** | Network may be hostile | TLS verify default; custom CA; dev-only insecure skip |
 | **Admission ↔ API writers** | Webhook pod availability | `failurePolicy: Fail`; CEL migration planned |
 | **Supply chain ↔ Adopter** | Registry/releases may be tampered | cosign, SBOM, SLSA attestations ([ADR-0016](adr/0016-release-supply-chain.md)) |

@@ -1,5 +1,6 @@
 resources:
 - messaging_v1beta1_queuemanagerconnection.yaml
+- messaging_v1beta1_queuemanagerconnection_basic.yaml
 - messaging_v1beta1_queue.yaml
 - messaging_v1beta1_queue_alias.yaml
 - messaging_v1beta1_queue_remote.yaml
