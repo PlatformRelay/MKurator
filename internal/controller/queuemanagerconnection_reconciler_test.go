@@ -97,7 +97,7 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 	It("sets Error when ping fails with a terminal error and schedules a backstop requeue", func() {
 		// A terminal error (e.g. 401 Unauthorized) must still requeue after TerminalRetryInterval
 		// so the controller self-heals if the Secret-watch enqueue was silently dropped — closing
-		// the stuck-forever gap described in AUTH-14 / ADR-0023.
+		// the stuck-forever gap described in AUTH-14 (ADR-0014 auth-recovery carve-out).
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
 			Data: map[string][]byte{

@@ -63,6 +63,7 @@ func main() {
 	var driftResyncUpper time.Duration
 	var connectionWaitInterval time.Duration
 	var transientRequeueInterval time.Duration
+	var terminalRetryInterval time.Duration
 	var mqRequestTimeout time.Duration
 	var tlsOpts []func(*tls.Config)
 	if v := os.Getenv("KURATOR_MAX_CONCURRENT_RECONCILES"); v != "" {
@@ -103,6 +104,8 @@ func main() {
 		"RequeueAfter while waiting for a QueueManagerConnection to become Ready.")
 	flag.DurationVar(&transientRequeueInterval, "transient-requeue-interval", 30*time.Second,
 		"RequeueAfter after transient MQ or connection errors.")
+	flag.DurationVar(&terminalRetryInterval, "terminal-retry-interval", 2*time.Minute,
+		"Backstop RequeueAfter for QueueManagerConnection terminal auth errors (ADR-0014 carve-out).")
 	flag.DurationVar(&mqRequestTimeout, "mq-request-timeout", 30*time.Second,
 		"Per-request deadline for mqweb Admin calls from reconcilers.")
 	flag.Parse()
@@ -111,6 +114,7 @@ func main() {
 	controller.SetDriftResyncInterval(driftResyncLower, driftResyncUpper)
 	controller.SetConnectionWaitInterval(connectionWaitInterval)
 	controller.SetTransientRequeueInterval(transientRequeueInterval)
+	controller.SetTerminalRetryInterval(terminalRetryInterval)
 	controller.SetMQRequestTimeout(mqRequestTimeout)
 
 	logCfg, err := logging.Load(logging.Options{
