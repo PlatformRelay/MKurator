@@ -149,11 +149,11 @@ func TestClientFactory_CacheFingerprintChangesWithSecretResourceVersion(t *testi
 	cl1 := fake.NewClientBuilder().WithScheme(s).WithObjects(secretV1, conn).Build()
 	cl2 := fake.NewClientBuilder().WithScheme(s).WithObjects(secretV2, conn).Build()
 
-	fp1, err := NewClientFactory(cl1).(*ClientFactory).cacheFingerprint(ctx, conn)
+	fp1, err := NewClientFactory(cl1).(*ClientFactory).cacheFingerprint(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fp2, err := NewClientFactory(cl2).(*ClientFactory).cacheFingerprint(ctx, conn)
+	fp2, err := NewClientFactory(cl2).(*ClientFactory).cacheFingerprint(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestClientFactory_BuildConfigMissingCASecret(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
 	factory := NewClientFactory(cl).(*ClientFactory)
-	if _, err := factory.buildConfig(ctx, conn); err == nil {
+	if _, err := factory.buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name); err == nil {
 		t.Fatal("expected error when CA secret is missing")
 	}
 }
@@ -227,7 +227,7 @@ func TestClientFactory_BuildConfigInvalidEndpoint(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
 	factory := NewClientFactory(cl).(*ClientFactory)
-	if _, err := factory.buildConfig(ctx, conn); err == nil {
+	if _, err := factory.buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name); err == nil {
 		t.Fatal("expected parse error")
 	}
 }
@@ -259,7 +259,7 @@ func TestClientFactory_BuildConfigInsecureTLS(t *testing.T) {
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
-	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn)
+	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
@@ -315,7 +315,7 @@ func buildConfigCapturingWarn(
 	ctx := log.IntoContext(context.Background(), logger)
 
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
-	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn)
+	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
@@ -382,7 +382,7 @@ func TestClientFactory_CacheFingerprintMissingCredSecret(t *testing.T) {
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(conn).Build()
-	_, err := NewClientFactory(cl).(*ClientFactory).cacheFingerprint(ctx, conn)
+	_, err := NewClientFactory(cl).(*ClientFactory).cacheFingerprint(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
 	if err == nil {
 		t.Fatal("expected error when credentials secret is missing")
 	}

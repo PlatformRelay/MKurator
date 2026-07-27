@@ -12,10 +12,13 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -69,7 +72,18 @@ func (f *ClientFactory) ForConnection(
 ) (mqadmin.Admin, error) {
 	key := connectionCacheKey(conn)
 
-	fp, err := f.cacheFingerprint(ctx, conn)
+	// Resolve the effective Basic credentials Secret name once (ADR-0027). The reconciler
+	// hands us a v1alpha1 (spoke) view whose authentication union was dropped on
+	// down-conversion, so we re-read the v1beta1 hub to honour authentication.basic.secretRef.
+	// A union QMC's fingerprint and config must both key off THIS secret, not the legacy
+	// CredentialsSecretRef (which is empty for a union-only spec) — otherwise rotation of the
+	// union's secret would not invalidate the cache (ADR-0023 sharpest constraint).
+	credName, err := f.resolveCredentialsSecretName(ctx, conn)
+	if err != nil {
+		return nil, err
+	}
+
+	fp, err := f.cacheFingerprint(ctx, conn, credName)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +96,7 @@ func (f *ClientFactory) ForConnection(
 	}
 	f.mu.Unlock()
 
-	cfg, err := f.buildConfig(ctx, conn)
+	cfg, err := f.buildConfig(ctx, conn, credName)
 	if err != nil {
 		return nil, err
 	}
@@ -140,17 +154,55 @@ func connectionCacheKey(conn *messagingv1alpha1.QueueManagerConnection) string {
 	return fmt.Sprintf("%s/%s", conn.Namespace, conn.Name)
 }
 
+// resolveCredentialsSecretName returns the name of the Secret this connection authenticates
+// with, honouring the v1beta1 authentication union (ADR-0027, AUTH-12).
+//
+// The reconciler passes a v1alpha1 (spoke) QMC whose authentication union was dropped by
+// down-conversion, so we re-read the v1beta1 hub by namespace/name:
+//   - authentication union present with mode Basic -> authentication.basic.secretRef
+//   - union absent (legacy spec)                   -> hub credentialsSecretRef
+//
+// Fallback (legacy behaviour): if the hub is NotFound — including test/fake clients whose
+// scheme has no v1beta1 registered, which surface as NotFound — we use the spoke's
+// CredentialsSecretRef, preserving pre-ADR-0027 behaviour verbatim. Any other read error is
+// propagated: swallowing it would yield empty credentials and a confusing downstream error.
+// Only Basic is an accepted enum value in this slice, so no other mode reaches here.
+func (f *ClientFactory) resolveCredentialsSecretName(
+	ctx context.Context,
+	conn *messagingv1alpha1.QueueManagerConnection,
+) (string, error) {
+	hub := &messagingv1beta1.QueueManagerConnection{}
+	err := f.K8s.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Name}, hub)
+	switch {
+	case err == nil:
+		if a := hub.Spec.Authentication; a != nil &&
+			a.Mode == messagingv1beta1.MQWebAuthenticationModeBasic && a.Basic != nil {
+			return a.Basic.SecretRef.Name, nil
+		}
+		if hub.Spec.CredentialsSecretRef != nil {
+			return hub.Spec.CredentialsSecretRef.Name, nil
+		}
+		return conn.Spec.CredentialsSecretRef.Name, nil
+	case k8serrors.IsNotFound(err), meta.IsNoMatchError(err), runtime.IsNotRegisteredError(err):
+		// Hub not readable (missing object or v1beta1 not in scheme): legacy fallback.
+		return conn.Spec.CredentialsSecretRef.Name, nil
+	default:
+		return "", fmt.Errorf("resolve authentication for connection %q: %w", connectionCacheKey(conn), err)
+	}
+}
+
 func (f *ClientFactory) cacheFingerprint(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
+	credName string,
 ) (cacheFingerprint, error) {
 	credSecret := &corev1.Secret{}
 	if err := f.K8s.Get(ctx, client.ObjectKey{
 		Namespace: conn.Namespace,
-		Name:      conn.Spec.CredentialsSecretRef.Name,
+		Name:      credName,
 	}, credSecret); err != nil {
 		return cacheFingerprint{}, secretLookupError(
-			conn.Spec.CredentialsSecretRef.Name,
+			credName,
 			"credentials",
 			"cache fingerprint",
 			err,
@@ -193,15 +245,16 @@ func closeClientIdleConnections(admin mqadmin.Admin) {
 func (f *ClientFactory) buildConfig(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
+	credName string,
 ) (Config, error) {
 	ns := conn.Namespace
 	credSecret := &corev1.Secret{}
 	if err := f.K8s.Get(ctx, client.ObjectKey{
 		Namespace: ns,
-		Name:      conn.Spec.CredentialsSecretRef.Name,
+		Name:      credName,
 	}, credSecret); err != nil {
 		return Config{}, secretLookupError(
-			conn.Spec.CredentialsSecretRef.Name,
+			credName,
 			"credentials",
 			"",
 			err,
