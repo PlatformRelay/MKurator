@@ -97,26 +97,25 @@ type QueueManagerConnectionSpec struct {
 	// (ADR-0027). Exactly one mode; the member struct matching mode is required and no
 	// other member may be set (CEL-enforced structural exclusivity). When omitted, the
 	// connection defaults to Basic reading credentialsSecretRef, preserving existing
-	// manifests. This slice ships only the Basic enum value; LTPA and ClientCert land
-	// in later slices (AUTH-13+).
+	// manifests. Basic and LTPA are accepted; ClientCert lands in a later slice.
 	// +optional
 	Authentication *MQWebAuthentication `json:"authentication,omitempty"`
 }
 
 // MQWebAuthenticationMode selects the mqweb admin REST authentication mechanism.
 //
-// Only Basic is accepted in this slice (ADR-0027 sequencing): shipping LTPA/ClientCert
-// as accepted enum values before their runtime lands would admit a spec that cannot be
-// reconciled (a "dead letter"). The member structs for LTPA and ClientCert exist on the
-// union so the exclusivity CEL is expressible, but selecting those modes is rejected by
-// the enum until their slices ship.
-// +kubebuilder:validation:Enum=Basic
+// Basic and LTPA are accepted (ADR-0027 sequencing: AUTH-13 shipped the LTPA runtime).
+// ClientCert is still rejected by the enum because its runtime has not landed — admitting
+// it before then would create a "dead letter" spec that cannot be reconciled. The member
+// struct for ClientCert exists on the union so the exclusivity CEL is expressible, but
+// selecting that mode is rejected until its slice ships.
+// +kubebuilder:validation:Enum=Basic;LTPA
 type MQWebAuthenticationMode string
 
 const (
 	// MQWebAuthenticationModeBasic authenticates with HTTP Basic against a Secret (username/password).
 	MQWebAuthenticationModeBasic MQWebAuthenticationMode = "Basic"
-	// MQWebAuthenticationModeLTPA authenticates with an LTPA login token (AUTH-13; not yet accepted).
+	// MQWebAuthenticationModeLTPA authenticates with an LTPA login token (AUTH-13).
 	MQWebAuthenticationModeLTPA MQWebAuthenticationMode = "LTPA"
 	// MQWebAuthenticationModeClientCert authenticates with a client certificate/mTLS (later slice; not yet accepted).
 	MQWebAuthenticationModeClientCert MQWebAuthenticationMode = "ClientCert"
@@ -135,7 +134,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="!has(self.ltpa) || self.mode == 'LTPA'",message="authentication.ltpa may only be set when mode is LTPA"
 // +kubebuilder:validation:XValidation:rule="!has(self.clientCert) || self.mode == 'ClientCert'",message="authentication.clientCert may only be set when mode is ClientCert"
 type MQWebAuthentication struct {
-	// Mode selects the authentication mechanism. Only Basic is accepted in this slice.
+	// Mode selects the authentication mechanism. Basic and LTPA are accepted.
 	// +kubebuilder:validation:Required
 	Mode MQWebAuthenticationMode `json:"mode"`
 
@@ -163,10 +162,16 @@ type BasicAuth struct {
 	SecretRef SecretReference `json:"secretRef"`
 }
 
-// LTPAAuth configures LTPA login-token authentication (AUTH-13; runtime not yet wired).
+// LTPAAuth configures LTPA login-token authentication (AUTH-13).
+//
+// The client logs in once with the referenced credentials (POST /login), caches the
+// returned LTPA cookie, and sends the cookie (never an Authorization header) on
+// subsequent requests. Re-authentication is 401-driven and handled in-client (on a
+// MQWB0112E token-verification failure), never by TTL cache eviction (ADR-0023).
 type LTPAAuth struct {
 	// SecretRef references a Secret holding the login username/password used to obtain
-	// an LTPA cookie. LTPA is login-derived (ADR-0027).
+	// an LTPA cookie. LTPA is login-derived (ADR-0027). Keys: password (mqAdminPassword
+	// also accepted); username optional (username/user/mqAdminUser, defaults to admin).
 	// +kubebuilder:validation:Required
 	SecretRef SecretReference `json:"secretRef"`
 }

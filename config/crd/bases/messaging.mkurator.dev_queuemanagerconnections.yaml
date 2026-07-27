@@ -232,8 +232,7 @@ spec:
                   (ADR-0027). Exactly one mode; the member struct matching mode is required and no
                   other member may be set (CEL-enforced structural exclusivity). When omitted, the
                   connection defaults to Basic reading credentialsSecretRef, preserving existing
-                  manifests. This slice ships only the Basic enum value; LTPA and ClientCert land
-                  in later slices (AUTH-13+).
+                  manifests. Basic and LTPA are accepted; ClientCert lands in a later slice.
                 properties:
                   basic:
                     description: |-
@@ -280,7 +279,8 @@ spec:
                       secretRef:
                         description: |-
                           SecretRef references a Secret holding the login username/password used to obtain
-                          an LTPA cookie. LTPA is login-derived (ADR-0027).
+                          an LTPA cookie. LTPA is login-derived (ADR-0027). Keys: password (mqAdminPassword
+                          also accepted); username optional (username/user/mqAdminUser, defaults to admin).
                         properties:
                           name:
                             minLength: 1
@@ -292,10 +292,11 @@ spec:
                     - secretRef
                     type: object
                   mode:
-                    description: Mode selects the authentication mechanism. Only Basic
-                      is accepted in this slice.
+                    description: Mode selects the authentication mechanism. Basic
+                      and LTPA are accepted.
                     enum:
                     - Basic
+                    - LTPA
                     type: string
                 required:
                 - mode
