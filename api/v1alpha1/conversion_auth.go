@@ -146,7 +146,13 @@ func (src *QueueManagerConnection) ConvertTo(dstRaw conversion.Hub) error {
 	} else {
 		dst.Spec.TLS = nil
 	}
-	dst.Spec.CredentialsSecretRef = messagingv1beta1.SecretReference{Name: src.Spec.CredentialsSecretRef.Name}
+	// v1alpha1 has no authentication union: map its (always-present) CredentialsSecretRef
+	// onto the hub's now-optional pointer field. The hub's authentication union is left nil
+	// on the way up — it has no v1alpha1 source. Round-trip is exact for v1alpha1-origin
+	// objects; a hub object that set authentication loses it on down-conversion (ADR-0027
+	// AUTH-12 AC4 — v1beta1 is the storage hub, so nothing is lost at rest).
+	dst.Spec.CredentialsSecretRef = &messagingv1beta1.SecretReference{Name: src.Spec.CredentialsSecretRef.Name}
+	dst.Spec.Authentication = nil
 
 	copyConditionsToHub(&dst.Status.Conditions, src.Status.Conditions)
 	dst.Status.ObservedGeneration = src.Status.ObservedGeneration
@@ -177,7 +183,18 @@ func (dst *QueueManagerConnection) ConvertFrom(srcRaw conversion.Hub) error {
 	} else {
 		dst.Spec.TLS = nil
 	}
-	dst.Spec.CredentialsSecretRef = SecretReference{Name: src.Spec.CredentialsSecretRef.Name}
+	// Down-convert to the v1alpha1 spoke. v1alpha1 has no authentication union, so it is
+	// simply DROPPED (AUTH-12 AC4) — v1beta1 is the storage hub, so nothing is lost at rest.
+	// The union is NOT folded into CredentialsSecretRef: credential resolution for a union
+	// QMC happens in the mqrest factory, which re-reads the v1beta1 hub (ADR-0027). A
+	// hub object that carried only the union (nil CredentialsSecretRef) yields an empty
+	// spoke ref, which is expected — the spoke is a lossy view, and the factory never reads
+	// the spoke field for such objects.
+	if src.Spec.CredentialsSecretRef != nil {
+		dst.Spec.CredentialsSecretRef = SecretReference{Name: src.Spec.CredentialsSecretRef.Name}
+	} else {
+		dst.Spec.CredentialsSecretRef = SecretReference{}
+	}
 
 	copyConditionsFromHub(&dst.Status.Conditions, src.Status.Conditions)
 	dst.Status.ObservedGeneration = src.Status.ObservedGeneration
