@@ -19,12 +19,29 @@ func ValidateQueueManagerConnectionSpecV1Beta1(
 	annotations map[string]string,
 	spec *messagingv1beta1.QueueManagerConnectionSpec,
 ) ([]string, field.ErrorList) {
+	// Resolve the effective Basic credentials Secret for stateful checks. Structural
+	// exclusivity of the authentication union is enforced CEL-first (ADR-0025), so by the
+	// time this webhook runs, the union — when present — is well-formed. We only need the
+	// Secret name the connection will actually read:
+	//   - explicit authentication union with mode Basic -> authentication.basic.secretRef
+	//   - legacy credentialsSecretRef (union absent)     -> credentialsSecretRef
+	// Only Basic is an accepted enum value in this slice, so no other mode reaches here.
+	credName := ""
+	if spec.CredentialsSecretRef != nil {
+		credName = spec.CredentialsSecretRef.Name
+	}
+	if spec.Authentication != nil &&
+		spec.Authentication.Mode == messagingv1beta1.MQWebAuthenticationModeBasic &&
+		spec.Authentication.Basic != nil {
+		credName = spec.Authentication.Basic.SecretRef.Name
+	}
+
 	alphaSpec := messagingv1alpha1.QueueManagerConnectionSpec{
 		QueueManager: spec.QueueManager,
 		Endpoint:     spec.Endpoint,
 		RESTPrefix:   spec.RESTPrefix,
 		CredentialsSecretRef: messagingv1alpha1.SecretReference{
-			Name: spec.CredentialsSecretRef.Name,
+			Name: credName,
 		},
 	}
 	if spec.TLS != nil {
