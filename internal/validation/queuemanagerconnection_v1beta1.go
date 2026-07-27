@@ -19,21 +19,26 @@ func ValidateQueueManagerConnectionSpecV1Beta1(
 	annotations map[string]string,
 	spec *messagingv1beta1.QueueManagerConnectionSpec,
 ) ([]string, field.ErrorList) {
-	// Resolve the effective Basic credentials Secret for stateful checks. Structural
+	// Resolve the effective credentials Secret for stateful checks. Structural
 	// exclusivity of the authentication union is enforced CEL-first (ADR-0025), so by the
 	// time this webhook runs, the union — when present — is well-formed. We only need the
-	// Secret name the connection will actually read:
-	//   - explicit authentication union with mode Basic -> authentication.basic.secretRef
-	//   - legacy credentialsSecretRef (union absent)     -> credentialsSecretRef
-	// Only Basic is an accepted enum value in this slice, so no other mode reaches here.
+	// Secret name the connection will actually read (username/password):
+	//   - authentication union, mode Basic -> authentication.basic.secretRef
+	//   - authentication union, mode LTPA  -> authentication.ltpa.secretRef (AUTH-13; the
+	//     LTPA login Secret carries the same username/password keys)
+	//   - legacy credentialsSecretRef (union absent) -> credentialsSecretRef
+	// Basic and LTPA are the accepted enum values, so no other mode reaches here.
 	credName := ""
 	if spec.CredentialsSecretRef != nil {
 		credName = spec.CredentialsSecretRef.Name
 	}
-	if spec.Authentication != nil &&
-		spec.Authentication.Mode == messagingv1beta1.MQWebAuthenticationModeBasic &&
-		spec.Authentication.Basic != nil {
-		credName = spec.Authentication.Basic.SecretRef.Name
+	if a := spec.Authentication; a != nil {
+		switch {
+		case a.Mode == messagingv1beta1.MQWebAuthenticationModeBasic && a.Basic != nil:
+			credName = a.Basic.SecretRef.Name
+		case a.Mode == messagingv1beta1.MQWebAuthenticationModeLTPA && a.LTPA != nil:
+			credName = a.LTPA.SecretRef.Name
+		}
 	}
 
 	alphaSpec := messagingv1alpha1.QueueManagerConnectionSpec{

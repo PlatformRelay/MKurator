@@ -914,17 +914,31 @@ var _ = Describe("Validating admission webhooks", func() {
 			Expect(err.Error()).To(ContainSubstring("authentication.ltpa may only be set when mode is LTPA"))
 		})
 
-		It("AC2/enum: rejects an unimplemented mode (LTPA) at the enum, no dead letter", func() {
+		It("AUTH-13: admits an LTPA mode union with ltpa.secretRef (runtime shipped)", func() {
 			ctx := context.Background()
 			conn := newConn("qmc-ltpa-mode")
 			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
 				Mode: messagingv1beta1.MQWebAuthenticationModeLTPA,
 				LTPA: &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "creds"}},
 			}
+			// LTPA is now an accepted enum value (AUTH-13); its login Secret exists,
+			// so the stateful check passes too.
+			Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
+		})
+
+		It("AC2/enum: still rejects the unimplemented ClientCert mode at the enum, no dead letter", func() {
+			ctx := context.Background()
+			conn := newConn("qmc-clientcert-mode")
+			conn.Spec.Authentication = &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeClientCert,
+				ClientCert: &messagingv1beta1.ClientCertAuth{
+					SecretRef: messagingv1beta1.SecretReference{Name: "creds"},
+				},
+			}
 			err := webhookK8sClient.Create(ctx, conn)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsInvalid(err)).To(BeTrue())
-			// Rejected by the enum (only Basic accepted), not by the exclusivity CEL.
+			// Rejected by the enum (ClientCert runtime not shipped), not by exclusivity CEL.
 			Expect(err.Error()).To(ContainSubstring("Unsupported value"))
 		})
 	})

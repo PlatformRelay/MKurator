@@ -80,7 +80,7 @@ func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 	}
 
 	// End-to-end: buildConfig must read the union secret and populate credentials.
-	cfg, err := f.buildConfig(ctx, spoke, name)
+	cfg, err := f.buildConfig(ctx, spoke, resolvedAuth{secretName: name, mode: authModeBasic})
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
@@ -221,5 +221,66 @@ func TestClientFactory_HubReadErrorPropagates(t *testing.T) {
 		t.Fatal("expected hub read error to propagate, got nil")
 	} else if !errors.Is(err, boom) {
 		t.Fatalf("expected wrapped boom error, got %v", err)
+	}
+}
+
+// AUTH-13 AC1 (factory wiring): a v1beta1 QMC with authentication mode LTPA +
+// ltpa.secretRef resolves to LTPA mode against THAT secret, and buildConfig
+// produces an LTPA Config (cfg.LTPA set, no Basic authenticator). Rotation of the
+// LTPA login Secret is covered by credRV (same secret name), not duplicated here.
+func TestClientFactory_ResolvesLTPAUnion(t *testing.T) {
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unionTestScheme(t)
+
+	ltpaSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "ltpa-creds", Namespace: ns, ResourceVersion: "11"},
+		Data:       map[string][]byte{"username": []byte("ltpa-admin"), "password": []byte("ltpa-pass")},
+	}
+	hub := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-ltpa", Namespace: ns, Generation: 4},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
+			Authentication: &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeLTPA,
+				LTPA: &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "ltpa-creds"}},
+			},
+		},
+	}
+	spoke := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-ltpa", Namespace: ns, Generation: 4},
+		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
+		},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(ltpaSecret, hub, spoke).Build()
+	f := NewClientFactory(cl).(*ClientFactory)
+
+	auth, err := f.resolveAuthentication(ctx, spoke)
+	if err != nil {
+		t.Fatalf("resolveAuthentication: %v", err)
+	}
+	if auth.mode != authModeLTPA {
+		t.Fatalf("mode = %v, want authModeLTPA", auth.mode)
+	}
+	if auth.secretName != "ltpa-creds" {
+		t.Fatalf("secretName = %q, want ltpa-creds", auth.secretName)
+	}
+
+	cfg, err := f.buildConfig(ctx, spoke, auth)
+	if err != nil {
+		t.Fatalf("buildConfig: %v", err)
+	}
+	if cfg.LTPA == nil {
+		t.Fatal("cfg.LTPA is nil; LTPA mode must build an LTPA config")
+	}
+	if cfg.LTPA.Username != "ltpa-admin" || cfg.LTPA.Password != "ltpa-pass" {
+		t.Fatalf("LTPA creds not resolved: user=%q", cfg.LTPA.Username)
+	}
+	if cfg.authenticator != nil {
+		t.Fatal("LTPA mode must not set a Basic authenticator")
 	}
 }
