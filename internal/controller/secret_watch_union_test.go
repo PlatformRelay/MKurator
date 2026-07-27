@@ -85,8 +85,12 @@ func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 	s := unionWatchScheme(t)
 
 	// Stripped Secret in the informer cache: no Data, only a resourceVersion.
-	strippedOld := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns, ResourceVersion: "1"}}
-	strippedNew := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns, ResourceVersion: "2"}}
+	strippedOld := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns, ResourceVersion: "1"},
+	}
+	strippedNew := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns, ResourceVersion: "2"},
+	}
 
 	hub := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
@@ -138,10 +142,12 @@ func TestUnionSecretRefs_ReturnsEveryMemberRef(t *testing.T) {
 			QueueManager: "QM1",
 			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
 			Authentication: &messagingv1beta1.MQWebAuthentication{
-				Mode:       messagingv1beta1.MQWebAuthenticationModeBasic,
-				Basic:      &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "basic-ref"}},
-				LTPA:       &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "ltpa-ref"}},
-				ClientCert: &messagingv1beta1.ClientCertAuth{SecretRef: messagingv1beta1.SecretReference{Name: "cc-ref"}},
+				Mode:  messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic: &messagingv1beta1.BasicAuth{SecretRef: messagingv1beta1.SecretReference{Name: "basic-ref"}},
+				LTPA:  &messagingv1beta1.LTPAAuth{SecretRef: messagingv1beta1.SecretReference{Name: "ltpa-ref"}},
+				ClientCert: &messagingv1beta1.ClientCertAuth{
+					SecretRef: messagingv1beta1.SecretReference{Name: "cc-ref"},
+				},
 			},
 		},
 	}
