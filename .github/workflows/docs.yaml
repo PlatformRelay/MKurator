@@ -73,7 +73,10 @@ jobs:
 
       - name: Install MkDocs Material
         if: steps.changes.outputs.docs == 'true'
-        run: pip install --only-binary=:all: --require-hashes -r docs/requirements-docs.txt
+        # Block scalar: the `:all:` in --only-binary is a colon-space token that
+        # a plain `run:` scalar would misparse as a YAML mapping (startup_failure).
+        run: |
+          pip install --only-binary=:all: --require-hashes -r docs/requirements-docs.txt
 
       - name: Build site
         if: steps.changes.outputs.docs == 'true'
