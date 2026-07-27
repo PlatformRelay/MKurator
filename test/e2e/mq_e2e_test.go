@@ -255,7 +255,7 @@ stringData:
 					"-o", "jsonpath={.status.conditions[?(@.type==\"Ready\")].status}")
 				g.Expect(runErr).NotTo(HaveOccurred())
 				g.Expect(out).To(Equal("True"))
-			}).WithTimeout(qmcRotationEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
+			}).WithTimeout(qmcWatchRecoveryEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 		})
 
 		// AUTH-15 AC1+AC4: a pre-union Basic manifest — applied at v1alpha1 (the stored
