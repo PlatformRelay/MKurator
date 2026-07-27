@@ -78,8 +78,9 @@ func requestsForSecret(
 
 // unionSecretRefs returns the authentication-union member Secret names for conn by re-reading
 // the v1beta1 hub (the spoke's union was dropped on down-conversion). It matches EVERY union
-// member ref (basic/ltpa/clientCert) so later slices (AUTH-13/16) inherit the watch for free,
-// even though only Basic is an accepted enum today.
+// member ref (basic/ltpa/clientCert) so every mode inherits the watch for free — this is what
+// covers LTPA login-Secret rotation (AUTH-13) without any AUTH-13-specific code here, and will
+// cover ClientCert (AUTH-16) when its slice ships.
 //
 // Degradation mirrors the mqrest factory (ADR-0027): if the hub is NotFound, the v1beta1 kind
 // is not registered (older/fake clients), or any read error occurs, we return nil and fall back

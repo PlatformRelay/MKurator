@@ -195,7 +195,8 @@ func TestClientFactory_BuildConfigMissingCASecret(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
 	factory := NewClientFactory(cl).(*ClientFactory)
-	if _, err := factory.buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name); err == nil {
+	auth := resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic}
+	if _, err := factory.buildConfig(ctx, conn, auth); err == nil {
 		t.Fatal("expected error when CA secret is missing")
 	}
 }
@@ -227,7 +228,8 @@ func TestClientFactory_BuildConfigInvalidEndpoint(t *testing.T) {
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
 	factory := NewClientFactory(cl).(*ClientFactory)
-	if _, err := factory.buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name); err == nil {
+	auth := resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic}
+	if _, err := factory.buildConfig(ctx, conn, auth); err == nil {
 		t.Fatal("expected parse error")
 	}
 }
@@ -259,7 +261,11 @@ func TestClientFactory_BuildConfigInsecureTLS(t *testing.T) {
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
-	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
+	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(
+		ctx,
+		conn,
+		resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic},
+	)
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
@@ -315,7 +321,11 @@ func buildConfigCapturingWarn(
 	ctx := log.IntoContext(context.Background(), logger)
 
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
-	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(ctx, conn, conn.Spec.CredentialsSecretRef.Name)
+	cfg, err := NewClientFactory(cl).(*ClientFactory).buildConfig(
+		ctx,
+		conn,
+		resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic},
+	)
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
