@@ -30,11 +30,16 @@ branch receives fixes. The API contract may change between alpha releases.
 - **No inline secrets**: credentials and CA material come from referenced
   Kubernetes `Secret`s only — never in CR specs, code, images, or logs. The
   `spec.authentication` union (ADR-0027) preserves this: every mode references
-  its material by `secretRef`. The mqweb admin identity is HTTP Basic today
-  (`mode: Basic`, the default when `authentication` is omitted); token (LTPA) and
-  client-certificate (mTLS) modes are reserved for later releases and are
-  rejected at admission until their runtime ships, so no admitted spec is a
-  dead letter.
+  its material by `secretRef`. The mqweb admin identity is HTTP Basic
+  (`mode: Basic`, the default when `authentication` is omitted) or LTPA
+  (`mode: LTPA`, AUTH-13). LTPA logs in once and then sends a cached session
+  cookie instead of the credentials on every request, so the shared credentials
+  stop crossing the wire per request; the cookie value, the CSRF token, and the
+  credentials are never logged or placed in error strings (NFR SEC-5). LTPA is
+  login-derived, so it does not remove the credential-rotation burden. Re-login
+  is 401-driven and handled in-client (never TTL eviction, ADR-0023). The
+  client-certificate (mTLS) mode is reserved for a later release and is rejected
+  at admission until its runtime ships, so no admitted spec is a dead letter.
 - **TLS by default**: HTTPS to mqweb with certificate verification on;
   `insecureSkipVerify` is opt-in and intended for local development only.
 - **Least-privilege RBAC**: scoped to the operator's own API group, referenced

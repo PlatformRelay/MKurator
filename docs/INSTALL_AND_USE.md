@@ -391,8 +391,9 @@ verbatim.
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `spec.authentication.mode` | yes (within the union) | Currently only `Basic` is accepted. `LTPA` and `ClientCert` are reserved for later releases and are rejected at admission today. |
+| `spec.authentication.mode` | yes (within the union) | `Basic` or `LTPA` (AUTH-13). `ClientCert` is reserved for a later release and is rejected at admission today. |
 | `spec.authentication.basic.secretRef.name` | when `mode: Basic` | Secret with `username`/`password` (or `mqAdminUser`/`mqAdminPassword`). |
+| `spec.authentication.ltpa.secretRef.name` | when `mode: LTPA` | Secret with the login `username`/`password` (same keys as Basic). The operator logs in once, caches the LTPA cookie, and re-logs-in on a `MQWB0112E` 401 (see below). |
 
 Structural exclusivity is enforced CEL-first: the member struct must match `mode`
 (`authentication.basic` is required for and only allowed with `mode: Basic`), so a manifest
@@ -415,6 +416,34 @@ spec:
       secretRef:
         name: mq-credentials
 ```
+
+LTPA example (`mode: LTPA`):
+
+```yaml
+apiVersion: messaging.mkurator.dev/v1beta1
+kind: QueueManagerConnection
+metadata:
+  name: prod-qm1
+  namespace: mkurator-system
+spec:
+  queueManager: QM1
+  endpoint: https://mq.example.com:9443
+  authentication:
+    mode: LTPA
+    ltpa:
+      secretRef:
+        name: mq-credentials
+```
+
+With `mode: LTPA`, the operator logs in once (`POST /ibmmq/rest/v3/login`), caches the
+returned LTPA cookie, and sends the cookie — **not** an `Authorization` header — on every
+subsequent request, so the shared credentials stop crossing the wire per request. LTPA is
+still login-derived (not passwordless): the credentials are used at login and must still be
+rotated. Re-authentication is **401-driven and in-client**: when mqweb rejects the cookie
+with classifier `MQWB0112E`, the client re-logs-in once and retries; a `MQWB0104E` 401 or a
+second consecutive rejection surfaces `Ready=False`, `Reason=Error`. There is no client-side
+expiry timer and no cache-eviction re-auth (ADR-0023). See
+[IBM_MQ_REST_API.md §3.3a](IBM_MQ_REST_API.md) for the full flow and classifier table.
 
 **Status**
 

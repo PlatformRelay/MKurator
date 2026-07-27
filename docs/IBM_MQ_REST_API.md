@@ -96,6 +96,45 @@ Required on **POST, PATCH, DELETE** (any value, including empty):
 ibm-mq-rest-csrf-token: 1
 ```
 
+### 3.3a LTPA login-token authentication (AUTH-13)
+
+`spec.authentication.mode: LTPA` (ADR-0027) selects LTPA login-token auth instead of
+HTTP Basic. Instead of sending `Authorization: Basic …` on every request, MKurator:
+
+1. **Logs in once**: `POST /ibmmq/rest/v3/login` with `Content-Type: application/json`
+   and body `{"username":"…","password":"…"}`. On success mqweb returns **HTTP 204**
+   (empty body) and a `Set-Cookie: LtpaToken2_<suffix>=…; Secure; HttpOnly; SameSite=Strict`.
+   The login POST does **not** send the CSRF header.
+2. **Caches the cookie** inside the client and sends it (`Cookie: LtpaToken2_…=…`) on
+   every subsequent request — **no `Authorization` header after login**. State-changing
+   requests still carry `ibm-mq-rest-csrf-token: 1` (§3.3); its value is arbitrary and is
+   not a server-issued token to refresh.
+
+LTPA is **login-derived, not passwordless**: the cookie is obtained with the same
+username/password, so the credential-rotation burden is unchanged. Its only concrete gain
+over Basic is that the credentials cross the wire **once per session** rather than on every
+request.
+
+**Re-login is 401-driven, in-client, and single-flighted.** When mqweb rejects a cached
+cookie it returns **HTTP 401** with a classifier `msgId`:
+
+| Case | Status | `msgId` | MKurator behaviour |
+| --- | --- | --- | --- |
+| Cookie failed verification (stale/garbage) | 401 | **`MQWB0112E`** | Re-login **once** and retry the request; a second consecutive 401 surfaces a terminal `Unauthorized` error (no retry loop). |
+| No usable credentials on the wire | 401 | **`MQWB0104E`** | **Not** a re-login signal — surfaced as a terminal `Unauthorized` error. |
+
+Under concurrent reconciles, N requests that all hit `MQWB0112E` trigger exactly **one**
+re-login (single-flight), never N. Re-authentication happens inside the cached client and
+never evicts the cache entry — the ADR-0023 client-cache contract forbids TTL/LRU eviction.
+
+**Timer expiry is NOT modelled.** On the pinned `9.4.5.1-r1` build, AUTH-10 could not observe
+a cookie expiring on a timer within several minutes, and no client-side expiry timer exists.
+Re-login is driven solely by the server rejecting the cookie (`MQWB0112E`).
+
+Rotation of the LTPA login Secret is handled by the same Secret watch as Basic (AUTH-14):
+changing the Secret's `resourceVersion` invalidates the cached client, which re-logs in on
+its next use.
+
 ### 3.4 Remote administration gateway
 
 For queue managers not in the same installation as mqweb:
