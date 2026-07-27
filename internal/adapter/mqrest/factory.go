@@ -191,6 +191,14 @@ func (f *ClientFactory) resolveCredentialsSecretName(
 	}
 }
 
+// cacheFingerprint keys the cached client off the QMC generation plus the resourceVersion of
+// the Secret it actually authenticates with (credName, already resolved through the
+// authentication union by resolveCredentialsSecretName) and the CA Secret. Because credName is
+// the union's effective Secret for a union spec, rotating an authentication.*.secretRef Secret
+// changes credRV and triggers replace-on-mismatch in ForConnection — this is the fingerprint
+// half of AUTH-14 closing the AUTH-12 rotation gap (ADR-0023 sharpest constraint, ADR-0027).
+// The Secret watch half lives in internal/controller/secret_watch.go. The Basic/legacy path is
+// perf-neutral: it Gets only credName (+ CA when set), never an extra union Secret.
 func (f *ClientFactory) cacheFingerprint(
 	ctx context.Context,
 	conn *messagingv1alpha1.QueueManagerConnection,
