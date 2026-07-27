@@ -352,6 +352,78 @@ func TestLTPA_NoSecretsInErrors(t *testing.T) {
 	assertNoSecrets(t, err.Error())
 }
 
+// AC4 / NFR SEC-5 (cookie path): the ONLY path where a cookie value actually
+// exists in the client is a successful login followed by the server rejecting
+// that cookie. Assert the resulting terminal error string leaks neither the
+// cookie value nor the credentials. This guards against a future change echoing
+// the response body (as the 400 branch does) into the error.
+func TestLTPA_NoSecretsInErrors_CookieRejectedPath(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/login") {
+			writeLTPACookie(w) // login succeeds -> a real cookie is now cached
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		// Always reject the cookie; the body embeds the cookie value to prove the
+		// client never surfaces the response body verbatim.
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":[{"msgId":"MQWB0112E","explanation":"` + testLTPACookieVal + `"}]}`))
+	}))
+	defer srv.Close()
+
+	c := newLTPATestClient(t, srv.URL, srv.Client())
+	err := c.RunMQSC(context.Background(), "DISPLAY QMGR")
+	if err == nil {
+		t.Fatal("expected terminal error on repeated cookie rejection")
+	}
+	if !errors.Is(err, mqadmin.ErrTerminal) {
+		t.Fatalf("want terminal error, got %v", err)
+	}
+	assertNoSecrets(t, err.Error())
+}
+
+// A 5xx on the login POST is transient (retryable at the reconciler level), not a
+// terminal auth failure — so the QMC requeues rather than going Ready=False.
+func TestLTPA_LoginServerError_Transient(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/login") {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		t.Errorf("no request should reach %s when login 5xx", r.URL.Path)
+	}))
+	defer srv.Close()
+
+	c := newLTPATestClient(t, srv.URL, srv.Client())
+	err := c.Ping(context.Background())
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("login 5xx must be transient, got %v", err)
+	}
+}
+
+// A login that returns 2xx/204 but no Set-Cookie is a terminal misconfiguration:
+// there is no session to cache, so treat it as Unauthorized rather than looping.
+func TestLTPA_LoginNoCookie_Terminal(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/login") {
+			w.WriteHeader(http.StatusNoContent) // 204, but NO Set-Cookie
+			return
+		}
+		t.Errorf("no request should reach %s when login returned no cookie", r.URL.Path)
+	}))
+	defer srv.Close()
+
+	c := newLTPATestClient(t, srv.URL, srv.Client())
+	err := c.Ping(context.Background())
+	var term *mqadmin.TerminalError
+	if !errors.As(err, &term) || term.Reason != "Unauthorized" {
+		t.Fatalf("login without a cookie must be terminal Unauthorized, got %#v", err)
+	}
+}
+
 func assertNoSecrets(t *testing.T, s string) {
 	t.Helper()
 	for _, secret := range []string{testLTPAPass, testLTPAUser, testLTPACookieVal, testLTPACookieName} {
