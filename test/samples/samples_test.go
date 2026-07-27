@@ -160,6 +160,20 @@ func TestConfigSamplesAdmissionValidation(t *testing.T) {
 	}
 	objects = append(objects, secret)
 
+	// AUTH-16 ClientCert sample references a kubernetes.io/tls keypair Secret and a
+	// server-auth CA Secret; the stateful webhook checks both exist (and the keypair keys).
+	objects = append(objects,
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "mkurator-client-cert", Namespace: "mkurator-system"},
+			Type:       corev1.SecretTypeTLS,
+			Data:       map[string][]byte{"tls.crt": []byte("cert"), "tls.key": []byte("key")},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "mqweb-server-ca", Namespace: "mkurator-system"},
+			Data:       map[string][]byte{"tls.crt": []byte("ca")},
+		},
+	)
+
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 
 	for _, obj := range objects {
