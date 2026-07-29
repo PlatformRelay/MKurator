@@ -9,8 +9,10 @@ import (
 )
 
 // AUTH-12 AC4: a v1beta1 hub QMC that uses the authentication union, when down-converted to
-// the v1alpha1 spoke, drops `authentication` without panic or corruption. v1beta1 is the
-// storage hub (post-8d-7), so nothing is lost at rest — the spoke is a lossy read view.
+// the v1alpha1 spoke, drops `authentication` from the visible spoke Spec (the type has no such
+// field) without panic or corruption. The value itself is not lost — see
+// TestQueueManagerConnection_FinalizerRoundTripPreservesAuthenticationUnion for why the spoke
+// still round-trips it losslessly via authenticationUnionSnapshotAnnotation (AUTH-14).
 func TestQueueManagerConnection_DownConvertDropsAuthenticationUnion(t *testing.T) {
 	cases := []struct {
 		name string
@@ -121,4 +123,52 @@ func FuzzQueueManagerConnectionUnionDownConvert(f *testing.F) {
 			t.Fatalf("ConvertFrom panicked/errored on union hub: %v", err)
 		}
 	})
+}
+
+// TestQueueManagerConnection_FinalizerRoundTripPreservesAuthenticationUnion is the AUTH-14
+// post-merge e2e regression, reproduced at the conversion-webhook level: the reconciler always
+// works through the v1alpha1 spoke type, and its very first reconcile of a new object adds a
+// finalizer via a full v1alpha1 Update — a metadata-only change that nonetheless round-trips
+// the whole object down (ConvertFrom) then back up (ConvertTo) through the spoke. Before the
+// authenticationUnionSnapshotAnnotation fix, that round trip nil-ed spec.authentication on the
+// hub, permanently breaking every union-auth QMC moments after creation regardless of how long
+// the e2e test waited (hence the timeout widenings not helping — it wasn't a race).
+func TestQueueManagerConnection_FinalizerRoundTripPreservesAuthenticationUnion(t *testing.T) {
+	t.Parallel()
+
+	hub := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: "ns"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://mq.svc:9443",
+			Authentication: &messagingv1beta1.MQWebAuthentication{
+				Mode: messagingv1beta1.MQWebAuthenticationModeBasic,
+				Basic: &messagingv1beta1.BasicAuth{
+					SecretRef: messagingv1beta1.SecretReference{Name: "union-creds"},
+				},
+			},
+		},
+	}
+
+	spoke := &QueueManagerConnection{}
+	if err := spoke.ConvertFrom(hub); err != nil {
+		t.Fatalf("ConvertFrom: %v", err)
+	}
+
+	// Simulate the reconciler's finalizer-add Update: only metadata changes, .spec is untouched.
+	spoke.Finalizers = append(spoke.Finalizers, "test-finalizer")
+
+	hubAfter := &messagingv1beta1.QueueManagerConnection{}
+	if err := spoke.ConvertTo(hubAfter); err != nil {
+		t.Fatalf("ConvertTo: %v", err)
+	}
+
+	if hubAfter.Spec.Authentication == nil || hubAfter.Spec.Authentication.Basic == nil ||
+		hubAfter.Spec.Authentication.Basic.SecretRef.Name != "union-creds" {
+		t.Fatalf("authentication union not preserved across a metadata-only round trip: %+v",
+			hubAfter.Spec.Authentication)
+	}
+	if _, ok := hubAfter.Annotations[authenticationUnionSnapshotAnnotation]; ok {
+		t.Fatalf("snapshot annotation leaked into the stored hub object: %+v", hubAfter.Annotations)
+	}
 }

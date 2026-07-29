@@ -144,6 +144,15 @@ The operator ships a tightly scoped `ClusterRole` generated from
 
 No wildcard verbs, no cluster-admin. RBAC drift is caught by `task verify`.
 
+Cache scoping (`internal/cacheconfig`) goes narrower than RBAC: the manager's informer
+cache strips `.data`/`.stringData` from every `Secret` before it enters the store (so
+credential bytes are never retained in memory for unrelated Secrets), and reads of
+`Secret` and the `v1beta1` `QueueManagerConnection` hub bypass the cache entirely
+(`client.Options.Cache.DisableFor`), always hitting the API server directly. The QMC hub
+bypass exists because the mqrest client factory re-reads the hub to resolve the
+`spec.authentication` union (AUTH-12/13/16, ADR-0027) — the on-demand informer for a
+type outside the controller's main watch set can otherwise race the first reconcile.
+
 ### Connection, events, and errors
 
 Connection client caching, Kubernetes Event rules, and the terminal/transient/not-found
