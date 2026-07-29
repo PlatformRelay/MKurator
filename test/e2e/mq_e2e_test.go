@@ -222,6 +222,13 @@ stringData:
 						`jsonpath=Ready={.status.conditions[?(@.type=="Ready")].status} reason={.status.conditions[?(@.type=="Ready")].reason} msg={.status.conditions[?(@.type=="Ready")].message}`); err == nil {
 						_, _ = fmt.Fprintf(GinkgoWriter, "[diag] final QMC condition: %s\n", cond)
 					}
+					// Dump spec.authentication to discriminate read-path vs write/conversion bug:
+					// if auth is absent here the stored object itself is broken (DisableFor won't help).
+					if spec, err := runKubectl("get", "queuemanagerconnection", mqUnionConnectionName,
+						"-n", ns, "-o",
+						`jsonpath=authentication={.spec.authentication} credentialsSecretRef={.spec.credentialsSecretRef}`); err == nil {
+						_, _ = fmt.Fprintf(GinkgoWriter, "[diag] QMC spec auth: %s\n", spec)
+					}
 					if logs, err := runKubectl("logs", "-n", namespace,
 						"-l", "control-plane=controller-manager",
 						"--tail=150", "--since=10m"); err == nil {
