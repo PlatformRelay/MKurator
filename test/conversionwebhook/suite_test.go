@@ -285,6 +285,50 @@ var _ = Describe("CRD conversion round-trip", func() {
 		Expect(beta.Spec.TLS.CASecretRef.Name).To(Equal("ca"))
 		Expect(beta.Status.ObservedGeneration).To(Equal(int64(1)))
 	})
+
+	// AUTH-14 post-merge e2e regression, reproduced end-to-end against the real API server
+	// (not just the in-process ConvertTo/ConvertFrom functions in api/v1alpha1). The
+	// reconciler always works through the v1alpha1 spoke type and adds a finalizer on a new
+	// object's first reconcile via a full v1alpha1 Update — a metadata-only change from the
+	// spoke's point of view. Before the authenticationUnionSnapshotAnnotation fix, the API
+	// server's conversion webhook round trip (down-convert on Get, up-convert on Update) wiped
+	// spec.authentication on the stored v1beta1 hub, because apiextensions-apiserver's
+	// restoreObjectMeta preserves the *webhook response's* annotations (not the original
+	// object's) — which is exactly what the fix relies on to carry the snapshot through.
+	It("preserves the authentication union across a v1alpha1 finalizer-only Update", func() {
+		ctx := context.Background()
+		unionSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns}}
+		Expect(client.IgnoreAlreadyExists(conversionK8sClient.Create(ctx, unionSecret))).To(Succeed())
+
+		hub := &messagingv1beta1.QueueManagerConnection{
+			ObjectMeta: metav1.ObjectMeta{Name: "rt-qmc-union", Namespace: ns},
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
+				QueueManager: "QM1",
+				Endpoint:     "https://mq.example:9443",
+				Authentication: &messagingv1beta1.MQWebAuthentication{
+					Mode: messagingv1beta1.MQWebAuthenticationModeBasic,
+					Basic: &messagingv1beta1.BasicAuth{
+						SecretRef: messagingv1beta1.SecretReference{Name: "union-creds"},
+					},
+				},
+			},
+		}
+		Expect(conversionK8sClient.Create(ctx, hub)).To(Succeed())
+
+		// Simulate the reconciler's Get (down-converts to the spoke) + finalizer-add Update
+		// (up-converts back to the hub) — .spec.authentication is never touched directly.
+		spoke := &messagingv1alpha1.QueueManagerConnection{}
+		Expect(conversionK8sClient.Get(ctx, client.ObjectKeyFromObject(hub), spoke)).To(Succeed())
+		spoke.Finalizers = append(spoke.Finalizers, "test.mkurator.dev/finalizer")
+		Expect(conversionK8sClient.Update(ctx, spoke)).To(Succeed())
+
+		hubAfter := &messagingv1beta1.QueueManagerConnection{}
+		Expect(conversionK8sClient.Get(ctx, client.ObjectKeyFromObject(hub), hubAfter)).To(Succeed())
+		Expect(hubAfter.Spec.Authentication).NotTo(BeNil())
+		Expect(hubAfter.Spec.Authentication.Basic).NotTo(BeNil())
+		Expect(hubAfter.Spec.Authentication.Basic.SecretRef.Name).To(Equal("union-creds"))
+		Expect(hubAfter.Annotations).NotTo(HaveKey("messaging.mkurator.dev/authentication-union-snapshot"))
+	})
 })
 
 func buildCRDInstallDir(root string) (string, error) {
