@@ -1,0 +1,17 @@
+# OpenSpec project config — mkurator
+
+schema: spec-driven
+
+context: |
+  Project: MKurator (github.com/platformrelay/MKurator) — Kubernetes operator for
+  IBM MQ queue-manager workloads. Commits: :gitmoji: type(scope): summary.
+  Merge: rebase-and-merge. TDD for hand-authored Go. SonarCloud: PlatformRelay_MKurator.
+  Every REQ: **Test:** + **Verify:**.
+
+rules:
+  proposal:
+    - Problem, scope, non-goals, counterpoints.
+  specs:
+    - Given/When/Then; stable REQ IDs; one Test + Verify each.
+  tasks:
+    - Failing test before implement.

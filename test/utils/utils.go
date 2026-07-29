@@ -39,14 +39,44 @@ func ensureKubeconfigEnv(projectDir string) {
 	_ = os.Setenv("KUBECONFIG", path)
 }
 
+// e2eToolchain lists the external binaries e2e/test helpers (and the Taskfile targets they
+// shell out to) invoke by bare name, directly or transitively.
+var e2eToolchain = []string{"kubectl", "task", "kind", "docker", "helm", "mkcert", "terraform", "git"}
+
+// restrictedSubprocessPath is computed once per process from the directories that actually
+// resolve the known e2e toolchain in the inherited environment, plus the base system
+// directories. Subprocesses launched via Run get this fixed PATH instead of the raw inherited
+// one, so a directory appended to PATH later in the run (e.g. by a compromised earlier step)
+// can't shadow kubectl/task/etc. on a subsequent invocation.
+var restrictedSubprocessPath = sync.OnceValue(func() string {
+	dirs := []string{"/usr/local/bin", "/usr/bin", "/bin"}
+	seen := make(map[string]bool, len(dirs))
+	for _, d := range dirs {
+		seen[d] = true
+	}
+	for _, name := range e2eToolchain {
+		p, err := exec.LookPath(name)
+		if err != nil {
+			continue
+		}
+		dir := filepath.Dir(p)
+		if !seen[dir] {
+			seen[dir] = true
+			dirs = append(dirs, dir)
+		}
+	}
+	return strings.Join(dirs, string(os.PathListSeparator))
+})
+
 func environForSubprocess() []string {
-	env := make([]string, 0, len(os.Environ())+2)
+	env := make([]string, 0, len(os.Environ())+3)
 	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "GOTOOLCHAIN=") {
+		if strings.HasPrefix(e, "GOTOOLCHAIN=") || strings.HasPrefix(e, "PATH=") {
 			continue
 		}
 		env = append(env, e)
 	}
+	env = append(env, "PATH="+restrictedSubprocessPath())
 	return append(env, "GO111MODULE=on", "GOTOOLCHAIN=local")
 }
 
