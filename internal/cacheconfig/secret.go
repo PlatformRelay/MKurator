@@ -4,6 +4,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 // ManagerOptions returns cache and client options that scope Secret informer retention
@@ -15,6 +17,14 @@ import (
 // strips .Data/.StringData before objects enter the informer store so the operator
 // does not retain credential bytes for unrelated Secrets in memory. Secret reads through
 // the manager client bypass the cache (DisableFor) and always hit the API server.
+//
+// v1beta1 QueueManagerConnection is also in DisableFor: resolveAuthentication re-reads the
+// hub to recover the authentication union (AUTH-12/13/16) which the v1alpha1 spoke drops on
+// down-conversion. The on-demand v1beta1 informer races the first reconcile and can miss the
+// object (returning IsNotFound), collapsing to an empty credential name. Direct API-server
+// reads are safe here because v1beta1 is the storage version (no conversion overhead) and
+// the re-read happens once per reconcile cycle, not on every method call.
+//
 // ARCHITECTURE.md least-privilege narrative update is deferred to ROADMAP Phase 7d (Wave 4).
 func ManagerOptions() (cache.Options, client.Options) {
 	return cache.Options{
@@ -25,7 +35,10 @@ func ManagerOptions() (cache.Options, client.Options) {
 			},
 		}, client.Options{
 			Cache: &client.CacheOptions{
-				DisableFor: []client.Object{&corev1.Secret{}},
+				DisableFor: []client.Object{
+					&corev1.Secret{},
+					&messagingv1beta1.QueueManagerConnection{},
+				},
 			},
 		}
 }
