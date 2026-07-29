@@ -20,12 +20,19 @@ import (
 //
 // v1beta1 QueueManagerConnection is also in DisableFor: resolveAuthentication re-reads the
 // hub to recover the authentication union (AUTH-12/13/16) which the v1alpha1 spoke drops on
-// down-conversion. The on-demand v1beta1 informer races the first reconcile and can miss the
-// object (returning IsNotFound), collapsing to an empty credential name. Direct API-server
-// reads are safe here because v1beta1 is the storage version (no conversion overhead) and
-// the re-read happens once per reconcile cycle, not on every method call.
+// down-conversion. The on-demand v1beta1 informer can race the first reconcile and briefly
+// miss the object (IsNotFound); direct API-server reads close that window. Direct reads are
+// safe here because v1beta1 is the storage version (no conversion overhead) and the re-read
+// happens once per reconcile cycle, not on every method call.
 //
-// ARCHITECTURE.md least-privilege narrative update is deferred to ROADMAP Phase 7d (Wave 4).
+// This does NOT cover the AUTH-14 post-merge regression where a union QMC's authentication
+// was empty even on a direct hub read: that was the object's stored spec genuinely losing
+// the union, via the v1alpha1 spoke's ConvertTo nil-ing it on a metadata-only round trip
+// (e.g. the reconciler's finalizer-add Update). See
+// authenticationUnionSnapshotAnnotation in api/v1alpha1/conversion_auth.go for the fix — no
+// cache option can paper over the stored object itself being wrong.
+//
+// See docs/ARCHITECTURE.md "RBAC & least privilege" for the least-privilege narrative.
 func ManagerOptions() (cache.Options, client.Options) {
 	return cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
