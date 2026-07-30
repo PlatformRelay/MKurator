@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.14.0   # target release
+VERSION=0.15.0   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -43,6 +43,7 @@ before upgrading.
 
 | From | To | Highlights |
 |------|-----|------------|
+| **0.14.x** | **0.15.0** | **BREAKING** — `v1alpha1` removed; CRDs single-version (`v1beta1` served and stored), conversion webhook gone. Rewrite any `apiVersion: …/v1alpha1` manifests to `…/v1beta1` (spec identical); clusters that ran ≤ v0.12 must complete the stored-object rewrite + prune **first**. See [Removing `v1alpha1` (v0.15.0)](#removing-v1alpha1-v0150). |
 | **0.13.x** | **0.14.x** | Additive `spec.authentication` union on `QueueManagerConnection` (Basic / LTPA / ClientCert-mTLS). **No action for existing Basic users** — see [`spec.authentication` union (Basic users: no action)](#specauthentication-union-basic-users-no-action). |
 | **0.12.x** | **0.13.x** | etcd storage moves from `v1alpha1` to the `v1beta1` hub. Complete the staged procedure in [Moving etcd storage to v1beta1 (0.12.x → 0.13.x)](#moving-etcd-storage-to-v1beta1-012x-013x). |
 | **0.11.x** | **0.12.x** | **`v1beta1` API** for all six kinds with **conversion webhook** (dual served versions). See [Migrating to v1beta1 (0.11.x → 0.12.x)](#migrating-to-v1beta1-011x-012x) below. |
@@ -97,6 +98,14 @@ Release **0.13.x** changes the storage version for all six kinds to `v1beta1`.
 This is a staged upgrade: do not apply the 0.13.x CRDs to a 0.11.x (or older)
 operator, because that Deployment does not serve the conversion webhook needed
 to read objects stored in the other version.
+
+> [!NOTE]
+> This is a historical, one-time procedure. It remains the mandatory precondition
+> for **v0.15.0**: any cluster that ever ran MKurator ≤ v0.12 (when `v1alpha1` was
+> the storage version) must complete the stored-object rewrite and
+> `storedVersions` prune below **before** upgrading to v0.15.0, which
+> [removes `v1alpha1`](#removing-v1alpha1-v0150). The conversion webhook that makes
+> this rewrite possible exists only in the v0.12.x–v0.14.x line.
 
 1. If starting below 0.12.x, first complete the 0.11.x → 0.12.x procedure
    above. Deploy the latest 0.12.x operator and CRDs.
@@ -247,7 +256,7 @@ storage marker is insufficient.
 Example:
 
 ```yaml
-# Before (still valid through the deprecation window)
+# Before (v1alpha1 — removed in v0.15.0; rewrite apiVersion and prefer typed fields)
 apiVersion: messaging.mkurator.dev/v1alpha1
 kind: Queue
 spec:
@@ -277,21 +286,42 @@ Setting **both** a typed field and the same key in `attributes` is rejected at
 admission (no silent merge). Prefer typed fields in new manifests; use
 `kubectl explain queue.spec.maxDepth --api-version=messaging.mkurator.dev/v1beta1`.
 
-Map-only **`v1alpha1`** manifests are unaffected until you bump `apiVersion`.
+Map-only **`v1alpha1`** manifests were unaffected until the `apiVersion` bump;
+note that `v1alpha1` itself was removed in v0.15.0 (rewrite to `v1beta1`).
 
-## Removing `v1alpha1` (drop the conversion webhook)
+## Removing `v1alpha1` (v0.15.0)
 
-**Breaking.** This release **stops serving `v1alpha1`**: the six CRDs are now
+**Breaking.** Release **v0.15.0 removes `messaging.mkurator.dev/v1alpha1`
+entirely** ([ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md)): the six CRDs are now
 single-version (`v1beta1` served and stored) and the conversion webhook is gone.
-New and existing manifests must use `apiVersion: messaging.mkurator.dev/v1beta1`.
+All manifests must use `apiVersion: messaging.mkurator.dev/v1beta1`.
+
+### Rewrite `apiVersion` in your manifests (one-time)
+
+Any manifest, GitOps repo, or kustomize base still pinned to `v1alpha1` must have
+its `apiVersion` line rewritten before it applies against v0.15.0:
+
+```sh
+# messaging.mkurator.dev/v1alpha1 → messaging.mkurator.dev/v1beta1
+sed -i 's#messaging.mkurator.dev/v1alpha1#messaging.mkurator.dev/v1beta1#g' your-manifests/*.yaml
+```
+
+The **spec is identical** between the two versions (ADR-0026: "spec/status shapes
+on `v1beta1` mirror `v1alpha1`, apiVersion bump only"), so no field edits are
+needed — only the `apiVersion` line changes.
+
+### Stored-object precondition (clusters that ever ran ≤ v0.12)
 
 > [!WARNING]
-> Complete the [storage flip](#moving-etcd-storage-to-v1beta1-012x--013x) —
-> **rewrite stored objects, then prune `status.storedVersions` to `["v1beta1"]`**
-> — *before* installing this release. Applying CRDs that no longer list
+> If you **ever ran MKurator ≤ v0.12** — when `v1alpha1` was the etcd **storage**
+> version — you **must** complete the one-time
+> [stored-object rewrite + `storedVersions` prune](#rewrite-stored-objects-after-the-storage-flip)
+> — **rewrite stored objects to `v1beta1`, then prune `status.storedVersions` to
+> `["v1beta1"]`** — *before* installing v0.15.0. Applying CRDs that no longer list
 > `v1alpha1` to a cluster whose `status.storedVersions` still contains `v1alpha1`
 > leaves the API server unable to decode those stored records (a bricked upgrade).
-> There is no conversion webhook in this release to fall back on.
+> There is no conversion webhook in v0.15.0 to fall back on. Clusters that already
+> completed the v0.13 storage flip (storedVersions already `["v1beta1"]`) need no CR action.
 
 Pre-flight check (every kind must print exactly `["v1beta1"]`):
 
@@ -345,7 +375,6 @@ After CRD apply, verify:
 ```sh
 kubectl get crd | grep messaging.mkurator.dev
 kubectl explain queue.spec --api-version=messaging.mkurator.dev/v1beta1
-# or v1alpha1 while both versions are served
 ```
 
 ## Validating webhooks and cert-manager
