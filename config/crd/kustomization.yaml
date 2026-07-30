@@ -9,6 +9,6 @@ resources:
 - bases/messaging.mkurator.dev_queues.yaml
 - bases/messaging.mkurator.dev_topics.yaml
 
-# 8e-8a: v1alpha1 is no longer served. The CRDs are single-version (v1beta1)
-# with no conversion webhook, so the conversion webhook_in_*/cainjection_in_*
+# The CRDs are single-version (v1beta1) with no conversion webhook, so the
+# conversion webhook_in_*/cainjection_in_*
 # patches and their kustomizeconfig wiring have been removed.

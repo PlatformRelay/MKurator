@@ -216,7 +216,7 @@ replacements:
 #         index: 1
 #         create: true
 
-# 8e-8a: v1alpha1 is no longer served; CRDs are single-version with no
-# conversion webhook, so the ConversionWebhook cert-manager CA-injection
+# CRDs are single-version with no conversion webhook, so the
+# ConversionWebhook cert-manager CA-injection
 # replacement block (targeting kind: CustomResourceDefinition) has been
 # removed. The ValidatingWebhookConfiguration CA-injection blocks above stay.

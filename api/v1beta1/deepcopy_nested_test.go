@@ -75,96 +75,110 @@ func TestValueTypeDeepCopy(t *testing.T) {
 	status := testStatusFields()
 
 	checks := []struct {
-		name  string
-		clone func() any
+		name string
+		// clone returns the address of a populated original and its DeepCopy(), both as *T,
+		// so the loop can assert the copy deep-equals the original and is a distinct pointer.
+		clone func() (orig any, cp any)
 	}{
-		{"SecretReference", func() any { v := SecretReference{Name: "s"}; return v.DeepCopy() }},
-		{"LocalObjectReference", func() any { v := ref; return v.DeepCopy() }},
-		{"TLSConfig", func() any {
+		{"SecretReference", func() (any, any) { v := SecretReference{Name: "s"}; return &v, v.DeepCopy() }},
+		{"LocalObjectReference", func() (any, any) { v := ref; return &v, v.DeepCopy() }},
+		{"TLSConfig", func() (any, any) {
 			v := TLSConfig{InsecureSkipVerify: true, CASecretRef: &SecretReference{Name: "ca"}}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"BasicAuth", func() any { v := BasicAuth{SecretRef: SecretReference{Name: "b"}}; return v.DeepCopy() }},
-		{"LTPAAuth", func() any { v := LTPAAuth{SecretRef: SecretReference{Name: "l"}}; return v.DeepCopy() }},
+		{
+			"BasicAuth",
+			func() (any, any) { v := BasicAuth{SecretRef: SecretReference{Name: "b"}}; return &v, v.DeepCopy() },
+		},
+		{
+			"LTPAAuth",
+			func() (any, any) { v := LTPAAuth{SecretRef: SecretReference{Name: "l"}}; return &v, v.DeepCopy() },
+		},
 		{
 			"ClientCertAuth",
-			func() any { v := ClientCertAuth{SecretRef: SecretReference{Name: "c"}}; return v.DeepCopy() },
+			func() (any, any) { v := ClientCertAuth{SecretRef: SecretReference{Name: "c"}}; return &v, v.DeepCopy() },
 		},
-		{"MQWebAuthentication", func() any {
+		{"MQWebAuthentication", func() (any, any) {
 			v := MQWebAuthentication{
 				Mode:       MQWebAuthenticationModeBasic,
 				Basic:      &BasicAuth{SecretRef: SecretReference{Name: "b"}},
 				LTPA:       &LTPAAuth{SecretRef: SecretReference{Name: "l"}},
 				ClientCert: &ClientCertAuth{SecretRef: SecretReference{Name: "c"}},
 			}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"WorkloadLifecyclePolicies", func() any { v := wlp; return v.DeepCopy() }},
-		{"MQObjectStatusFields", func() any { v := status; return v.DeepCopy() }},
-		{"QueueSpec", func() any {
+		{"WorkloadLifecyclePolicies", func() (any, any) { v := wlp; return &v, v.DeepCopy() }},
+		{"MQObjectStatusFields", func() (any, any) { v := status; return &v, v.DeepCopy() }},
+		{"QueueSpec", func() (any, any) {
 			v := QueueSpec{ConnectionRef: ref, QueueName: "Q", MaxDepth: int32Ptr(10),
 				Attributes: map[string]string{"k": "v"}, WorkloadLifecyclePolicies: wlp}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"QueueStatus", func() any {
+		{"QueueStatus", func() (any, any) {
 			v := QueueStatus{Conditions: testConditions(), MQObjectStatusFields: status}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"TopicSpec", func() any {
+		{"TopicSpec", func() (any, any) {
 			v := TopicSpec{
 				ConnectionRef:             ref,
 				TopicName:                 "T",
 				Attributes:                map[string]string{"k": "v"},
 				WorkloadLifecyclePolicies: wlp,
 			}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"TopicStatus", func() any {
+		{"TopicStatus", func() (any, any) {
 			v := TopicStatus{Conditions: testConditions(), MQObjectStatusFields: status}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"ChannelSpec", func() any {
+		{"ChannelSpec", func() (any, any) {
 			v := ChannelSpec{ConnectionRef: ref, ChannelName: "C", ShareConv: int32Ptr(10),
 				MaxMsgLength: int32Ptr(4096), MaxInstances: int32Ptr(5), MaxInstancesClient: int32Ptr(2),
 				Attributes: map[string]string{"k": "v"}, WorkloadLifecyclePolicies: wlp}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"ChannelStatus", func() any {
+		{"ChannelStatus", func() (any, any) {
 			v := ChannelStatus{Conditions: testConditions(), MQObjectStatusFields: status}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"ChannelAuthRuleSpec", func() any {
+		{"ChannelAuthRuleSpec", func() (any, any) {
 			v := ChannelAuthRuleSpec{ConnectionRef: ref, ChannelName: "C",
 				RuleType: ChannelAuthRuleTypeAddressMap, WorkloadLifecyclePolicies: wlp}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"ChannelAuthRuleStatus", func() any {
+		{"ChannelAuthRuleStatus", func() (any, any) {
 			v := ChannelAuthRuleStatus{Conditions: testConditions(), MQObjectStatusFields: status}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"AuthorityRecordSpec", func() any {
+		{"AuthorityRecordSpec", func() (any, any) {
 			v := AuthorityRecordSpec{ConnectionRef: ref, Profile: "APP.ORDERS",
 				ObjectType: AuthorityObjectTypeQueue, Principal: "app",
 				Authorities: []string{"GET", "PUT"}, WorkloadLifecyclePolicies: wlp}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"AuthorityRecordStatus", func() any {
+		{"AuthorityRecordStatus", func() (any, any) {
 			v := AuthorityRecordStatus{Conditions: testConditions(), MQObjectStatusFields: status}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
-		{"QueueManagerConnectionSpec", func() any { return fullyPopulatedQMC().Spec.DeepCopy() }},
-		{"QueueManagerConnectionStatus", func() any {
+		{"QueueManagerConnectionSpec", func() (any, any) { s := fullyPopulatedQMC().Spec; return &s, s.DeepCopy() }},
+		{"QueueManagerConnectionStatus", func() (any, any) {
 			v := QueueManagerConnectionStatus{Conditions: testConditions(), ObservedGeneration: 3}
-			return v.DeepCopy()
+			return &v, v.DeepCopy()
 		}},
 	}
 
 	for _, c := range checks {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			got := c.clone()
-			if got == nil || reflect.ValueOf(got).IsNil() {
+			orig, cp := c.clone()
+			if cp == nil || reflect.ValueOf(cp).IsNil() {
 				t.Fatalf("%s: DeepCopy returned nil", c.name)
+			}
+			if orig == cp {
+				t.Fatalf("%s: DeepCopy returned the same pointer as the original", c.name)
+			}
+			if !reflect.DeepEqual(orig, cp) {
+				t.Fatalf("%s: copy not deeply equal to original", c.name)
 			}
 		})
 	}
