@@ -1,18 +1,10 @@
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 
 // MQObjectStatusFields are shared status fields for Queue, Topic, Channel, and auth CRs.
-type MQObjectStatusFields struct {
-	// Message is a short, user-facing summary of reconcile state (especially when Synced=False).
-	// +optional
-	Message string `json:"message,omitempty"`
-
-	// LastSyncTime is set when the object last reconciled successfully.
-	// +optional
-	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty"`
-
-	// MQObjectExists is true when the IBM MQ object was last observed on the queue manager.
-	// +optional
-	MQObjectExists *bool `json:"mqObjectExists,omitempty"`
-}
+//
+// During the Phase-8e v1beta1 cut-over (8e-3) this is a type alias to the v1beta1 hub struct so
+// a single controller-side MQObject interface is satisfied by BOTH the not-yet-migrated v1alpha1
+// workloads and the migrated v1beta1 Queue. The alias disappears when v1alpha1 is dropped (8e-8).
+type MQObjectStatusFields = messagingv1beta1.MQObjectStatusFields
