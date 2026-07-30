@@ -18,19 +18,11 @@ import (
 // does not retain credential bytes for unrelated Secrets in memory. Secret reads through
 // the manager client bypass the cache (DisableFor) and always hit the API server.
 //
-// v1beta1 QueueManagerConnection is also in DisableFor: resolveAuthentication re-reads the
-// hub to recover the authentication union (AUTH-12/13/16) which the v1alpha1 spoke drops on
-// down-conversion. The on-demand v1beta1 informer can race the first reconcile and briefly
-// miss the object (IsNotFound); direct API-server reads close that window. Direct reads are
-// safe here because v1beta1 is the storage version (no conversion overhead) and the re-read
-// happens once per reconcile cycle, not on every method call.
-//
-// This does NOT cover the AUTH-14 post-merge regression where a union QMC's authentication
-// was empty even on a direct hub read: that was the object's stored spec genuinely losing
-// the union, via the v1alpha1 spoke's ConvertTo nil-ing it on a metadata-only round trip
-// (e.g. the reconciler's finalizer-add Update). See
-// authenticationUnionSnapshotAnnotation in api/v1alpha1/conversion_auth.go for the fix — no
-// cache option can paper over the stored object itself being wrong.
+// v1beta1 QueueManagerConnection is also in DisableFor: the reconciler and the mqweb factory
+// read the QMC spec (credentials/authentication) and status directly through the manager client,
+// so these reads must hit the API server and observe the latest object rather than a possibly
+// stale informer snapshot. Direct reads are cheap here because v1beta1 is the storage version,
+// so no conversion runs on the read path.
 //
 // See docs/ARCHITECTURE.md "RBAC & least privilege" for the least-privilege narrative.
 func ManagerOptions() (cache.Options, client.Options) {

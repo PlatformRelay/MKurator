@@ -5,9 +5,6 @@ import (
 	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -16,32 +13,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
-// connectionReferencesSecret reports whether the connection authenticates or trusts via
-// secretName. It matches the spoke's legacy credentialsSecretRef and TLS caSecretRef, plus any
-// authentication-union member refs supplied by the caller.
+// connectionReferencesSecret reports whether conn authenticates or trusts via secretName. It
+// matches the legacy credentialsSecretRef, the TLS caSecretRef, and every authentication-union
+// member ref (basic/ltpa/clientCert) read natively from the v1beta1 spec — so every auth mode
+// inherits the Secret watch for free (Basic/AUTH-12, LTPA/AUTH-13, ClientCert/AUTH-16) without
+// any mode-specific code here.
 //
-// The union refs are passed in (not read here) because the reconciler/watch sees a
-// down-converted v1alpha1 spoke whose authentication union was dropped; the caller re-reads the
-// v1beta1 hub for them (mirroring the mqrest factory's resolveCredentialsSecretName, ADR-0027).
-// Keeping this a pure function preserves its existing unit contract.
-func connectionReferencesSecret(
-	conn *messagingv1alpha1.QueueManagerConnection,
-	secretName string,
-	unionRefs ...string,
-) bool {
-	if conn.Spec.CredentialsSecretRef.Name == secretName {
+// Every deref is nil-guarded: v1beta1 makes credentialsSecretRef, authentication, and each union
+// member optional pointers, so a stale informer cache that briefly returns a partially-populated
+// QMC is matched on whatever refs ARE readable rather than panicking.
+func connectionReferencesSecret(conn *messagingv1beta1.QueueManagerConnection, secretName string) bool {
+	if conn.Spec.CredentialsSecretRef != nil && conn.Spec.CredentialsSecretRef.Name == secretName {
 		return true
 	}
 	if conn.Spec.TLS != nil && conn.Spec.TLS.CASecretRef != nil &&
 		conn.Spec.TLS.CASecretRef.Name == secretName {
 		return true
 	}
-	for _, ref := range unionRefs {
-		if ref != "" && ref == secretName {
+	if a := conn.Spec.Authentication; a != nil {
+		if a.Basic != nil && a.Basic.SecretRef.Name == secretName {
+			return true
+		}
+		if a.LTPA != nil && a.LTPA.SecretRef.Name == secretName {
+			return true
+		}
+		if a.ClientCert != nil && a.ClientCert.SecretRef.Name == secretName {
 			return true
 		}
 	}
@@ -54,7 +53,7 @@ func requestsForSecret(
 	secret *corev1.Secret,
 ) []reconcile.Request {
 	logger := log.FromContext(ctx)
-	connList := &messagingv1alpha1.QueueManagerConnectionList{}
+	connList := &messagingv1beta1.QueueManagerConnectionList{}
 	if err := c.List(ctx, connList, client.InNamespace(secret.Namespace)); err != nil {
 		logger.Error(err, "list QueueManagerConnections for secret watch",
 			"namespace", secret.Namespace, "secret", secret.Name)
@@ -64,60 +63,24 @@ func requestsForSecret(
 	var reqs []reconcile.Request
 	for i := range connList.Items {
 		conn := &connList.Items[i]
-		// The spoke dropped the authentication union on down-conversion; re-read the v1beta1 hub
-		// so a union auth-Secret rotation enqueues its owner (AUTH-14, closing the AUTH-12 gap).
-		unionRefs := unionSecretRefs(ctx, c, conn)
-		if connectionReferencesSecret(conn, secret.Name, unionRefs...) {
+		if conn.Spec.Authentication == nil {
+			// A v1beta1 QMC may legitimately omit the authentication union (defaults to Basic
+			// against credentialsSecretRef), and a stale informer read can briefly return one
+			// with the union not yet populated. Either way the mapper degrades gracefully:
+			// connectionReferencesSecret nil-guards every deref and matches whatever refs ARE
+			// readable. Logged at V(1) so the fallback is observable without spamming the
+			// default log for every legacy-Basic connection.
+			logger.V(1).Info(
+				"secret watch: connection has no authentication union; matching credential/TLS refs only",
+				"namespace", conn.Namespace, "connection", conn.Name)
+		}
+		if connectionReferencesSecret(conn, secret.Name) {
 			reqs = append(reqs, reconcile.Request{
 				NamespacedName: types.NamespacedName{Namespace: secret.Namespace, Name: conn.Name},
 			})
 		}
 	}
 	return reqs
-}
-
-// unionSecretRefs returns the authentication-union member Secret names for conn by re-reading
-// the v1beta1 hub (the spoke's union was dropped on down-conversion). It matches EVERY union
-// member ref (basic/ltpa/clientCert) so every mode inherits the watch for free — this is what
-// covers LTPA login-Secret rotation (AUTH-13) without any AUTH-13-specific code here, and will
-// cover ClientCert (AUTH-16) when its slice ships.
-//
-// Degradation mirrors the mqrest factory (ADR-0027): if the hub is NotFound, the v1beta1 kind
-// is not registered (older/fake clients), or any read error occurs, we return nil and fall back
-// to spoke-only matching — a watch miss on a union secret is never worse than the pre-AUTH-14
-// behaviour, and must not drop the enqueue for legacy refs.
-func unionSecretRefs(
-	ctx context.Context,
-	c client.Client,
-	conn *messagingv1alpha1.QueueManagerConnection,
-) []string {
-	hub := &messagingv1beta1.QueueManagerConnection{}
-	if err := c.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Name}, hub); err != nil {
-		if !k8serrors.IsNotFound(err) && !meta.IsNoMatchError(err) && !runtime.IsNotRegisteredError(err) {
-			// Log at Error so a transient hub-read failure that silently drops a union-Secret
-			// enqueue is visible in operator logs (the 2-minute backstop requeue recovers it,
-			// but operators should see the miss — ADR-0014 auth-recovery carve-out).
-			log.FromContext(ctx).Error(err,
-				"secret watch: re-read v1beta1 hub for authentication union failed; matching spoke refs only",
-				"connection", conn.Name, "namespace", conn.Namespace)
-		}
-		return nil
-	}
-	a := hub.Spec.Authentication
-	if a == nil {
-		return nil
-	}
-	var refs []string
-	if a.Basic != nil {
-		refs = append(refs, a.Basic.SecretRef.Name)
-	}
-	if a.LTPA != nil {
-		refs = append(refs, a.LTPA.SecretRef.Name)
-	}
-	if a.ClientCert != nil {
-		refs = append(refs, a.ClientCert.SecretRef.Name)
-	}
-	return refs
 }
 
 func secretEnqueueMapper(c client.Client) handler.MapFunc {

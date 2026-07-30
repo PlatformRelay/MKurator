@@ -10,18 +10,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
-// unionWatchScheme registers v1alpha1 (spokes the watch lists), v1beta1 (the hub the watch
-// re-reads for the authentication union) and core/v1 (Secrets).
+// unionWatchScheme registers v1beta1 (the QMC the watch lists natively) and core/v1 (Secrets).
 func unionWatchScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
-		t.Fatal(err)
-	}
 	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
@@ -31,10 +26,9 @@ func unionWatchScheme(t *testing.T) *runtime.Scheme {
 	return s
 }
 
-// AUTH-14 AC2: a union QMC references its auth Secret through authentication.basic.secretRef,
-// NOT the legacy credentialsSecretRef (which is empty on the down-converted spoke). The Secret
-// watch must re-read the v1beta1 hub to see the union ref and enqueue the owning QMC when that
-// Secret changes — closing the AUTH-12 rotation gap on the event-driven side.
+// A union QMC references its auth Secret through authentication.basic.secretRef, NOT the legacy
+// credentialsSecretRef. The Secret watch lists the v1beta1 QMC natively and reads the union ref
+// directly, enqueuing the owning QMC when that Secret changes (union rotation, AUTH-12).
 func TestRequestsForSecret_EnqueuesUnionAuthRef(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -45,7 +39,7 @@ func TestRequestsForSecret_EnqueuesUnionAuthRef(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns, ResourceVersion: "1"},
 		Data:       map[string][]byte{"password": []byte("old")},
 	}
-	hub := &messagingv1beta1.QueueManagerConnection{
+	qmc := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
@@ -56,16 +50,8 @@ func TestRequestsForSecret_EnqueuesUnionAuthRef(t *testing.T) {
 			},
 		},
 	}
-	// Spoke as the watch lists it: union dropped, legacy ref empty.
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, qmc).Build()
 	reqs := requestsForSecret(ctx, cl, unionSecret)
 	if len(reqs) != 1 {
 		t.Fatalf("requests = %d, want 1 (union auth-secret ref must enqueue owning QMC)", len(reqs))
@@ -75,9 +61,9 @@ func TestRequestsForSecret_EnqueuesUnionAuthRef(t *testing.T) {
 	}
 }
 
-// AUTH-14 AC2 (stripped-data informer path): when the informer cache strips Secret data, a
-// rotation surfaces only as a resourceVersion bump. The predicate must still fire AND the
-// mapper must still enqueue the owning union QMC end-to-end.
+// Stripped-data informer path: when the informer cache strips Secret data, a rotation surfaces
+// only as a resourceVersion bump. The predicate must still fire AND the mapper must still enqueue
+// the owning union QMC end-to-end.
 func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -92,7 +78,7 @@ func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "union-creds", Namespace: ns, ResourceVersion: "2"},
 	}
 
-	hub := &messagingv1beta1.QueueManagerConnection{
+	qmc := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
@@ -103,13 +89,6 @@ func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 			},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
 
 	// Predicate: stripped -> stripped RV-only change must pass (unchanged behaviour, asserted here for the union ref).
 	preds := secretWatchPredicates()
@@ -118,7 +97,7 @@ func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 	}
 
 	// Mapper: the enqueue path must resolve the union ref and enqueue the owning QMC.
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(strippedNew, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(strippedNew, qmc).Build()
 	mapper := secretEnqueueMapper(cl)
 	reqs := mapper(ctx, strippedNew)
 	if len(reqs) != 1 || reqs[0].Name != "qm-union" {
@@ -126,18 +105,14 @@ func TestSecretWatch_UnionRefStrippedDataRotationEnqueues(t *testing.T) {
 	}
 }
 
-// AUTH-14 AC2 (generic over union members): unionSecretRefs returns EVERY set member ref
-// (basic/ltpa/clientCert), independent of mode, so AUTH-13/16 inherit the watch even though
-// only Basic is an accepted enum today. CEL exclusivity is not enforced in unit tests, so we
-// set all three members on the hub to lock the generic extraction the production code claims.
-func TestUnionSecretRefs_ReturnsEveryMemberRef(t *testing.T) {
+// Generic over union members: connectionReferencesSecret matches EVERY set member ref
+// (basic/ltpa/clientCert), independent of mode, so AUTH-13/16 inherit the watch. CEL exclusivity
+// is not enforced in unit tests, so we set all three members to lock the generic extraction.
+func TestConnectionReferencesSecret_MatchesEveryUnionMember(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
-	ns := "mkurator-system"
-	s := unionWatchScheme(t)
 
-	hub := &messagingv1beta1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-all", Namespace: ns},
+	qmc := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-all", Namespace: "mkurator-system"},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
@@ -151,41 +126,19 @@ func TestUnionSecretRefs_ReturnsEveryMemberRef(t *testing.T) {
 			},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-all", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(hub, spoke).Build()
-	got := unionSecretRefs(ctx, cl, spoke)
-
-	want := map[string]bool{"basic-ref": true, "ltpa-ref": true, "cc-ref": true}
-	if len(got) != len(want) {
-		t.Fatalf("unionSecretRefs = %v, want all three member refs %v", got, want)
-	}
-	for _, ref := range got {
-		if !want[ref] {
-			t.Fatalf("unexpected ref %q in %v", ref, got)
-		}
-		delete(want, ref)
-	}
-	if len(want) != 0 {
-		t.Fatalf("missing member refs: %v (got %v)", want, got)
-	}
-
-	// And each resolves to an enqueue through connectionReferencesSecret for its own Secret name.
 	for _, name := range []string{"basic-ref", "ltpa-ref", "cc-ref"} {
-		if !connectionReferencesSecret(spoke, name, got...) {
+		if !connectionReferencesSecret(qmc, name) {
 			t.Fatalf("union member %q should match via connectionReferencesSecret", name)
 		}
 	}
+	if connectionReferencesSecret(qmc, "unrelated") {
+		t.Fatal("unrelated secret name must not match")
+	}
 }
 
-// AUTH-14 AC2 (isolation): a union QMC whose auth Secret is a DIFFERENT name is not enqueued
-// by an unrelated Secret change.
+// Isolation: a union QMC whose auth Secret is a DIFFERENT name is not enqueued by an unrelated
+// Secret change.
 func TestRequestsForSecret_UnionRefNoMatchForOtherSecret(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -195,7 +148,7 @@ func TestRequestsForSecret_UnionRefNoMatchForOtherSecret(t *testing.T) {
 	otherSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "unrelated", Namespace: ns, ResourceVersion: "1"},
 	}
-	hub := &messagingv1beta1.QueueManagerConnection{
+	qmc := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
@@ -206,51 +159,52 @@ func TestRequestsForSecret_UnionRefNoMatchForOtherSecret(t *testing.T) {
 			},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(otherSecret, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(otherSecret, qmc).Build()
 	reqs := requestsForSecret(ctx, cl, otherSecret)
 	if len(reqs) != 0 {
 		t.Fatalf("requests = %d, want 0 (unrelated secret must not enqueue union QMC)", len(reqs))
 	}
 }
 
-// AUTH-14 AC2 (legacy compat / hub unreadable): when the v1beta1 hub is not registered in the
-// scheme (older/fake clients) the watch degrades to spoke-only matching — preserving the
-// pre-AUTH-14 behaviour verbatim rather than failing the whole enqueue.
-func TestRequestsForSecret_HubUnreadableFallsBackToSpokeRef(t *testing.T) {
+// Stale-cache graceful degradation (8e-2): the informer may briefly return a QMC whose
+// authentication union is not yet populated. The mapper must NOT panic on the now-optional
+// pointer fields — it matches on whatever refs ARE readable.
+//   - authentication nil + credentialsSecretRef = rotated secret -> still enqueues (matches the ref).
+//   - authentication nil + credentialsSecretRef nil (fully partial read) -> no panic, no enqueue.
+func TestRequestsForSecret_StaleCacheNilAuthenticationDegradesGracefully(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	ns := "mkurator-system"
-
-	// Scheme WITHOUT v1beta1: hub Get returns not-registered -> spoke-only fallback.
-	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
-		t.Fatal(err)
-	}
-	if err := corev1.AddToScheme(s); err != nil {
-		t.Fatal(err)
-	}
+	s := unionWatchScheme(t)
 
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "legacy-creds", Namespace: ns, ResourceVersion: "1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "rotated", Namespace: ns, ResourceVersion: "2"},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
+	// authentication nil, but the legacy credential ref IS present: match on it.
+	legacy := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-legacy", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "legacy-creds"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager:         "QM1",
+			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "rotated"},
+		},
+	}
+	// authentication nil AND credentialsSecretRef nil: a partially-read object. Must not panic.
+	partial := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-partial", Namespace: ns},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager: "QM2",
+			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
 		},
 	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, legacy, partial).Build()
 	reqs := requestsForSecret(ctx, cl, secret)
 	if len(reqs) != 1 || reqs[0].Name != "qm-legacy" {
-		t.Fatalf("reqs = %+v, want spoke-only enqueue of qm-legacy on hub-unreadable fallback", reqs)
+		t.Fatalf(
+			"reqs = %+v, want single enqueue of qm-legacy (matched on credentialsSecretRef despite nil auth)",
+			reqs,
+		)
 	}
 }
