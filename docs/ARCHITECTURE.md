@@ -21,7 +21,7 @@ operating Queue Manager installations. The Queue Manager already exists and
 exposes the IBM MQ Administrative REST API (`mqweb`). See
 [ADR-0012](adr/0012-operator-scope-existing-queue-manager.md).
 
-The initial `v1alpha1` API targets:
+The `v1beta1` API targets:
 
 - `QueueManagerConnection` — how to reach a Queue Manager (endpoint + creds).
 - `Queue`, `Topic`, `Channel` — MQSC objects on a referenced Queue Manager.
@@ -181,11 +181,11 @@ Full requirements and rationale: [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL
 
 ### QueueManagerConnection
 
-Describes how to reach a Queue Manager. **Namespaced** (all v1alpha1 CRDs) for
+Describes how to reach a Queue Manager. **Namespaced** (all CRDs) for
 multi-tenant isolation.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
   name: qm1
@@ -210,7 +210,7 @@ A queue maintained on a referenced Queue Manager (`QLOCAL`, `QALIAS`, or
 `QREMOTE`).
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: orders
@@ -234,7 +234,7 @@ status:
 An administrative topic object (`DEFINE TOPIC`) on a referenced Queue Manager.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Topic
 metadata:
   name: retail-orders
@@ -256,7 +256,7 @@ status:
 A server-connection channel (`CHLTYPE(SVRCONN)`) on a referenced Queue Manager.
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: orders-app

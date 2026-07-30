@@ -12,7 +12,7 @@ behaviour (manager, reconcilers, webhooks) see
 |------|--------|
 | **Module path** | `github.com/platformrelay/MKurator` |
 | **API group** | `messaging.mkurator.dev` |
-| **API version** | `v1alpha1` |
+| **API version** | `v1beta1` |
 | **Entrypoint** | `cmd/main.go` |
 | **Go version** | Floor in `go.mod` (`go` directive); CI uses the pinned toolchain via `GOTOOLCHAIN` |
 

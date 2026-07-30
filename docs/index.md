@@ -63,8 +63,10 @@ Custom Resource  →  controller reconcile  →  mqweb REST (MQSC)  →  IBM MQ 
 | `AuthorityRecord` | `SET AUTHREC` (OAM) |
 
 !!! info "API version"
-    Prefer **`v1beta1`** for new manifests. `v1alpha1` remains served via the conversion
-    webhook. Release tags are on [GitHub Releases](https://github.com/platformrelay/MKurator/releases)
+    Manifests use **`apiVersion: messaging.mkurator.dev/v1beta1`** — the only served and
+    stored version. The earlier `v1alpha1` was removed in v0.15.0 (see
+    [ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md) and the [removal runbook](UPGRADE.md#removing-v1alpha1-v0150)).
+    Release tags are on [GitHub Releases](https://github.com/platformrelay/MKurator/releases)
     (see also the badge above). Roadmap: [ROADMAP.md](ROADMAP.md).
 
 ## Documentation map

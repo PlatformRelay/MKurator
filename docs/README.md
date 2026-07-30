@@ -49,7 +49,7 @@
 | 🏗️ | [adr/](adr/) | Architecture Decision Records |
 | 📋 | [ROADMAP.md](ROADMAP.md) | Phased delivery plan |
 | 📋 | [PHASE5_AUTH_SKETCH.md](PHASE5_AUTH_SKETCH.md) | Phase 5 CHLAUTH / AUTHREC (shipped + roadmap) |
-| 📋 | [API_STABILITY.md](API_STABILITY.md) | `v1alpha1` guarantees, Phase 8 maturation, `v1beta1` graduation |
+| 📋 | [API_STABILITY.md](API_STABILITY.md) | `v1beta1` API guarantees and stability policy |
 | 📋 | [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md) | Security, reliability, observability, performance |
 | 📋 | [CICD.md](CICD.md) | CI/CD pipeline and `verify` discipline |
 | 🔒 | [../SECURITY.md](../SECURITY.md) | Security posture and vulnerability reporting |
@@ -58,7 +58,7 @@
 | 📚 | [schemas/README.md](schemas/README.md) | mqweb Swagger / MQSC JSON schemas |
 | 📚 | [REFERENCES.md.example](REFERENCES.md.example) | Optional map of vendored `references/` clones (copy to `REFERENCES.md`) |
 
-**Contract vs research:** shipped behaviour is defined by v1alpha1 CRDs and
+**Contract vs research:** shipped behaviour is defined by v1beta1 CRDs and
 [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md), not
 [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md).
 

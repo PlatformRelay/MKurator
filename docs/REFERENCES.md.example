@@ -14,7 +14,7 @@ an existing queue manager** via mqweb. See [ARCHITECTURE.md](ARCHITECTURE.md) an
 | | IBM MQ Operator + gitops samples | MKurator |
 |---|----------------------------------|---------|
 | **Goal** | Install and operate Queue Managers | Reconcile queues, topics, channels on an existing QM |
-| **Primary CR** | `QueueManager` (`mq.ibm.com/v1beta1`) | `Queue`, `Topic`, `Channel`, `QueueManagerConnection` (`messaging.mkurator.dev/v1alpha1`) |
+| **Primary CR** | `QueueManager` (`mq.ibm.com/v1beta1`) | `Queue`, `Topic`, `Channel`, `QueueManagerConnection` (`messaging.mkurator.dev/v1beta1`) |
 | **MQ changes** | QM lifecycle + optional ConfigMap MQSC at install | Per-resource reconcile via mqweb |
 | **Controller source** | Closed binary (`cpopen/ibm-mq-operator`) | This repository (Go) |
 

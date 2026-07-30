@@ -121,8 +121,7 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 
 ```
 .
-├── api/v1alpha1/              # served CRD spokes + conversion to hub
-├── api/v1beta1/               # storage conversion hub (Hub() types); conversion webhooks convert v1alpha1 ↔ v1beta1
+├── api/v1beta1/               # CRD types — the only served + stored API version
 ├── cmd/                       # main.go: manager wiring/entrypoint
 ├── internal/
 │   ├── controller/           # reconcilers (thin) + their tests
@@ -154,9 +153,10 @@ layout of mature operators (see [ROADMAP.md](docs/ROADMAP.md) for delivery phase
 ```
 
 > Module `github.com/platformrelay/mkurator`, API group `messaging.mkurator.dev`.
-> Two API versions are served: `v1beta1` is the **storage conversion hub** (its
-> types implement `Hub()`), while `v1alpha1` remains a served spoke; conversion
-> webhooks convert between them. GitHub org/repo: [platformrelay/MKurator](https://github.com/platformrelay/MKurator).
+> A single API version is served: **`v1beta1`** (served and stored). `v1alpha1` and
+> the conversion webhook were removed in v0.15.0
+> ([ADR-0029](docs/adr/0029-drop-v1alpha1-hard-cut.md)).
+> GitHub org/repo: [platformrelay/MKurator](https://github.com/platformrelay/MKurator).
 > See [ADR-0018](docs/adr/0018-project-rename-mkurator.md) (supersedes [ADR-0006](docs/adr/0006-project-name-kurator.md)).
 
 ## Toolchain & dependencies
@@ -228,7 +228,7 @@ Branch policy (enforced by GitHub ruleset **`protect-main`** on `main`):
   parsing strings. See [OPERATOR_RUNTIME.md](docs/OPERATOR_RUNTIME.md#error-handling-and-requeue-adr-0014).
 
 ```go
-func (r *QueueReconciler) ensure(ctx context.Context, q *v1alpha1.Queue) error {
+func (r *QueueReconciler) ensure(ctx context.Context, q *v1beta1.Queue) error {
     if err := r.mq.DefineQueue(ctx, q.Spec); err != nil {
         return fmt.Errorf("define queue %q: %w", q.Spec.Name, err)
     }
@@ -280,7 +280,7 @@ via `hack/ci/suite-lock.sh` — only one suite at a time per host.
   `setup-envtest`, with the `MQAdmin` port mocked. Co-located with controllers
   (`*_envtest_test.go`), `suite_test.go` loads CRDs from `config/`.
 - **Admission**: envtest installs `ValidatingWebhookConfiguration`
-  (`internal/webhook/v1alpha1/suite_test.go`); table-driven tests for
+  (`internal/webhook/v1beta1/suite_test.go`); table-driven tests for
   `internal/validation`; no MQ.
 - **Integration**: `mqrest` queue, topic, channel, CHLAUTH, and AUTHREC operations
   against live mqweb in a **Docker** IBM MQ container (`hack/mq-docker`); stdlib

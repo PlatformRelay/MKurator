@@ -41,7 +41,7 @@ Doc index: [README.md](index.md) · [../README.md](https://github.com/platformre
 The operator translates desired state into MQSC via `mqweb`, reports **conditions**
 on each resource, and removes MQ objects when you delete a CR (finalizers).
 
-**v1alpha1 scope:** queue `spec.type` supports `local` (default), `alias`, and
+**API scope (`v1beta1`):** queue `spec.type` supports `local` (default), `alias`, and
 `remote`. `ChannelAuthRule` default samples cover `ADDRESSMAP`, `BLOCKUSER`, and
 `BLOCKADDR`; `USERMAP`, `SSLPEERMAP`, and `QMGRMAP` are exercised in integration
 and kind e2e. Auth drift uses GET/replace (not queue/topic/channel DISPLAY
@@ -194,7 +194,7 @@ kubectl apply -f mq-credentials-secret.yaml
 ### 2. Queue manager connection
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
   name: prod-qm1
@@ -236,7 +236,7 @@ Expected: `Ready=True`, `Reason=Available`.
 ### 3. Queue
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: orders
@@ -269,7 +269,7 @@ DISPLAY QLOCAL('APP.ORDERS') MAXDEPTH DESCR
 ### 4. Topic
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Topic
 metadata:
   name: retail-orders
@@ -294,7 +294,7 @@ kubectl get tp -n mkurator-system
 ### 5. Channel
 
 ```yaml
-apiVersion: messaging.mkurator.dev/v1alpha1
+apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: orders-app
@@ -626,13 +626,13 @@ kind platform.
 
 | File | Purpose |
 |------|---------|
-| [`config/samples/messaging_v1alpha1_queuemanagerconnection.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) | Connection to in-cluster MQ on kind |
-| [`config/samples/messaging_v1alpha1_queue.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) | Sample `APP.ORDERS` local queue |
-| [`config/samples/messaging_v1alpha1_topic.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
-| [`config/samples/messaging_v1alpha1_channel.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
-| [`config/samples/messaging_v1alpha1_channelauthrule.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) | Sample `ADDRESSMAP` CHLAUTH for gitops channel |
-| [`config/samples/messaging_v1alpha1_channelauthrule_blockuser.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule_blockuser.yaml) | Optional `BLOCKUSER` CHLAUTH on the same channel |
-| [`config/samples/messaging_v1alpha1_authorityrecord.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) | Sample OAM grant on `APP.ORDERS` |
+| [`config/samples/messaging_v1beta1_queuemanagerconnection.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queuemanagerconnection.yaml) | Connection to in-cluster MQ on kind |
+| [`config/samples/messaging_v1beta1_queue.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_queue.yaml) | Sample `APP.ORDERS` local queue |
+| [`config/samples/messaging_v1beta1_topic.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_topic.yaml) | Sample `RETAIL.ORDERS` topic |
+| [`config/samples/messaging_v1beta1_channel.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channel.yaml) | Sample `ORDERS.APP` SVRCONN channel |
+| [`config/samples/messaging_v1beta1_channelauthrule.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule.yaml) | Sample `ADDRESSMAP` CHLAUTH for gitops channel |
+| [`config/samples/messaging_v1beta1_channelauthrule_blockuser.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_channelauthrule_blockuser.yaml) | Optional `BLOCKUSER` CHLAUTH on the same channel |
+| [`config/samples/messaging_v1beta1_authorityrecord.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml) | Sample OAM grant on `APP.ORDERS` |
 | [`charts/mkurator/samples/resources/`](https://github.com/platformrelay/MKurator/tree/main/charts/mkurator/samples/resources) | Same samples for Helm workflows |
 | [`config/samples/README.md`](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md) | Field-by-field annotations |
 
@@ -894,7 +894,7 @@ kubectl describe channel orders-app -n mkurator-system
 
 Common causes: invalid `topstr` / topic name, channel attribute not supported on
 your MQ version, or MQ authorization denying `DEFINE TOPIC` / `DEFINE CHANNEL`.
-Only `CHLTYPE(SVRCONN)` is supported in v1alpha1.
+Only `CHLTYPE(SVRCONN)` is supported in v1beta1.
 
 ### `ChannelAuthRule` or `AuthorityRecord` stuck or Error
 

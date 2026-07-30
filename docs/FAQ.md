@@ -19,9 +19,10 @@ MKurator focuses on **declarative administration** of objects on a queue manager
 
 ### What API version is stable?
 
-`messaging.mkurator.dev/v1alpha1` is the current **alpha** API — it may change between
-releases until `v1beta1`. What is and is not guaranteed, and the path to graduation, is
-in [API_STABILITY.md](API_STABILITY.md). Breaking changes are documented in
+`messaging.mkurator.dev/v1beta1` is the current API — the only served and stored version
+(the earlier `v1alpha1` was removed in v0.15.0, see [ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md)).
+As a **beta** API, field-level shapes may still change between releases, deliberately and
+documented. What is and is not guaranteed is in [API_STABILITY.md](API_STABILITY.md). Breaking changes are documented in
 [CHANGELOG.md](https://github.com/platformrelay/MKurator/blob/main/CHANGELOG.md) and [UPGRADE.md](UPGRADE.md) before release.
 
 ## Connectivity
