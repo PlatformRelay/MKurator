@@ -21,7 +21,7 @@ Other `ruleType` values are accepted by the API and validated at MQ apply time. 
 [PHASE5_AUTH_SKETCH.md](../PHASE5_AUTH_SKETCH.md) for the roadmap.
 
 ```bash
-kubectl apply -f config/samples/messaging_v1alpha1_channelauthrule.yaml
+kubectl apply -f config/samples/messaging_v1beta1_channelauthrule.yaml
 kubectl describe channelauthrule <name>
 ```
 
@@ -29,7 +29,7 @@ kubectl describe channelauthrule <name>
 
 Grant OAM authorities on a queue or channel profile:
 
-[`config/samples/messaging_v1alpha1_authorityrecord.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml)
+[`config/samples/messaging_v1beta1_authorityrecord.yaml`](https://github.com/platformrelay/MKurator/blob/main/config/samples/messaging_v1beta1_authorityrecord.yaml)
 
 Auth objects use GET/replace reconciliation (not the DISPLAY drift matrix used for queues).
 See [ATTRIBUTE_RECONCILIATION.md](../ATTRIBUTE_RECONCILIATION.md).

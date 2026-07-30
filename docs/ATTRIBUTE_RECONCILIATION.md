@@ -58,7 +58,7 @@ the same key in `spec.attributes`.
 Typed fields and `spec.attributes` keys in the tables below refer to the same
 reconciliation path once folded.
 
-## Reconciled object types (v1alpha1)
+## Reconciled object types (v1beta1)
 
 | CRD | MQ object | `spec.type` |
 |-----|-----------|-------------|

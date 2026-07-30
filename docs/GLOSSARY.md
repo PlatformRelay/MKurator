@@ -6,7 +6,7 @@ Terms used throughout MKurator documentation and the IBM MQ ecosystem.
 | --- | --- |
 | **AUTHREC** | Object authority record — MQ OAM permissions for a principal or group on a profile (queue, channel, etc.). Reconciled via `AuthorityRecord` CRs using `SET AUTHREC` MQSC. |
 | **CHLAUTH** | Channel authentication record — controls who may connect over a channel. Reconciled via `ChannelAuthRule` CRs using `SET CHLAUTH` MQSC. |
-| **Channel (SVRCONN)** | Server-connection channel — client attachment point. MKurator v1alpha1 manages `CHLTYPE(SVRCONN)` channels via the `Channel` CR. |
+| **Channel (SVRCONN)** | Server-connection channel — client attachment point. MKurator manages `CHLTYPE(SVRCONN)` channels via the `Channel` CR. |
 | **DEFINE** | MQSC command family that creates or replaces an object definition (`DEFINE QLOCAL`, `DEFINE CHANNEL`, etc.). |
 | **DISPLAY** | MQSC command that reads current object attributes; used for drift detection against CR spec. |
 | **Drift** | Difference between desired CR spec and live MQ object attributes after out-of-band changes. |
@@ -25,7 +25,7 @@ Terms used throughout MKurator documentation and the IBM MQ ecosystem.
 | **runmqsc** | CLI to run MQSC against a queue manager — useful for manual verification on kind or production. |
 | **TOPIC** | Publish/subscribe topic object reconciled by the `Topic` CR. |
 | **Validating webhook** | Admission hook that rejects invalid CR specs before they are stored in etcd. |
-| **v1alpha1** | Current MKurator API version (`messaging.mkurator.dev/v1alpha1`). |
+| **v1beta1** | Current MKurator API version (`messaging.mkurator.dev/v1beta1`) — the only served and stored version. The earlier **v1alpha1** was removed in v0.15.0 ([ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md)). |
 
 See also [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) (research inventory) and
 [ARCHITECTURE.md](ARCHITECTURE.md) (operator design).

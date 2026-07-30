@@ -1,8 +1,9 @@
 # API stability
 
-This document states what the **`messaging.mkurator.dev`** API guarantees today,
-how **`v1alpha1`** and **`v1beta1`** relate, and what remains before full
-graduation. It satisfies Phase 8b in [ROADMAP.md](ROADMAP.md) and NFR **API-1** in
+This document states what the **`messaging.mkurator.dev/v1beta1`** API guarantees
+today. `v1beta1` is the only served and stored version; the earlier **`v1alpha1`**
+was removed in v0.15.0 ([ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md)). It satisfies
+Phase 8b in [ROADMAP.md](ROADMAP.md) and NFR **API-1** in
 [NON_FUNCTIONAL_REQUIREMENTS.md](NON_FUNCTIONAL_REQUIREMENTS.md).
 
 ## Current version
@@ -10,20 +11,21 @@ graduation. It satisfies Phase 8b in [ROADMAP.md](ROADMAP.md) and NFR **API-1** 
 | Item | Value |
 | --- | --- |
 | API group | `messaging.mkurator.dev` |
-| Served versions | **`v1alpha1`** + **`v1beta1`** (all six kinds) |
-| Storage version (etcd) | **`v1alpha1`** until hub migration is proven in CI ([ADR-0026](adr/0026-v1beta1-graduation-plan.md)) |
-| Stability (Kubernetes meaning) | **`v1alpha1`** — alpha; **`v1beta1`** — beta (field-level stability improving) |
-| MQ parameter surface | Typed spec fields (preferred on `v1beta1`) + `spec.attributes` escape hatch |
+| Served versions | **`v1beta1`** only (all six kinds) |
+| Storage version (etcd) | **`v1beta1`** |
+| Stability (Kubernetes meaning) | **`v1beta1`** — beta (field-level stability improving) |
+| MQ parameter surface | Typed spec fields (preferred) + `spec.attributes` escape hatch |
 | Admission | CRD CEL (`x-kubernetes-validations`) + validating webhooks ([ADR-0025](adr/0025-cel-first-admission-validation.md)) |
-| Webhooks | **Validating** (referential checks, unknown-attribute warnings) + **conversion** (`v1alpha1` ↔ `v1beta1`); no mutating webhooks ([ADR-0009](adr/0009-validating-admission-webhooks.md), [ADR-0026](adr/0026-v1beta1-graduation-plan.md)) |
+| Webhooks | **Validating** only (referential checks, unknown-attribute warnings); no mutating or conversion webhooks ([ADR-0009](adr/0009-validating-admission-webhooks.md)). The `v1alpha1` ↔ `v1beta1` conversion webhook was removed with `v1alpha1` in v0.15.0 ([ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md)) |
 
 Kinds: `QueueManagerConnection`, `Queue`, `Topic`, `Channel`, `ChannelAuthRule`,
 `AuthorityRecord`.
 
-New manifests should use **`apiVersion: messaging.mkurator.dev/v1beta1`**; existing
-`v1alpha1` YAML and stored objects remain valid through conversion.
+All manifests must use **`apiVersion: messaging.mkurator.dev/v1beta1`**. Manifests
+still pinned to `v1alpha1` must have their `apiVersion` line rewritten to `v1beta1`
+(the spec is identical) — see [UPGRADE.md](UPGRADE.md#removing-v1alpha1-v0150).
 
-## What `v1alpha1` guarantees
+## What `v1beta1` guarantees
 
 Between tagged releases on `main`, the project aims for **deliberate, documented**
 changes only:
@@ -44,10 +46,10 @@ changes only:
    but existing `Synced` / `Ready` semantics are not removed without a breaking
    release.
 
-## What `v1alpha1` does *not* guarantee
+## What `v1beta1` does *not* guarantee
 
-- **Field-level stability** — names, types, and requiredness of spec fields may
-  change until consumers migrate to **`v1beta1`**.
+- **Field-level stability** — as a beta API, names, types, and requiredness of
+  spec fields may still change between releases (deliberately and documented).
 - **Map-only MQ parameters forever** — [ADR-0021](adr/0021-attribute-api-shape.md)
   adds typed spec fields alongside `spec.attributes`; on **`v1beta1`**, map keys
   with typed equivalents are deprecated (warnings now, rejection later).
@@ -100,14 +102,24 @@ slices 8d-0–8d-6).
 
 **Completed after `v0.12.0`:**
 
-6. **etcd storage flip (8d-7)** to the `v1beta1` hub for all six kinds. Both API
-   versions remain served. Operators must rewrite existing objects before
-   pruning `v1alpha1` from CRD `status.storedVersions`; see
+6. **etcd storage flip (8d-7)** to the `v1beta1` hub for all six kinds. Operators
+   had to rewrite existing objects before pruning `v1alpha1` from CRD
+   `status.storedVersions`; see
    [UPGRADE.md](UPGRADE.md#rewrite-stored-objects-after-the-storage-flip).
 
-The initial **8d exit criteria** were met at `v0.12.0`; the storage flip is now
-also complete. Pin the operator and CRD bundle to a **release tag** and read
+The initial **8d exit criteria** were met at `v0.12.0` and the storage flip
+followed. Pin the operator and CRD bundle to a **release tag** and read
 CHANGELOG/UPGRADE before upgrading.
+
+### `v1alpha1` removed (v0.15.0)
+
+The soft-migration window planned in [ADR-0026](adr/0026-v1beta1-graduation-plan.md)
+was withdrawn: **`v1alpha1` was removed entirely in v0.15.0** as a hard cut
+([ADR-0029](adr/0029-drop-v1alpha1-hard-cut.md)). The CRDs are now single-version
+(`v1beta1` served and stored) and the conversion webhook is gone. Clusters that ran
+MKurator ≤ v0.12 (when `v1alpha1` was the etcd storage version) must complete the
+one-time stored-object rewrite + `storedVersions` prune **before** upgrading to
+v0.15.0 — see the removal runbook in [UPGRADE.md](UPGRADE.md#removing-v1alpha1-v0150).
 
 ## Deprecation policy (`v1beta1`)
 
@@ -120,8 +132,8 @@ When a drift-checked attribute gains a typed spec field:
 3. **Conversion** copies map values into typed fields where unambiguous so
    existing GitOps repos keep working through one upgrade cycle.
 
-On **`v1alpha1`**, map-only manifests remain valid with no deprecation warnings
-until you bump `apiVersion`.
+Map-only manifests remain valid on **`v1beta1`**; a deprecation warning is emitted
+only for map keys that have a typed equivalent.
 
 ## Environment prerequisites
 

@@ -26,7 +26,7 @@ Releases are **tag-driven**: push an annotated-style lightweight tag `vX.Y.Z` on
 builds, scans, signs, and publishes artifacts. Version numbers are **not** bumped
 by CI — you commit `Chart.yaml` and `CHANGELOG.md` on `main` first.
 
-Semver on `0.y.z` while the API is `v1alpha1`: use **minor** (`0.3.0`) for
+Semver on `0.y.z` while the API is pre-1.0 (`v1beta1`): use **minor** (`0.3.0`) for
 user-visible features or **breaking** operator/API behaviour; **patch** (`0.2.3`)
 for fixes only. Breaking commits use `!` in the subject (see
 [CONTRIBUTING.md](CONTRIBUTING.md#breaking-changes)).
