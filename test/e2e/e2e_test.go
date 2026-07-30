@@ -89,7 +89,7 @@ var _ = Describe("Manager", Serial, Ordered, Label("smoke"), func() {
 			Expect(err).NotTo(HaveOccurred(), "ValidatingWebhookConfiguration should exist")
 
 			By("applying an alias Queue without targq and missing connectionRef target")
-			invalidQueue := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+			invalidQueue := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: webhook-e2e-invalid
@@ -136,7 +136,7 @@ stringData:
   mqAdminPassword: placeholder
 `, namespace))).To(Succeed())
 
-			Expect(kubectlApply(fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+			Expect(kubectlApply(fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
   name: %s
@@ -152,7 +152,7 @@ spec:
     name: webhook-e2e-car-creds
 `, carWebhookQMC, namespace))).To(Succeed())
 
-			invalidCAR := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+			invalidCAR := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: webhook-e2e-car-invalid

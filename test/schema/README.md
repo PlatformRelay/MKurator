@@ -6,11 +6,12 @@ kubebuilder marker drift without kind or e2e. Fragments include
 [ADR-0025](../../docs/adr/0025-cel-first-admission-validation.md).
 
 CEL acceptance/rejection parity with the prior webhook rules is covered by
-`internal/webhook/v1alpha1/cel_validation_test.go` (envtest against committed CRDs).
+`test/admission/webhook_envtest_test.go` (envtest against the committed
+single-version v1beta1 CRDs).
 
 ## Enforced kinds
 
-All **six** v1alpha1 messaging kinds have checked-in goldens (see `DefaultCases` in `extract.go`):
+All **six** v1beta1 messaging kinds have checked-in goldens (see `DefaultCases` in `extract.go`):
 
 | CRD file | Golden |
 | --- | --- |

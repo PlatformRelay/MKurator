@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 // eventuallyExpectObjectEvent waits for a Kubernetes Event on the named CR.
@@ -58,5 +58,5 @@ func eventLinesMatch(out, eventType, reason string) (bool, bool) {
 
 func eventuallyExpectQueueAvailableEvent(ns, queueName string) {
 	By("checking for Normal Available event on Queue")
-	eventuallyExpectObjectEvent(ns, "Queue", queueName, "Normal", messagingv1alpha1.ReasonAvailable)
+	eventuallyExpectObjectEvent(ns, "Queue", queueName, "Normal", messagingv1beta1.ReasonAvailable)
 }

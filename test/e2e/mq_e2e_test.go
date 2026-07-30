@@ -97,7 +97,7 @@ var _ = Describe("Post-manager IBM MQ integration", Label("mq"), func() {
 			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
 
-			queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+			queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: %s
@@ -222,14 +222,10 @@ stringData:
 						`jsonpath=Ready={.status.conditions[?(@.type=="Ready")].status} reason={.status.conditions[?(@.type=="Ready")].reason} msg={.status.conditions[?(@.type=="Ready")].message}`); err == nil {
 						_, _ = fmt.Fprintf(GinkgoWriter, "[diag] final QMC condition: %s\n", cond)
 					}
-					// Dump spec.authentication from the v1beta1 hub explicitly (not the unqualified
-					// "queuemanagerconnection" alias, which resolves to whichever version the
-					// apiserver treats as preferred and can silently read back the v1alpha1 spoke
-					// view — a view that structurally has no authentication field and would make
-					// this diagnostic useless noise regardless of what's actually stored). This
+					// Dump spec.authentication from the v1beta1 hub explicitly. This
 					// discriminates a read-path bug (auth present in etcd, missing from the cache)
-					// from a conversion/write-path bug (auth actually absent from etcd, e.g. AUTH-14's
-					// finalizer-Update round trip wiping it via the v1alpha1 spoke).
+					// from a write-path bug (auth actually absent from etcd, e.g. AUTH-14's
+					// finalizer-Update round trip wiping it).
 					if spec, err := runKubectl("get", "queuemanagerconnections.v1beta1.messaging.mkurator.dev",
 						mqUnionConnectionName, "-n", ns, "-o",
 						`jsonpath=authentication={.spec.authentication} credentialsSecretRef={.spec.credentialsSecretRef}`); err == nil {
@@ -297,42 +293,13 @@ stringData:
 			}).WithTimeout(qmcWatchRecoveryEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 		})
 
-		// AUTH-15 AC1+AC4: a pre-union Basic manifest — applied at v1alpha1 (the stored
-		// version through the flip, extending the 8d-6/8d-7 conversion path) with the legacy
-		// credentialsSecretRef and NO spec.authentication — must still reach Ready=True on a
-		// post-union cluster. This is the e2e regression proof for ADR-0027's promise "every
-		// existing Basic connection keeps working unchanged": conversion (union dropped on the
-		// v1alpha1 spoke) + reconcile (hub re-read resolves the legacy Basic path) are green,
-		// and the wire-level header fidelity is pinned separately by the mqrest unit oracle
+		// 8e-8a: the AUTH-15 "pre-union Basic" e2e regression was removed with the
+		// legacy spoke version. Its premise — apply at the removed spoke, then assert
+		// the stored spoke spec down-converts (union dropped) — no longer exists once
+		// only the v1beta1 hub is served. The legacy-Basic reconcile path is still
+		// covered natively at v1beta1 by the sibling QMC specs, and wire-level header
+		// fidelity stays pinned by the mqrest unit oracle
 		// TestClient_BasicHeadersIdenticalPreAndPostUnion.
-		//
-		// Serial: mutates the namespace-shared QMC (delete/re-apply), same reason as siblings.
-		It("reconciles a pre-union v1alpha1 Basic QueueManagerConnection unchanged post-union", Serial, Label("slow"), func() {
-			ensureE2ENamespace(ns)
-			DeferCleanup(func() {
-				_, _ = runKubectl("delete", "queuemanagerconnection", mqConnectionName, "-n", ns, "--ignore-not-found")
-			})
-
-			invalidateWebhookReadyCache()
-			waitForControllerAndWebhookReadyCached()
-
-			By("applying the pre-union v1alpha1 Basic manifest (credentialsSecretRef only, no authentication)")
-			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
-
-			By("verifying it reaches Ready=True — the legacy Basic path is unchanged after the union shipped")
-			eventuallyExpectQMCReady(ns)
-
-			By("verifying the stored v1alpha1 spec carries credentialsSecretRef and no authentication union")
-			storedRef, err := runKubectl("get", "queuemanagerconnections.v1alpha1.messaging.mkurator.dev",
-				mqConnectionName, "-n", ns, "-o", "jsonpath={.spec.credentialsSecretRef.name}")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(storedRef).To(Equal("mq-credentials"))
-			storedAuth, err := runKubectl("get", "queuemanagerconnections.v1alpha1.messaging.mkurator.dev",
-				mqConnectionName, "-n", ns, "-o", "jsonpath={.spec.authentication}")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(storedAuth).To(BeEmpty(),
-				"v1alpha1 has no authentication field; the union is dropped on down-convert (AUTH-12)")
-		})
 	})
 
 	Describe("topics", Label("mq-topic"), func() {
@@ -360,7 +327,7 @@ stringData:
 			waitForControllerAndWebhookReadyCached()
 			Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 			eventuallyExpectQMCReady(ns)
-			topicYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+			topicYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Topic
 metadata:
   name: %s
@@ -440,7 +407,7 @@ spec:
 			It("reconciles a Channel CR against the kind IBM MQ queue manager", func() {
 				Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 				eventuallyExpectQMCReady(ns)
-				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -499,7 +466,7 @@ spec:
 			It("reconciles an SDR Channel CR against the kind IBM MQ queue manager", func() {
 				Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 				eventuallyExpectQMCReady(ns)
-				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -564,7 +531,7 @@ spec:
 			It("reconciles an RCVR Channel CR against the kind IBM MQ queue manager", func() {
 				Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 				eventuallyExpectQMCReady(ns)
-				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+				channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -642,7 +609,7 @@ var _ = Describe("Post-manager IBM MQ auth", Label("mq", "mq-auth-serial"), Seri
 	It("reconciles a ChannelAuthRule CR against the kind IBM MQ queue manager", func() {
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -664,7 +631,7 @@ spec:
 			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before ChannelAuthRule admission", mqChannelPrereqCRName)
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -725,7 +692,7 @@ spec:
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -784,7 +751,7 @@ spec:
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -806,7 +773,7 @@ spec:
 			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before USERMAP ChannelAuthRule admission", mqChannelUserMapPrereqCRName)
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -871,7 +838,7 @@ spec:
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -893,7 +860,7 @@ spec:
 			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before SSLPEERMAP ChannelAuthRule admission", mqChannelSslPeerMapPrereqCRName)
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -958,7 +925,7 @@ spec:
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -980,7 +947,7 @@ spec:
 			g.Expect(out).To(Equal("True"), "Channel %s must be Synced before QMGRMAP ChannelAuthRule admission", mqChannelQMGRMapPrereqCRName)
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -1045,7 +1012,7 @@ spec:
 
 		Expect(kubectlApply(connectionManifest(ns))).To(Succeed())
 
-		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		channelYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Channel
 metadata:
   name: %s
@@ -1087,7 +1054,7 @@ spec:
 			_ = client.DeleteChannelAuth(cleanupCtx, manualSpec)
 		})
 
-		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		carYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: ChannelAuthRule
 metadata:
   name: %s
@@ -1153,7 +1120,7 @@ spec:
 
 		Expect(applyWithWebhookRetry(connectionManifest(ns))).To(Succeed())
 
-		queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		queueYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: %s
@@ -1175,7 +1142,7 @@ spec:
 			g.Expect(out).To(Equal("True"))
 		}).WithTimeout(mqSyncedEventuallyTimeout).WithPolling(5 * time.Second).Should(Succeed())
 
-		authYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+		authYAML := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: AuthorityRecord
 metadata:
   name: %s
@@ -1233,7 +1200,7 @@ spec:
 })
 
 func connectionManifest(ns string) string {
-	return fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+	return fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: QueueManagerConnection
 metadata:
   name: %s
