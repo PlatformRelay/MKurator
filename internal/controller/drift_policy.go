@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -17,7 +17,7 @@ func isObserveOnly(obj client.Object) bool {
 	if anns == nil {
 		return false
 	}
-	return anns[messagingv1alpha1.DriftPolicyAnnotation] == messagingv1alpha1.DriftPolicyObserveOnly
+	return anns[messagingv1beta1.DriftPolicyAnnotation] == messagingv1beta1.DriftPolicyObserveOnly
 }
 
 func observeOnlyAuthDriftMessage(exists bool, objectName, objectLabel string) string {
@@ -40,7 +40,7 @@ func observeOnlyAuthDriftMessage(exists bool, objectName, objectLabel string) st
 
 func reconcileMQObjectState(
 	observeOnly bool,
-	adoptionPolicy messagingv1alpha1.AdoptionPolicy,
+	adoptionPolicy messagingv1beta1.AdoptionPolicy,
 	firstAdoption bool,
 	exists bool,
 	observedAttrs map[string]string,
@@ -91,7 +91,7 @@ func patchSyncedDrift(
 ) error {
 	return patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
 		conditionStatus: metav1.ConditionFalse,
-		reason:          messagingv1alpha1.ReasonDriftDetected,
+		reason:          messagingv1beta1.ReasonDriftDetected,
 		generation:      generation,
 		message:         message,
 		opts:            opts,

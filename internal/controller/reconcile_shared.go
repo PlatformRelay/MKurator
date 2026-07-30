@@ -20,7 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -78,7 +77,7 @@ func patchSyncedStatus(
 	}
 	setCondition(
 		mo.GetMQConditions(),
-		messagingv1alpha1.ConditionSynced,
+		messagingv1beta1.ConditionSynced,
 		patch.conditionStatus,
 		patch.reason,
 		patch.message,
@@ -141,7 +140,7 @@ func emitSyncedTransitionEvent(
 	newStatus metav1.ConditionStatus,
 	newReason, message string,
 ) {
-	if conditionChanged(syncedConditions(obj), messagingv1alpha1.ConditionSynced, newStatus, newReason) {
+	if conditionChanged(syncedConditions(obj), messagingv1beta1.ConditionSynced, newStatus, newReason) {
 		recordNormalEvent(recorder, obj, newReason, message)
 	}
 }
@@ -156,7 +155,7 @@ func patchSyncedProgressing(
 ) error {
 	return patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
 		conditionStatus: metav1.ConditionFalse,
-		reason:          messagingv1alpha1.ReasonProgressing,
+		reason:          messagingv1beta1.ReasonProgressing,
 		generation:      generation,
 		message:         message,
 		emitEvent:       true,
@@ -208,7 +207,7 @@ func patchSyncedAvailable(
 	now := metav1.Now()
 	return patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
 		conditionStatus: metav1.ConditionTrue,
-		reason:          messagingv1alpha1.ReasonAvailable,
+		reason:          messagingv1beta1.ReasonAvailable,
 		generation:      generation,
 		message:         message,
 		opts:            opts,
@@ -228,7 +227,7 @@ func patchSyncedDeleting(
 ) error {
 	return patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
 		conditionStatus: metav1.ConditionFalse,
-		reason:          messagingv1alpha1.ReasonDeleting,
+		reason:          messagingv1beta1.ReasonDeleting,
 		generation:      generation,
 		message:         message,
 		emitEvent:       true,
@@ -237,7 +236,7 @@ func patchSyncedDeleting(
 
 func forceOrphanRequested(obj metav1.Object) bool {
 	ann := obj.GetAnnotations()
-	return ann != nil && ann[messagingv1alpha1.ForceOrphanAnnotation] == forceOrphanAnnotationValue
+	return ann != nil && ann[messagingv1beta1.ForceOrphanAnnotation] == forceOrphanAnnotationValue
 }
 
 func reconcileWorkloadDeletion(
@@ -310,7 +309,7 @@ func orphanFinalizeWorkload(
 	if err := patchSyncedOrphaned(ctx, status, recorder, obj, generation, message); err != nil {
 		return ctrl.Result{}, err
 	}
-	recordNormalEvent(recorder, obj, messagingv1alpha1.ReasonOrphaned, message)
+	recordNormalEvent(recorder, obj, messagingv1beta1.ReasonOrphaned, message)
 
 	controllerutil.RemoveFinalizer(obj, finalizer)
 	return ctrl.Result{}, c.Update(ctx, obj)
@@ -326,7 +325,7 @@ func patchSyncedOrphaned(
 ) error {
 	return patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
 		conditionStatus: metav1.ConditionFalse,
-		reason:          messagingv1alpha1.ReasonOrphaned,
+		reason:          messagingv1beta1.ReasonOrphaned,
 		generation:      generation,
 		message:         message,
 		emitEvent:       true,

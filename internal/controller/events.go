@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/events"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -25,7 +25,7 @@ func classifyReconcileError(err error) (reason, message string) {
 
 	var term *mqadmin.TerminalError
 	if errors.As(err, &term) {
-		reason = messagingv1alpha1.ReasonError
+		reason = messagingv1beta1.ReasonError
 		if term.Reason != "" {
 			reason = term.Reason
 		}
@@ -45,7 +45,7 @@ func classifyReconcileError(err error) (reason, message string) {
 		return EventReasonSecretNotFound, message
 	}
 
-	return messagingv1alpha1.ReasonError, message
+	return messagingv1beta1.ReasonError, message
 }
 
 func recordReconcileWarning(recorder events.EventRecorder, obj runtime.Object, err error) {

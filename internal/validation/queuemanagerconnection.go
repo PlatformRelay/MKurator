@@ -12,12 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 const insecureTLSWithoutOptInMsg = "tls.insecureSkipVerify requires annotation " +
-	messagingv1alpha1.AllowInsecureTLSAnnotation + `="true" (dev/local only; do not use in production)`
+	messagingv1beta1.AllowInsecureTLSAnnotation + `="true" (dev/local only; do not use in production)`
 
 var credentialsSecretUsernameKeys = []string{"username", "user", "mqAdminUser"}
 
@@ -31,7 +30,7 @@ func ValidateQueueManagerConnectionSpec(
 	reader client.Reader,
 	namespace string,
 	annotations map[string]string,
-	spec *messagingv1alpha1.QueueManagerConnectionSpec,
+	spec *messagingv1beta1.QueueManagerConnectionSpec,
 ) ([]string, field.ErrorList) {
 	var (
 		warnings []string
@@ -82,7 +81,7 @@ func allowInsecureTLS(annotations map[string]string) bool {
 	if annotations == nil {
 		return false
 	}
-	allowed, err := strconv.ParseBool(annotations[messagingv1alpha1.AllowInsecureTLSAnnotation])
+	allowed, err := strconv.ParseBool(annotations[messagingv1beta1.AllowInsecureTLSAnnotation])
 	return err == nil && allowed
 }
 
@@ -92,7 +91,7 @@ func allowInsecureTLS(annotations map[string]string) bool {
 func ValidateQueueManagerConnectionDelete(
 	ctx context.Context,
 	reader client.Reader,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) field.ErrorList {
 	path := field.NewPath("metadata").Child("name")
 	dependents, errs := listConnectionDependents(ctx, reader, conn.Namespace, conn.Name)
@@ -115,7 +114,7 @@ type connectionDependent struct {
 	name string
 }
 
-//nolint:gocyclo // lists v1alpha1 and v1beta1 dependents per MQ object kind, deduping the shared referent.
+//nolint:gocyclo // lists v1beta1 dependents per MQ object kind, deduping the shared referent.
 func listConnectionDependents(
 	ctx context.Context,
 	reader client.Reader,
@@ -123,9 +122,8 @@ func listConnectionDependents(
 ) ([]connectionDependent, field.ErrorList) {
 	path := field.NewPath("metadata").Child("name")
 	var dependents []connectionDependent
-	// The conversion webhook serves a single stored object under both api versions, so the same
-	// (kind, name) referent is returned by both the v1alpha1 and v1beta1 List. Dedup by (kind, name),
-	// preserving first-seen order.
+	// Dedup dependents by (kind, name), preserving first-seen order, so a referent is never
+	// reported twice.
 	seen := make(map[connectionDependent]bool)
 	appendDependent := func(dep connectionDependent) {
 		if seen[dep] {
@@ -135,7 +133,7 @@ func listConnectionDependents(
 		dependents = append(dependents, dep)
 	}
 
-	var queues messagingv1alpha1.QueueList
+	var queues messagingv1beta1.QueueList
 	if err := reader.List(ctx, &queues, client.InNamespace(namespace)); err != nil {
 		if !k8sruntime.IsNotRegisteredError(err) {
 			return nil, field.ErrorList{
@@ -162,7 +160,7 @@ func listConnectionDependents(
 		}
 	}
 
-	var topics messagingv1alpha1.TopicList
+	var topics messagingv1beta1.TopicList
 	if err := reader.List(ctx, &topics, client.InNamespace(namespace)); err != nil {
 		if !k8sruntime.IsNotRegisteredError(err) {
 			return nil, field.ErrorList{
@@ -189,7 +187,7 @@ func listConnectionDependents(
 		}
 	}
 
-	var channels messagingv1alpha1.ChannelList
+	var channels messagingv1beta1.ChannelList
 	if err := reader.List(ctx, &channels, client.InNamespace(namespace)); err != nil {
 		if !k8sruntime.IsNotRegisteredError(err) {
 			return nil, field.ErrorList{
@@ -216,7 +214,7 @@ func listConnectionDependents(
 		}
 	}
 
-	var authRules messagingv1alpha1.ChannelAuthRuleList
+	var authRules messagingv1beta1.ChannelAuthRuleList
 	if err := reader.List(ctx, &authRules, client.InNamespace(namespace)); err != nil {
 		if !k8sruntime.IsNotRegisteredError(err) {
 			return nil, field.ErrorList{
@@ -243,7 +241,7 @@ func listConnectionDependents(
 		}
 	}
 
-	var authRecs messagingv1alpha1.AuthorityRecordList
+	var authRecs messagingv1beta1.AuthorityRecordList
 	if err := reader.List(ctx, &authRecs, client.InNamespace(namespace)); err != nil {
 		if !k8sruntime.IsNotRegisteredError(err) {
 			return nil, field.ErrorList{

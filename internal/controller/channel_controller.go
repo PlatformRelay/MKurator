@@ -105,7 +105,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	if channel.Spec.Type != "" && !mqadmin.ChannelTypeSupported(mqadmin.ChannelType(channel.Spec.Type)) {
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, &mqadmin.TerminalError{
 			Reason:  "UnsupportedChannelType",
-			Message: fmt.Sprintf("channel type %q is not supported in v1alpha1", channel.Spec.Type),
+			Message: fmt.Sprintf("channel type %q is not supported", channel.Spec.Type),
 		}, syncStatusOpts{})
 	}
 

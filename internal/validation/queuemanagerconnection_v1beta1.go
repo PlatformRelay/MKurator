@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
@@ -53,20 +52,20 @@ func ValidateQueueManagerConnectionSpecV1Beta1(
 		}
 	}
 
-	alphaSpec := messagingv1alpha1.QueueManagerConnectionSpec{
+	alphaSpec := messagingv1beta1.QueueManagerConnectionSpec{
 		QueueManager: spec.QueueManager,
 		Endpoint:     spec.Endpoint,
 		RESTPrefix:   spec.RESTPrefix,
-		CredentialsSecretRef: messagingv1alpha1.SecretReference{
+		CredentialsSecretRef: &messagingv1beta1.SecretReference{
 			Name: credName,
 		},
 	}
 	if spec.TLS != nil {
-		alphaSpec.TLS = &messagingv1alpha1.TLSConfig{
+		alphaSpec.TLS = &messagingv1beta1.TLSConfig{
 			InsecureSkipVerify: spec.TLS.InsecureSkipVerify,
 		}
 		if spec.TLS.CASecretRef != nil {
-			alphaSpec.TLS.CASecretRef = &messagingv1alpha1.SecretReference{Name: spec.TLS.CASecretRef.Name}
+			alphaSpec.TLS.CASecretRef = &messagingv1beta1.SecretReference{Name: spec.TLS.CASecretRef.Name}
 		}
 	}
 

@@ -9,7 +9,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -27,7 +26,7 @@ func (e *AdoptionBlockedError) Error() string {
 }
 
 func adoptionBlockForExisting(
-	policy messagingv1alpha1.AdoptionPolicy,
+	policy messagingv1beta1.AdoptionPolicy,
 	firstAdoption bool,
 	exists bool,
 	needsUpdate bool,
@@ -38,19 +37,19 @@ func adoptionBlockForExisting(
 		return nil
 	}
 	switch policy {
-	case messagingv1alpha1.AdoptionPolicyFailIfExists:
+	case messagingv1beta1.AdoptionPolicyFailIfExists:
 		return &AdoptionBlockedError{
-			Reason:  messagingv1alpha1.ReasonAlreadyExists,
+			Reason:  messagingv1beta1.ReasonAlreadyExists,
 			Message: fmt.Sprintf("%s already exists on queue manager", objectLabel),
 		}
-	case messagingv1alpha1.AdoptionPolicyAdoptIfMatching:
+	case messagingv1beta1.AdoptionPolicyAdoptIfMatching:
 		if needsUpdate {
 			msg := mismatchMessage
 			if msg == "" {
 				msg = fmt.Sprintf("%s differs from spec", objectLabel)
 			}
 			return &AdoptionBlockedError{
-				Reason:  messagingv1alpha1.ReasonAdoptionConflict,
+				Reason:  messagingv1beta1.ReasonAdoptionConflict,
 				Message: msg,
 			}
 		}
@@ -95,18 +94,8 @@ func patchSyncedAdoptionBlocked(
 			metav1.ConditionFalse, reason, message, generation)
 		applyMQObjectStatusFields(o, opts, message, nil)
 		return status.Update(ctx, o)
-	case *messagingv1alpha1.Queue:
-		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, message, generation)
-		applyMQObjectStatusFields(o, opts, message, nil)
-		return status.Update(ctx, o)
 	case *messagingv1beta1.Topic:
 		setCondition(&o.Status.Conditions, messagingv1beta1.ConditionSynced,
-			metav1.ConditionFalse, reason, message, generation)
-		applyMQObjectStatusFields(o, opts, message, nil)
-		return status.Update(ctx, o)
-	case *messagingv1alpha1.Topic:
-		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)
 		applyMQObjectStatusFields(o, opts, message, nil)
 		return status.Update(ctx, o)
@@ -115,28 +104,13 @@ func patchSyncedAdoptionBlocked(
 			metav1.ConditionFalse, reason, message, generation)
 		applyMQObjectStatusFields(o, opts, message, nil)
 		return status.Update(ctx, o)
-	case *messagingv1alpha1.Channel:
-		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, message, generation)
-		applyMQObjectStatusFields(o, opts, message, nil)
-		return status.Update(ctx, o)
 	case *messagingv1beta1.ChannelAuthRule:
 		setCondition(&o.Status.Conditions, messagingv1beta1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)
 		applyMQObjectStatusFields(o, opts, message, nil)
 		return status.Update(ctx, o)
-	case *messagingv1alpha1.ChannelAuthRule:
-		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
-			metav1.ConditionFalse, reason, message, generation)
-		applyMQObjectStatusFields(o, opts, message, nil)
-		return status.Update(ctx, o)
 	case *messagingv1beta1.AuthorityRecord:
 		setCondition(&o.Status.Conditions, messagingv1beta1.ConditionSynced,
-			metav1.ConditionFalse, reason, message, generation)
-		applyMQObjectStatusFields(o, opts, message, nil)
-		return status.Update(ctx, o)
-	case *messagingv1alpha1.AuthorityRecord:
-		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)
 		applyMQObjectStatusFields(o, opts, message, nil)
 		return status.Update(ctx, o)
