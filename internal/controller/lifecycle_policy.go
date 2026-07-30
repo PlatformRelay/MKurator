@@ -42,6 +42,11 @@ func workloadLifecyclePolicies(obj client.Object) messagingv1alpha1.WorkloadLife
 		}
 	case *messagingv1alpha1.ChannelAuthRule:
 		return o.Spec.WorkloadLifecyclePolicies
+	case *messagingv1beta1.AuthorityRecord:
+		return messagingv1alpha1.WorkloadLifecyclePolicies{
+			DeletionPolicy: messagingv1alpha1.DeletionPolicy(o.Spec.DeletionPolicy),
+			AdoptionPolicy: messagingv1alpha1.AdoptionPolicy(o.Spec.AdoptionPolicy),
+		}
 	case *messagingv1alpha1.AuthorityRecord:
 		return o.Spec.WorkloadLifecyclePolicies
 	default:
@@ -82,6 +87,8 @@ func workloadFirstAdoption(obj client.Object) bool {
 	case *messagingv1beta1.ChannelAuthRule:
 		return o.Status.ObservedGeneration == 0
 	case *messagingv1alpha1.ChannelAuthRule:
+		return o.Status.ObservedGeneration == 0
+	case *messagingv1beta1.AuthorityRecord:
 		return o.Status.ObservedGeneration == 0
 	case *messagingv1alpha1.AuthorityRecord:
 		return o.Status.ObservedGeneration == 0

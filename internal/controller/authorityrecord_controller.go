@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/metrics"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -46,7 +46,7 @@ func (r *AuthorityRecordReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 //nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	auth := &messagingv1alpha1.AuthorityRecord{}
+	auth := &messagingv1beta1.AuthorityRecord{}
 	if err := r.Get(ctx, req.NamespacedName, auth); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -61,7 +61,7 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	if !auth.DeletionTimestamp.IsZero() {
 		return reconcileWorkloadDeletion(
 			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, auth, auth.Generation,
-			messagingv1alpha1.AuthorityRecordFinalizer, "Authority record orphaned in IBM MQ",
+			messagingv1beta1.AuthorityRecordFinalizer, "Authority record orphaned in IBM MQ",
 			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
 				return r.handleDeletion(ctx, auth, admin)
 			},
@@ -89,8 +89,8 @@ func (r *AuthorityRecordReconciler) reconcile(ctx context.Context, req ctrl.Requ
 		return setSyncedError(ctx, r.Status(), r.Recorder, auth, auth.Generation, err, syncStatusOpts{})
 	}
 
-	if !controllerutil.ContainsFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer) {
-		controllerutil.AddFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer)
+	if !controllerutil.ContainsFinalizer(auth, messagingv1beta1.AuthorityRecordFinalizer) {
+		controllerutil.AddFinalizer(auth, messagingv1beta1.AuthorityRecordFinalizer)
 		if updateErr := r.Update(ctx, auth); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
@@ -138,7 +138,7 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 	ctx context.Context,
 	admin mqadmin.Admin,
 	spec mqadmin.AuthoritySpec,
-	auth *messagingv1alpha1.AuthorityRecord,
+	auth *messagingv1beta1.AuthorityRecord,
 ) (bool, bool, error) {
 	mqCtx, cancel := MQRequestContext(ctx)
 	defer cancel()
@@ -175,7 +175,7 @@ func (r *AuthorityRecordReconciler) ensureAuthority(
 //nolint:dupl // shared MQ object deletion flow; differs in spec mapping and finalizer
 func (r *AuthorityRecordReconciler) handleDeletion(
 	ctx context.Context,
-	auth *messagingv1alpha1.AuthorityRecord,
+	auth *messagingv1beta1.AuthorityRecord,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
 	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, auth, auth.Generation,
@@ -193,14 +193,14 @@ func (r *AuthorityRecordReconciler) handleDeletion(
 
 	recordNormalEvent(r.Recorder, auth, EventReasonDeleted, "Authority record removed from IBM MQ")
 
-	controllerutil.RemoveFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer)
+	controllerutil.RemoveFinalizer(auth, messagingv1beta1.AuthorityRecordFinalizer)
 	if err := r.Update(ctx, auth); err != nil {
 		return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
 	}
 	return ctrl.Result{}, nil
 }
 
-func toMQAuthoritySpec(auth *messagingv1alpha1.AuthorityRecord) mqadmin.AuthoritySpec {
+func toMQAuthoritySpec(auth *messagingv1beta1.AuthorityRecord) mqadmin.AuthoritySpec {
 	authorities := append([]string(nil), auth.Spec.Authorities...)
 	return mqadmin.AuthoritySpec{
 		Profile:     auth.Spec.Profile,
@@ -213,5 +213,5 @@ func toMQAuthoritySpec(auth *messagingv1alpha1.AuthorityRecord) mqadmin.Authorit
 
 // SetupWithManager wires the reconciler.
 func (r *AuthorityRecordReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return setupMQObjectController(mgr, r, &messagingv1alpha1.AuthorityRecord{})
+	return setupMQObjectController(mgr, r, &messagingv1beta1.AuthorityRecord{})
 }

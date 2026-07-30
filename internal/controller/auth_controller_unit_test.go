@@ -228,16 +228,16 @@ func TestAuthorityRecordReconciler_TransientError(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "app-orders-get-put",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},
@@ -276,17 +276,17 @@ func TestAuthorityRecordReconciler_DeleteTerminalError(t *testing.T) {
 
 	conn := readyConnForUnit(ns)
 	now := metav1.Now()
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "app-orders-get-put",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers:        []string{messagingv1beta1.AuthorityRecordFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},
@@ -312,7 +312,7 @@ func TestAuthorityRecordReconciler_DeleteTerminalError(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	var updated messagingv1alpha1.AuthorityRecord
+	var updated messagingv1beta1.AuthorityRecord
 	if err := cl.Get(ctx, key, &updated); err != nil {
 		t.Fatalf("Get after delete error: %v", err)
 	}
@@ -330,17 +330,17 @@ func TestAuthorityRecordReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 
 	conn := readyConnForUnit(ns)
 	now := metav1.Now()
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "app-orders-get-put",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers:        []string{messagingv1beta1.AuthorityRecordFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},
@@ -365,7 +365,7 @@ func TestAuthorityRecordReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	var updated messagingv1alpha1.AuthorityRecord
+	var updated messagingv1beta1.AuthorityRecord
 	err = cl.Get(ctx, key, &updated)
 	if err == nil {
 		if len(updated.Finalizers) != 0 {
@@ -727,17 +727,17 @@ func TestAuthorityRecordReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 	key := types.NamespacedName{Namespace: ns, Name: "app-orders-get-put"}
 	s := unitSchemeOrFatal(t)
 	conn := readyConnForUnit(ns)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "app-orders-get-put", Namespace: ns,
-			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 			Annotations: map[string]string{
 				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 			},
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			Profile:       "APP.ORDERS", ObjectType: messagingv1alpha1.AuthorityObjectTypeQueue,
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			Profile:       "APP.ORDERS", ObjectType: messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal: "app", Authorities: []string{"GET", "PUT"},
 		},
 	}
@@ -751,7 +751,7 @@ func TestAuthorityRecordReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.AuthorityRecord{}
+	updated := &messagingv1beta1.AuthorityRecord{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -774,16 +774,16 @@ func TestAuthorityRecordReconciler_NoDriftSkipsSet(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "app-orders-get-put",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},
@@ -822,16 +822,16 @@ func TestAuthorityRecordReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "app-orders-get-put",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},
@@ -860,7 +860,7 @@ func TestAuthorityRecordReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.AuthorityRecord{}
+	updated := &messagingv1beta1.AuthorityRecord{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -878,16 +878,16 @@ func TestAuthorityRecordReconciler_NotFoundCreates(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "app-orders-get-put",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 		},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},

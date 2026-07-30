@@ -35,6 +35,8 @@ func workloadSuspended(obj client.Object) bool {
 		return o.Spec.Suspend
 	case *messagingv1alpha1.ChannelAuthRule:
 		return o.Spec.Suspend
+	case *messagingv1beta1.AuthorityRecord:
+		return o.Spec.Suspend
 	case *messagingv1alpha1.AuthorityRecord:
 		return o.Spec.Suspend
 	default:
