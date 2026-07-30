@@ -114,7 +114,6 @@ type connectionDependent struct {
 	name string
 }
 
-//nolint:gocyclo // lists v1beta1 dependents per MQ object kind, deduping the shared referent.
 func listConnectionDependents(
 	ctx context.Context,
 	reader client.Reader,
@@ -122,16 +121,6 @@ func listConnectionDependents(
 ) ([]connectionDependent, field.ErrorList) {
 	path := field.NewPath("metadata").Child("name")
 	var dependents []connectionDependent
-	// Dedup dependents by (kind, name), preserving first-seen order, so a referent is never
-	// reported twice.
-	seen := make(map[connectionDependent]bool)
-	appendDependent := func(dep connectionDependent) {
-		if seen[dep] {
-			return
-		}
-		seen[dep] = true
-		dependents = append(dependents, dep)
-	}
 
 	var queues messagingv1beta1.QueueList
 	if err := reader.List(ctx, &queues, client.InNamespace(namespace)); err != nil {
@@ -143,20 +132,7 @@ func listConnectionDependents(
 	}
 	for i := range queues.Items {
 		if queues.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "Queue", name: queues.Items[i].Name})
-		}
-	}
-	var queuesV1Beta1 messagingv1beta1.QueueList
-	if err := reader.List(ctx, &queuesV1Beta1, client.InNamespace(namespace)); err != nil {
-		if !k8sruntime.IsNotRegisteredError(err) {
-			return nil, field.ErrorList{
-				field.InternalError(path, fmt.Errorf("list Queues (v1beta1): %w", err)),
-			}
-		}
-	}
-	for i := range queuesV1Beta1.Items {
-		if queuesV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "Queue", name: queuesV1Beta1.Items[i].Name})
+			dependents = append(dependents, connectionDependent{kind: "Queue", name: queues.Items[i].Name})
 		}
 	}
 
@@ -170,20 +146,7 @@ func listConnectionDependents(
 	}
 	for i := range topics.Items {
 		if topics.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "Topic", name: topics.Items[i].Name})
-		}
-	}
-	var topicsV1Beta1 messagingv1beta1.TopicList
-	if err := reader.List(ctx, &topicsV1Beta1, client.InNamespace(namespace)); err != nil {
-		if !k8sruntime.IsNotRegisteredError(err) {
-			return nil, field.ErrorList{
-				field.InternalError(path, fmt.Errorf("list Topics (v1beta1): %w", err)),
-			}
-		}
-	}
-	for i := range topicsV1Beta1.Items {
-		if topicsV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "Topic", name: topicsV1Beta1.Items[i].Name})
+			dependents = append(dependents, connectionDependent{kind: "Topic", name: topics.Items[i].Name})
 		}
 	}
 
@@ -197,20 +160,7 @@ func listConnectionDependents(
 	}
 	for i := range channels.Items {
 		if channels.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "Channel", name: channels.Items[i].Name})
-		}
-	}
-	var channelsV1Beta1 messagingv1beta1.ChannelList
-	if err := reader.List(ctx, &channelsV1Beta1, client.InNamespace(namespace)); err != nil {
-		if !k8sruntime.IsNotRegisteredError(err) {
-			return nil, field.ErrorList{
-				field.InternalError(path, fmt.Errorf("list Channels (v1beta1): %w", err)),
-			}
-		}
-	}
-	for i := range channelsV1Beta1.Items {
-		if channelsV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "Channel", name: channelsV1Beta1.Items[i].Name})
+			dependents = append(dependents, connectionDependent{kind: "Channel", name: channels.Items[i].Name})
 		}
 	}
 
@@ -224,20 +174,7 @@ func listConnectionDependents(
 	}
 	for i := range authRules.Items {
 		if authRules.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "ChannelAuthRule", name: authRules.Items[i].Name})
-		}
-	}
-	var authRulesV1Beta1 messagingv1beta1.ChannelAuthRuleList
-	if err := reader.List(ctx, &authRulesV1Beta1, client.InNamespace(namespace)); err != nil {
-		if !k8sruntime.IsNotRegisteredError(err) {
-			return nil, field.ErrorList{
-				field.InternalError(path, fmt.Errorf("list ChannelAuthRules (v1beta1): %w", err)),
-			}
-		}
-	}
-	for i := range authRulesV1Beta1.Items {
-		if authRulesV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "ChannelAuthRule", name: authRulesV1Beta1.Items[i].Name})
+			dependents = append(dependents, connectionDependent{kind: "ChannelAuthRule", name: authRules.Items[i].Name})
 		}
 	}
 
@@ -251,20 +188,7 @@ func listConnectionDependents(
 	}
 	for i := range authRecs.Items {
 		if authRecs.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "AuthorityRecord", name: authRecs.Items[i].Name})
-		}
-	}
-	var authRecsV1Beta1 messagingv1beta1.AuthorityRecordList
-	if err := reader.List(ctx, &authRecsV1Beta1, client.InNamespace(namespace)); err != nil {
-		if !k8sruntime.IsNotRegisteredError(err) {
-			return nil, field.ErrorList{
-				field.InternalError(path, fmt.Errorf("list AuthorityRecords (v1beta1): %w", err)),
-			}
-		}
-	}
-	for i := range authRecsV1Beta1.Items {
-		if authRecsV1Beta1.Items[i].Spec.ConnectionRef.Name == connName {
-			appendDependent(connectionDependent{kind: "AuthorityRecord", name: authRecsV1Beta1.Items[i].Name})
+			dependents = append(dependents, connectionDependent{kind: "AuthorityRecord", name: authRecs.Items[i].Name})
 		}
 	}
 	return dependents, nil

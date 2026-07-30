@@ -9,39 +9,38 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestValidateManagedChannelRef(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 
 	connName := "qm1"
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: "ns"},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   "ORDERS.APP",
 		},
 	}
-	deleting := &messagingv1alpha1.Channel{
+	deleting := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "legacy-app",
 			Namespace:         "ns",
 			DeletionTimestamp: &metav1.Time{Time: metav1.Now().Time},
-			Finalizers:        []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers:        []string{messagingv1beta1.ChannelFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   "LEGACY.APP",
 		},
 	}
-	otherConn := &messagingv1alpha1.Channel{
+	otherConn := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "remote-only", Namespace: "ns"},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "other-qm"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "other-qm"},
 			ChannelName:   "REMOTE.ONLY",
 		},
 	}

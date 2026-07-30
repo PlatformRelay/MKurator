@@ -12,7 +12,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -626,7 +625,7 @@ func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 			Namespace:  ns,
 			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			Annotations: map[string]string{
-				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+				messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 			},
 		},
 		Spec: messagingv1beta1.ChannelAuthRuleSpec{
@@ -668,9 +667,9 @@ func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) !=
-		messagingv1alpha1.ReasonDriftDetected {
-		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+	if conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced) !=
+		messagingv1beta1.ReasonDriftDetected {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced))
 	}
 }
 
@@ -686,7 +685,7 @@ func TestChannelAuthRuleReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 			Name: "dev-app-addressmap", Namespace: ns,
 			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			Annotations: map[string]string{
-				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+				messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 			},
 		},
 		Spec: messagingv1beta1.ChannelAuthRuleSpec{
@@ -711,9 +710,9 @@ func TestChannelAuthRuleReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 	}
 	if conditionReason(
 		updated.Status.Conditions,
-		messagingv1alpha1.ConditionSynced,
-	) != messagingv1alpha1.ReasonDriftDetected {
-		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+		messagingv1beta1.ConditionSynced,
+	) != messagingv1beta1.ReasonDriftDetected {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced))
 	}
 	if updated.Status.MQObjectExists == nil || *updated.Status.MQObjectExists {
 		t.Fatalf("MQObjectExists = %v, want false", updated.Status.MQObjectExists)
@@ -732,7 +731,7 @@ func TestAuthorityRecordReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 			Name: "app-orders-get-put", Namespace: ns,
 			Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 			Annotations: map[string]string{
-				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+				messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 			},
 		},
 		Spec: messagingv1beta1.AuthorityRecordSpec{
@@ -757,9 +756,9 @@ func TestAuthorityRecordReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 	}
 	if conditionReason(
 		updated.Status.Conditions,
-		messagingv1alpha1.ConditionSynced,
-	) != messagingv1alpha1.ReasonDriftDetected {
-		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+		messagingv1beta1.ConditionSynced,
+	) != messagingv1beta1.ReasonDriftDetected {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced))
 	}
 	if updated.Status.MQObjectExists == nil || *updated.Status.MQObjectExists {
 		t.Fatalf("MQObjectExists = %v, want false", updated.Status.MQObjectExists)

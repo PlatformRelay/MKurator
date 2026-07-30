@@ -15,24 +15,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestWorkloadSuspended(t *testing.T) {
 	t.Parallel()
 	cases := []client.Object{
-		&messagingv1alpha1.Queue{Spec: messagingv1alpha1.QueueSpec{Suspend: true}},
-		&messagingv1alpha1.Topic{Spec: messagingv1alpha1.TopicSpec{Suspend: true}},
-		&messagingv1alpha1.Channel{Spec: messagingv1alpha1.ChannelSpec{Suspend: true}},
-		&messagingv1alpha1.ChannelAuthRule{Spec: messagingv1alpha1.ChannelAuthRuleSpec{Suspend: true}},
-		&messagingv1alpha1.AuthorityRecord{Spec: messagingv1alpha1.AuthorityRecordSpec{Suspend: true}},
+		&messagingv1beta1.Queue{Spec: messagingv1beta1.QueueSpec{Suspend: true}},
+		&messagingv1beta1.Topic{Spec: messagingv1beta1.TopicSpec{Suspend: true}},
+		&messagingv1beta1.Channel{Spec: messagingv1beta1.ChannelSpec{Suspend: true}},
+		&messagingv1beta1.ChannelAuthRule{Spec: messagingv1beta1.ChannelAuthRuleSpec{Suspend: true}},
+		&messagingv1beta1.AuthorityRecord{Spec: messagingv1beta1.AuthorityRecordSpec{Suspend: true}},
 	}
 	for _, obj := range cases {
 		if !workloadSuspended(obj) {
 			t.Fatalf("expected suspended for %T", obj)
 		}
 	}
-	if workloadSuspended(&messagingv1alpha1.QueueManagerConnection{}) {
+	if workloadSuspended(&messagingv1beta1.QueueManagerConnection{}) {
 		t.Fatal("expected unsupported type not suspended")
 	}
 }
@@ -42,16 +42,16 @@ func TestPatchSyncedSuspended_AllKinds(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 
 	objects := []client.Object{
-		&messagingv1alpha1.Queue{ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1}},
-		&messagingv1alpha1.Topic{ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: ns, Generation: 1}},
-		&messagingv1alpha1.Channel{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1}},
-		&messagingv1alpha1.ChannelAuthRule{ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1}},
-		&messagingv1alpha1.AuthorityRecord{ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1}},
+		&messagingv1beta1.Queue{ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1}},
+		&messagingv1beta1.Topic{ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: ns, Generation: 1}},
+		&messagingv1beta1.Channel{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1}},
+		&messagingv1beta1.ChannelAuthRule{ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1}},
+		&messagingv1beta1.AuthorityRecord{ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1}},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(objects...).WithObjects(objects...).Build()
 	recorder := events.NewFakeRecorder(len(objects))
@@ -65,16 +65,16 @@ func TestPatchSyncedSuspended_AllKinds(t *testing.T) {
 		}
 		if conditionReason(
 			syncedConditions(obj),
-			messagingv1alpha1.ConditionSynced,
-		) != messagingv1alpha1.ReasonSuspended {
-			t.Fatalf("%T reason = %s", obj, conditionReason(syncedConditions(obj), messagingv1alpha1.ConditionSynced))
+			messagingv1beta1.ConditionSynced,
+		) != messagingv1beta1.ReasonSuspended {
+			t.Fatalf("%T reason = %s", obj, conditionReason(syncedConditions(obj), messagingv1beta1.ConditionSynced))
 		}
 	}
 }
 
 func TestPatchSyncedSuspended_UnsupportedType(t *testing.T) {
 	t.Parallel()
-	err := patchSyncedSuspended(context.Background(), nil, nil, &messagingv1alpha1.QueueManagerConnection{}, 1, "x")
+	err := patchSyncedSuspended(context.Background(), nil, nil, &messagingv1beta1.QueueManagerConnection{}, 1, "x")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -85,12 +85,12 @@ func TestReconcileWorkloadSuspended_NoHotLoop(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueSpec{
+		Spec: messagingv1beta1.QueueSpec{
 			Suspend: true,
 		},
 	}
@@ -102,18 +102,18 @@ func TestReconcileWorkloadSuspended_NoHotLoop(t *testing.T) {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if getErr := cl.Get(ctx, client.ObjectKeyFromObject(q), updated); getErr != nil {
 		t.Fatal(getErr)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionFalse {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionFalse {
 		t.Fatalf("status = %v", updated.Status.Conditions)
 	}
 	if conditionReason(
 		updated.Status.Conditions,
-		messagingv1alpha1.ConditionSynced,
-	) != messagingv1alpha1.ReasonSuspended {
-		t.Fatalf("reason = %s", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+		messagingv1beta1.ConditionSynced,
+	) != messagingv1beta1.ReasonSuspended {
+		t.Fatalf("reason = %s", conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced))
 	}
 
 	result, err = reconcileWorkloadSuspended(ctx, cl.Status(), recorder, updated, 1)
@@ -138,12 +138,12 @@ func TestAnnotationValue(t *testing.T) {
 func TestWorkloadLifecycleChanged(t *testing.T) {
 	t.Parallel()
 	p := workloadLifecycleChanged{}
-	base := &messagingv1alpha1.Queue{
+	base := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Generation: 1},
 	}
 
 	withFinalizer := base.DeepCopy()
-	withFinalizer.Finalizers = []string{messagingv1alpha1.QueueFinalizer}
+	withFinalizer.Finalizers = []string{messagingv1beta1.QueueFinalizer}
 	if !p.Update(event.UpdateEvent{ObjectOld: base, ObjectNew: withFinalizer}) {
 		t.Fatal("expected reconcile when finalizer added")
 	}
@@ -157,7 +157,7 @@ func TestWorkloadLifecycleChanged(t *testing.T) {
 	if !p.Update(event.UpdateEvent{ObjectOld: withFinalizer, ObjectNew: deleting}) {
 		t.Fatal("expected reconcile when deletionTimestamp set")
 	}
-	if p.Update(event.UpdateEvent{ObjectOld: base, ObjectNew: &messagingv1alpha1.QueueManagerConnection{}}) {
+	if p.Update(event.UpdateEvent{ObjectOld: base, ObjectNew: &messagingv1beta1.QueueManagerConnection{}}) {
 		t.Fatal("expected no reconcile for non-workload types")
 	}
 }
@@ -165,15 +165,15 @@ func TestWorkloadLifecycleChanged(t *testing.T) {
 func TestReconcileRequestedAnnotationChanged(t *testing.T) {
 	t.Parallel()
 	p := reconcileRequestedAnnotationChanged{}
-	oldQ := &messagingv1alpha1.Queue{
+	oldQ := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
-				messagingv1alpha1.ReconcileRequestedAtAnnotation: "2026-06-10T10:00:00Z",
+				messagingv1beta1.ReconcileRequestedAtAnnotation: "2026-06-10T10:00:00Z",
 			},
 		},
 	}
 	newQ := oldQ.DeepCopy()
-	newQ.Annotations[messagingv1alpha1.ReconcileRequestedAtAnnotation] = "2026-06-10T10:01:00Z"
+	newQ.Annotations[messagingv1beta1.ReconcileRequestedAtAnnotation] = "2026-06-10T10:01:00Z"
 	if !p.Update(event.UpdateEvent{ObjectOld: oldQ, ObjectNew: newQ}) {
 		t.Fatal("expected reconcile on annotation change")
 	}
@@ -188,12 +188,12 @@ func TestReconcileWorkloadSuspended_EmitsEventOnce(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 2},
-		Spec:       messagingv1alpha1.QueueSpec{Suspend: true},
+		Spec:       messagingv1beta1.QueueSpec{Suspend: true},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
 	recorder := events.NewFakeRecorder(2)
@@ -203,7 +203,7 @@ func TestReconcileWorkloadSuspended_EmitsEventOnce(t *testing.T) {
 	}
 	select {
 	case ev := <-recorder.Events:
-		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1alpha1.ReasonSuspended) {
+		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1beta1.ReasonSuspended) {
 			t.Fatalf("event = %q", ev)
 		}
 	case <-time.After(time.Second):

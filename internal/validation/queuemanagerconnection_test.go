@@ -10,19 +10,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestValidateQueueManagerConnectionDeleteWithTopic(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: "ns"},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
@@ -39,12 +38,12 @@ func TestValidateQueueManagerConnectionDeleteWithTopic(t *testing.T) {
 func TestValidateQueueManagerConnectionDeleteWithChannel(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "ns"},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
 		},
 	}
@@ -57,22 +56,22 @@ func TestValidateQueueManagerConnectionDeleteWithChannel(t *testing.T) {
 func TestValidateQueueManagerConnectionDeleteWithAuthDependents(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
-	car := &messagingv1alpha1.ChannelAuthRule{
+	car := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 		},
 	}
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET"},
 		},
@@ -92,10 +91,10 @@ func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 
 	t.Run("missing credentials secret", func(t *testing.T) {
 		t.Parallel()
-		spec := &messagingv1alpha1.QueueManagerConnectionSpec{
+		spec := &messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "missing"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "missing"},
 		}
 		if _, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) == 0 {
 			t.Fatal("expected secret not found error")
@@ -106,19 +105,19 @@ func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 func TestValidateQueueManagerConnectionDelete(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
-	queue := &messagingv1alpha1.Queue{
+	queue := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
 		},
 	}
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{Name: "events", Namespace: "ns"},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
@@ -146,12 +145,12 @@ func TestValidateQueueManagerConnectionInsecureTLS(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
-	baseSpec := func() *messagingv1alpha1.QueueManagerConnectionSpec {
-		return &messagingv1alpha1.QueueManagerConnectionSpec{
+	baseSpec := func() *messagingv1beta1.QueueManagerConnectionSpec {
+		return &messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
-			TLS:                  &messagingv1alpha1.TLSConfig{InsecureSkipVerify: true},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
+			TLS:                  &messagingv1beta1.TLSConfig{InsecureSkipVerify: true},
 		}
 	}
 
@@ -167,17 +166,17 @@ func TestValidateQueueManagerConnectionInsecureTLS(t *testing.T) {
 		},
 		{
 			name:        "deny with false annotation",
-			annotations: map[string]string{messagingv1alpha1.AllowInsecureTLSAnnotation: "false"},
+			annotations: map[string]string{messagingv1beta1.AllowInsecureTLSAnnotation: "false"},
 			wantErr:     true,
 		},
 		{
 			name:        "deny with empty annotation",
-			annotations: map[string]string{messagingv1alpha1.AllowInsecureTLSAnnotation: ""},
+			annotations: map[string]string{messagingv1beta1.AllowInsecureTLSAnnotation: ""},
 			wantErr:     true,
 		},
 		{
 			name:        "allow with true annotation",
-			annotations: map[string]string{messagingv1alpha1.AllowInsecureTLSAnnotation: "true"},
+			annotations: map[string]string{messagingv1beta1.AllowInsecureTLSAnnotation: "true"},
 			wantErr:     false,
 		},
 	}
@@ -198,19 +197,19 @@ func TestValidateQueueManagerConnectionInsecureTLS(t *testing.T) {
 func TestValidateQueueManagerConnectionDeleteMultipleDependents(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
-	queue := &messagingv1alpha1.Queue{
+	queue := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
 		},
 	}
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{Name: "events", Namespace: "ns"},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
@@ -229,17 +228,17 @@ func TestValidateQueueManagerConnectionCASecret(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	creds := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "ns"}}
 	ca := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "ca", Namespace: "ns"}}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(creds, ca).Build()
 
-	spec := &messagingv1alpha1.QueueManagerConnectionSpec{
+	spec := &messagingv1beta1.QueueManagerConnectionSpec{
 		QueueManager:         "QM1",
 		Endpoint:             "https://mq.example:9443",
-		CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
-		TLS: &messagingv1alpha1.TLSConfig{
-			CASecretRef: &messagingv1alpha1.SecretReference{Name: "ca"},
+		CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
+		TLS: &messagingv1beta1.TLSConfig{
+			CASecretRef: &messagingv1beta1.SecretReference{Name: "ca"},
 		},
 	}
 	if _, errs := ValidateQueueManagerConnectionSpec(context.Background(), cl, "ns", nil, spec); len(errs) > 0 {
@@ -287,74 +286,31 @@ func TestValidateQueueManagerConnectionCredentialsUsernameWarning(t *testing.T) 
 	})
 }
 
-func TestValidateQueueManagerConnectionDeleteDedupsDualVersionDependents(t *testing.T) {
+func TestListConnectionDependentsAcrossKindsPreservesKindOrder(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
-	_ = messagingv1beta1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-
-	// Simulate the conversion webhook serving one stored Queue under both api versions: the same
-	// (kind, name) referent is returned by both the v1alpha1 and v1beta1 List.
-	queueAlpha := &messagingv1alpha1.Queue{
-		ObjectMeta: metav1.ObjectMeta{Name: "e2e-orders-n2", Namespace: "ns"},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			QueueName:     "APP.ORDERS",
-		},
-	}
-	queueBeta := &messagingv1beta1.Queue{
-		ObjectMeta: metav1.ObjectMeta{Name: "e2e-orders-n2", Namespace: "ns"},
-		Spec: messagingv1beta1.QueueSpec{
-			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
-			QueueName:     "APP.ORDERS",
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, queueAlpha, queueBeta).Build()
-
-	errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn)
-	if len(errs) == 0 {
-		t.Fatal("expected delete blocked when dependent exists")
-	}
-	detail := errs[0].Detail
-	if got := strings.Count(detail, `Queue "e2e-orders-n2"`); got != 1 {
-		t.Fatalf("expected dependent listed exactly once, got %d occurrences in detail = %q", got, detail)
-	}
-}
-
-func TestListConnectionDependentsDedupAndOrder(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
 	_ = messagingv1beta1.AddToScheme(scheme)
 
-	const queueKind = "Queue"
-	alphaRef := messagingv1alpha1.LocalObjectReference{Name: "qm1"}
-	betaRef := messagingv1beta1.LocalObjectReference{Name: "qm1"}
-
-	// The same "shared" Queue served under both versions must be deduped, while a distinct
-	// v1beta1-only Queue proves non-duplicate dependents are preserved (first-seen order).
-	dupAlpha := &messagingv1alpha1.Queue{
-		ObjectMeta: metav1.ObjectMeta{Name: "shared", Namespace: "ns"},
-		Spec:       messagingv1alpha1.QueueSpec{ConnectionRef: alphaRef, QueueName: "A"},
+	ref := messagingv1beta1.LocalObjectReference{Name: "qm1"}
+	// listConnectionDependents lists each kind in a fixed order (Queue, then Topic, ...) and
+	// appends in that order, so a Queue dependent always precedes a Topic dependent.
+	queue := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
+		Spec:       messagingv1beta1.QueueSpec{ConnectionRef: ref, QueueName: "APP.ORDERS"},
 	}
-	dupBeta := &messagingv1beta1.Queue{
-		ObjectMeta: metav1.ObjectMeta{Name: "shared", Namespace: "ns"},
-		Spec:       messagingv1beta1.QueueSpec{ConnectionRef: betaRef, QueueName: "A"},
+	topic := &messagingv1beta1.Topic{
+		ObjectMeta: metav1.ObjectMeta{Name: "events", Namespace: "ns"},
+		Spec:       messagingv1beta1.TopicSpec{ConnectionRef: ref, TopicName: "RETAIL.ORDERS"},
 	}
-	distinctBeta := &messagingv1beta1.Queue{
-		ObjectMeta: metav1.ObjectMeta{Name: "beta-only", Namespace: "ns"},
-		Spec:       messagingv1beta1.QueueSpec{ConnectionRef: betaRef, QueueName: "B"},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(dupAlpha, dupBeta, distinctBeta).Build()
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(queue, topic).Build()
 
 	dependents, errs := listConnectionDependents(context.Background(), cl, "ns", "qm1")
 	if len(errs) > 0 {
 		t.Fatalf("unexpected errors: %v", errs)
 	}
 	want := []connectionDependent{
-		{kind: queueKind, name: "shared"},
-		{kind: queueKind, name: "beta-only"},
+		{kind: "Queue", name: "orders"},
+		{kind: "Topic", name: "events"},
 	}
 	if len(dependents) != len(want) {
 		t.Fatalf("dependents = %+v, want %+v", dependents, want)
