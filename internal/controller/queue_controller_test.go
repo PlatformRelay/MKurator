@@ -5,7 +5,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -142,10 +141,10 @@ func TestToMQQueueSpecTypedGetPut(t *testing.T) {
 
 func TestConnectionReady(t *testing.T) {
 	t.Parallel()
-	ready := &messagingv1alpha1.QueueManagerConnection{
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+	ready := &messagingv1beta1.QueueManagerConnection{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:   messagingv1alpha1.ConditionReady,
+				Type:   messagingv1beta1.ConditionReady,
 				Status: metav1.ConditionTrue,
 			}},
 		},
@@ -153,7 +152,7 @@ func TestConnectionReady(t *testing.T) {
 	if !connectionReady(ready) {
 		t.Fatal("expected ready")
 	}
-	pending := &messagingv1alpha1.QueueManagerConnection{}
+	pending := &messagingv1beta1.QueueManagerConnection{}
 	if connectionReady(pending) {
 		t.Fatal("expected not ready")
 	}
