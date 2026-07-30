@@ -12,7 +12,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -20,12 +19,12 @@ import (
 
 func TestIsObserveOnly(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{}
+	q := &messagingv1beta1.Queue{}
 	if isObserveOnly(q) {
 		t.Fatal("expected default false")
 	}
 	q.Annotations = map[string]string{
-		messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+		messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 	}
 	if !isObserveOnly(q) {
 		t.Fatal("expected observe-only")
@@ -36,7 +35,7 @@ func TestReconcileMQObjectState_ObserveOnlyDrift(t *testing.T) {
 	t.Parallel()
 	exists, msg, err := reconcileMQObjectState(
 		true,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"maxdepth": "1000"},
@@ -77,7 +76,7 @@ func TestReconcileMQObjectState_ObserveOnlyNotFound(t *testing.T) {
 	t.Parallel()
 	exists, msg, err := reconcileMQObjectState(
 		true,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		false,
 		nil,
@@ -99,7 +98,7 @@ func TestReconcileMQObjectState_NoDefineWhenAttributesMatch(t *testing.T) {
 	called := false
 	exists, msg, err := reconcileMQObjectState(
 		false,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"maxdepth": "5000"},
@@ -121,7 +120,7 @@ func TestReconcileMQObjectState_DefinesWhenMissing(t *testing.T) {
 	called := false
 	exists, msg, err := reconcileMQObjectState(
 		false,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		false,
 		nil,
@@ -143,7 +142,7 @@ func TestReconcileMQObjectState_PubSubCaseInsensitive(t *testing.T) {
 	called := false
 	exists, msg, err := reconcileMQObjectState(
 		false,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"pub": "enabled", "sub": "enabled"},
@@ -165,7 +164,7 @@ func TestReconcileMQObjectState_ChannelTrptypeDrift(t *testing.T) {
 	called := false
 	exists, msg, err := reconcileMQObjectState(
 		false,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"trptype": "tcp"},
@@ -186,7 +185,7 @@ func TestReconcileMQObjectState_ObserveOnlyNoDrift(t *testing.T) {
 	t.Parallel()
 	exists, msg, err := reconcileMQObjectState(
 		true,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"maxdepth": "5000"},
@@ -205,7 +204,7 @@ func TestReconcileMQObjectState_DefaultDefinesOnDrift(t *testing.T) {
 	called := false
 	exists, msg, err := reconcileMQObjectState(
 		false,
-		messagingv1alpha1.AdoptionPolicyAdopt,
+		messagingv1beta1.AdoptionPolicyAdopt,
 		false,
 		true,
 		map[string]string{"maxdepth": "1000"},
@@ -236,7 +235,7 @@ func TestQueueReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 			Namespace:  ns,
 			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 			Annotations: map[string]string{
-				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+				messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 			},
 		},
 		Spec: messagingv1beta1.QueueSpec{
@@ -270,11 +269,11 @@ func TestQueueReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionFalse {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionFalse {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
-	reason := conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)
-	if reason != messagingv1alpha1.ReasonDriftDetected {
+	reason := conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced)
+	if reason != messagingv1beta1.ReasonDriftDetected {
 		t.Fatalf("reason = %q", reason)
 	}
 }
@@ -293,7 +292,7 @@ func TestTopicReconciler_ObserveOnlySyncedWithoutDefine(t *testing.T) {
 			Namespace:  ns,
 			Finalizers: []string{messagingv1beta1.TopicFinalizer},
 			Annotations: map[string]string{
-				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+				messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 			},
 		},
 		Spec: messagingv1beta1.TopicSpec{
@@ -326,7 +325,7 @@ func TestTopicReconciler_ObserveOnlySyncedWithoutDefine(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 }
@@ -345,7 +344,7 @@ func TestChannelReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 			Namespace:  ns,
 			Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 			Annotations: map[string]string{
-				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
+				messagingv1beta1.DriftPolicyAnnotation: messagingv1beta1.DriftPolicyObserveOnly,
 			},
 		},
 		Spec: messagingv1beta1.ChannelSpec{
@@ -378,8 +377,8 @@ func TestChannelReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	reason := conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)
-	if reason != messagingv1alpha1.ReasonDriftDetected {
+	reason := conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced)
+	if reason != messagingv1beta1.ReasonDriftDetected {
 		t.Fatalf("reason = %q", reason)
 	}
 }
@@ -453,7 +452,7 @@ func TestQueueReconciler_PeriodicResyncDetectsDrift(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 }
@@ -462,7 +461,7 @@ func TestReconcileMQObjectState_FailIfExistsBlocks(t *testing.T) {
 	t.Parallel()
 	_, _, err := reconcileMQObjectState(
 		false,
-		messagingv1alpha1.AdoptionPolicyFailIfExists,
+		messagingv1beta1.AdoptionPolicyFailIfExists,
 		true,
 		true,
 		map[string]string{"maxdepth": "5000"},
@@ -472,7 +471,7 @@ func TestReconcileMQObjectState_FailIfExistsBlocks(t *testing.T) {
 		func() error { t.Fatal("define should not run"); return nil },
 	)
 	var block *AdoptionBlockedError
-	if !errors.As(err, &block) || block.Reason != messagingv1alpha1.ReasonAlreadyExists {
+	if !errors.As(err, &block) || block.Reason != messagingv1beta1.ReasonAlreadyExists {
 		t.Fatalf("err = %v", err)
 	}
 }

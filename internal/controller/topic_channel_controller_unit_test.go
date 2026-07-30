@@ -12,7 +12,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -163,7 +162,7 @@ func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 }
@@ -482,7 +481,7 @@ func TestChannelReconciler_SyncedWithoutDefine(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 }

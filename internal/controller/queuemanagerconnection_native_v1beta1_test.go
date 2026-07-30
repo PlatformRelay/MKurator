@@ -10,55 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
-
-// v1alpha1WriteRecorder wraps a client.Client and counts Update / Status().Update calls
-// made with a *messagingv1alpha1.QueueManagerConnection. The 8e-1 acceptance criterion is
-// that the native-v1beta1 QMC reconcile/finalizer path issues NO v1alpha1 write at all: the
-// lossy down-conversion round trip (which nils spec.authentication under strategy-None schema
-// pruning, the AUTH-14 data-loss bug) is what the #168 annotation hack worked around. This
-// recorder is the deterministic RED signal: current code adds the finalizer via r.Update on a
-// v1alpha1 object, so the count is non-zero until the reconciler reads/writes the hub directly.
-type v1alpha1WriteRecorder struct {
-	client.Client
-	writes *int
-}
-
-func (r *v1alpha1WriteRecorder) Update(
-	ctx context.Context,
-	obj client.Object,
-	opts ...client.UpdateOption,
-) error {
-	if _, ok := obj.(*messagingv1alpha1.QueueManagerConnection); ok {
-		*r.writes++
-	}
-	return r.Client.Update(ctx, obj, opts...)
-}
-
-func (r *v1alpha1WriteRecorder) Status() client.StatusWriter {
-	return &v1alpha1StatusRecorder{StatusWriter: r.Client.Status(), writes: r.writes}
-}
-
-type v1alpha1StatusRecorder struct {
-	client.StatusWriter
-	writes *int
-}
-
-func (r *v1alpha1StatusRecorder) Update(
-	ctx context.Context,
-	obj client.Object,
-	opts ...client.SubResourceUpdateOption,
-) error {
-	if _, ok := obj.(*messagingv1alpha1.QueueManagerConnection); ok {
-		*r.writes++
-	}
-	return r.StatusWriter.Update(ctx, obj, opts...)
-}
 
 var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func() {
 	const (
@@ -80,7 +35,7 @@ var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func(
 		cancel()
 	})
 
-	It("preserves spec.authentication and issues no v1alpha1 write across finalizer-add to Ready", func() {
+	It("preserves spec.authentication across finalizer-add to Ready", func() {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
 			Data: map[string][]byte{
@@ -112,11 +67,8 @@ var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func(
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil).Maybe()
 
-		writes := 0
-		recClient := &v1alpha1WriteRecorder{Client: k8sClient, writes: &writes}
-
 		rec := &QueueManagerConnectionReconciler{
-			Client:    recClient,
+			Client:    k8sClient,
 			Scheme:    k8sClient.Scheme(),
 			MQFactory: mockFactory,
 		}
@@ -127,10 +79,6 @@ var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func(
 			_, err := rec.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 		}
-
-		// AC: no v1alpha1 Update / Status().Update anywhere in the reconcile/finalizer path.
-		Expect(writes).To(Equal(0),
-			"native-v1beta1 reconcile must not issue any v1alpha1 Update/Status Update")
 
 		// AC: the stored hub still carries spec.authentication (no lossy round trip wiped it).
 		stored := &messagingv1beta1.QueueManagerConnection{}
@@ -145,14 +93,9 @@ var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func(
 		Expect(stored.Finalizers).To(ContainElement(messagingv1beta1.QueueManagerConnectionFinalizer))
 	})
 
-	It("removes a leftover v1alpha1-era finalizer string on v1beta1 reconcile (constant equality)", func() {
-		// A QMC persisted by an older v1alpha1-typed client carries the v1alpha1 finalizer
-		// constant. Because both API versions share the identical finalizer string, the native
+	It("removes a leftover finalizer string on v1beta1 reconcile", func() {
+		// A QMC persisted before the migration carries the finalizer constant. The native
 		// v1beta1 reconcile matches and removes it on delete.
-		Expect(messagingv1beta1.QueueManagerConnectionFinalizer).
-			To(Equal(messagingv1alpha1.QueueManagerConnectionFinalizer),
-				"v1beta1 and v1alpha1 finalizer constants must be the identical string")
-
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: testSecretName, Namespace: ns},
 			Data:       map[string][]byte{"username": []byte("admin"), "password": []byte("secret")},
@@ -163,7 +106,7 @@ var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func(
 			ObjectMeta: metav1.ObjectMeta{
 				Name:       key,
 				Namespace:  ns,
-				Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
+				Finalizers: []string{messagingv1beta1.QueueManagerConnectionFinalizer},
 			},
 			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
@@ -193,6 +136,6 @@ var _ = Describe("QueueManagerConnectionReconciler native v1beta1 (8e-1)", func(
 
 		got := &messagingv1beta1.QueueManagerConnection{}
 		err = k8sClient.Get(ctx, req.NamespacedName, got)
-		Expect(err).To(HaveOccurred(), "leftover v1alpha1 finalizer removed → object deleted")
+		Expect(err).To(HaveOccurred(), "leftover finalizer removed → object deleted")
 	})
 })

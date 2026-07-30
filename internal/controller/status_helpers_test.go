@@ -7,7 +7,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
@@ -17,9 +16,9 @@ func TestConnectionWaitMessage_ReadyCondition(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
 		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:    messagingv1alpha1.ConditionReady,
+				Type:    messagingv1beta1.ConditionReady,
 				Status:  metav1.ConditionFalse,
-				Reason:  messagingv1alpha1.ReasonError,
+				Reason:  messagingv1beta1.ReasonError,
 				Message: "mqweb ping failed: connection refused",
 			}},
 		},
@@ -46,9 +45,9 @@ func TestConnectionWaitMessage_ReadyTrueStillWaiting(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
 		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:   messagingv1alpha1.ConditionReady,
+				Type:   messagingv1beta1.ConditionReady,
 				Status: metav1.ConditionTrue,
-				Reason: messagingv1alpha1.ReasonAvailable,
+				Reason: messagingv1beta1.ReasonAvailable,
 			}},
 		},
 	}
@@ -64,9 +63,9 @@ func TestConnectionWaitMessage_ReasonOnly(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
 		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:   messagingv1alpha1.ConditionReady,
+				Type:   messagingv1beta1.ConditionReady,
 				Status: metav1.ConditionFalse,
-				Reason: messagingv1alpha1.ReasonProgressing,
+				Reason: messagingv1beta1.ReasonProgressing,
 			}},
 		},
 	}
@@ -96,7 +95,7 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 
 	t.Run("queue", func(t *testing.T) {
 		t.Parallel()
-		q := &messagingv1alpha1.Queue{}
+		q := &messagingv1beta1.Queue{}
 		applyMQObjectStatusFields(q, opts, "synced", &now)
 		if q.Status.Message != "synced" || q.Status.MQObjectExists == nil || !*q.Status.MQObjectExists ||
 			q.Status.LastSyncTime == nil {
@@ -105,7 +104,7 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 	})
 	t.Run("topic", func(t *testing.T) {
 		t.Parallel()
-		o := &messagingv1alpha1.Topic{}
+		o := &messagingv1beta1.Topic{}
 		applyMQObjectStatusFields(o, opts, "synced", &now)
 		if o.Status.Message != "synced" || o.Status.LastSyncTime == nil {
 			t.Fatalf("status = %+v", o.Status)
@@ -113,7 +112,7 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 	})
 	t.Run("channel", func(t *testing.T) {
 		t.Parallel()
-		o := &messagingv1alpha1.Channel{}
+		o := &messagingv1beta1.Channel{}
 		applyMQObjectStatusFields(o, opts, "synced", &now)
 		if o.Status.Message != "synced" {
 			t.Fatalf("status = %+v", o.Status)
@@ -121,7 +120,7 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 	})
 	t.Run("channelauthrule", func(t *testing.T) {
 		t.Parallel()
-		o := &messagingv1alpha1.ChannelAuthRule{}
+		o := &messagingv1beta1.ChannelAuthRule{}
 		applyMQObjectStatusFields(o, opts, "synced", nil)
 		if o.Status.Message != "synced" || o.Status.LastSyncTime != nil {
 			t.Fatalf("status = %+v", o.Status)
@@ -129,7 +128,7 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 	})
 	t.Run("authorityrecord", func(t *testing.T) {
 		t.Parallel()
-		o := &messagingv1alpha1.AuthorityRecord{}
+		o := &messagingv1beta1.AuthorityRecord{}
 		applyMQObjectStatusFields(o, syncStatusOpts{}, "waiting", nil)
 		if o.Status.Message != "waiting" || o.Status.MQObjectExists != nil {
 			t.Fatalf("status = %+v", o.Status)
@@ -153,7 +152,7 @@ func TestConnectionWaitMessage_MessageOnly(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
 		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:    messagingv1alpha1.ConditionReady,
+				Type:    messagingv1beta1.ConditionReady,
 				Status:  metav1.ConditionFalse,
 				Message: "still connecting",
 			}},

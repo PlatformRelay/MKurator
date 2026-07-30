@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -29,13 +28,13 @@ import (
 
 func allWorkloadKinds(ns string, generation int64) []client.Object {
 	return []client.Object{
-		&messagingv1alpha1.Queue{ObjectMeta: metav1.ObjectMeta{Name: "q1", Namespace: ns, Generation: generation}},
-		&messagingv1alpha1.Topic{ObjectMeta: metav1.ObjectMeta{Name: "t1", Namespace: ns, Generation: generation}},
-		&messagingv1alpha1.Channel{ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: ns, Generation: generation}},
-		&messagingv1alpha1.ChannelAuthRule{
+		&messagingv1beta1.Queue{ObjectMeta: metav1.ObjectMeta{Name: "q1", Namespace: ns, Generation: generation}},
+		&messagingv1beta1.Topic{ObjectMeta: metav1.ObjectMeta{Name: "t1", Namespace: ns, Generation: generation}},
+		&messagingv1beta1.Channel{ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: ns, Generation: generation}},
+		&messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: generation},
 		},
-		&messagingv1alpha1.AuthorityRecord{
+		&messagingv1beta1.AuthorityRecord{
 			ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: generation},
 		},
 	}
@@ -85,15 +84,15 @@ func workloadStatusFields(obj client.Object) (
 	observedGen int64,
 ) {
 	switch o := obj.(type) {
-	case *messagingv1alpha1.Queue:
+	case *messagingv1beta1.Queue:
 		return o.Status.Message, o.Status.LastSyncTime, o.Status.MQObjectExists, o.Status.ObservedGeneration
-	case *messagingv1alpha1.Topic:
+	case *messagingv1beta1.Topic:
 		return o.Status.Message, o.Status.LastSyncTime, o.Status.MQObjectExists, o.Status.ObservedGeneration
-	case *messagingv1alpha1.Channel:
+	case *messagingv1beta1.Channel:
 		return o.Status.Message, o.Status.LastSyncTime, o.Status.MQObjectExists, o.Status.ObservedGeneration
-	case *messagingv1alpha1.ChannelAuthRule:
+	case *messagingv1beta1.ChannelAuthRule:
 		return o.Status.Message, o.Status.LastSyncTime, o.Status.MQObjectExists, o.Status.ObservedGeneration
-	case *messagingv1alpha1.AuthorityRecord:
+	case *messagingv1beta1.AuthorityRecord:
 		return o.Status.Message, o.Status.LastSyncTime, o.Status.MQObjectExists, o.Status.ObservedGeneration
 	default:
 		return "", nil, nil, 0
@@ -104,32 +103,32 @@ func rereadWorkload(ctx context.Context, t *testing.T, cl client.Client, obj cli
 	t.Helper()
 	key := client.ObjectKeyFromObject(obj)
 	switch obj.(type) {
-	case *messagingv1alpha1.Queue:
-		got := &messagingv1alpha1.Queue{}
+	case *messagingv1beta1.Queue:
+		got := &messagingv1beta1.Queue{}
 		if err := cl.Get(ctx, key, got); err != nil {
 			t.Fatal(err)
 		}
 		return got
-	case *messagingv1alpha1.Topic:
-		got := &messagingv1alpha1.Topic{}
+	case *messagingv1beta1.Topic:
+		got := &messagingv1beta1.Topic{}
 		if err := cl.Get(ctx, key, got); err != nil {
 			t.Fatal(err)
 		}
 		return got
-	case *messagingv1alpha1.Channel:
-		got := &messagingv1alpha1.Channel{}
+	case *messagingv1beta1.Channel:
+		got := &messagingv1beta1.Channel{}
 		if err := cl.Get(ctx, key, got); err != nil {
 			t.Fatal(err)
 		}
 		return got
-	case *messagingv1alpha1.ChannelAuthRule:
-		got := &messagingv1alpha1.ChannelAuthRule{}
+	case *messagingv1beta1.ChannelAuthRule:
+		got := &messagingv1beta1.ChannelAuthRule{}
 		if err := cl.Get(ctx, key, got); err != nil {
 			t.Fatal(err)
 		}
 		return got
-	case *messagingv1alpha1.AuthorityRecord:
-		got := &messagingv1alpha1.AuthorityRecord{}
+	case *messagingv1beta1.AuthorityRecord:
+		got := &messagingv1beta1.AuthorityRecord{}
 		if err := cl.Get(ctx, key, got); err != nil {
 			t.Fatal(err)
 		}
@@ -143,13 +142,13 @@ func rereadWorkload(ctx context.Context, t *testing.T, cl client.Client, obj cli
 func assertPatchedWorkloadStatus(t *testing.T, obj client.Object, want patchedStatusExpect) {
 	t.Helper()
 	conds := syncedConditions(obj)
-	if status := unitConditionStatus(conds, messagingv1alpha1.ConditionSynced); status != want.syncedStatus {
+	if status := unitConditionStatus(conds, messagingv1beta1.ConditionSynced); status != want.syncedStatus {
 		t.Fatalf("%T Synced status = %q, want %q", obj, status, want.syncedStatus)
 	}
-	if reason := unitConditionReason(conds, messagingv1alpha1.ConditionSynced); reason != want.syncedReason {
+	if reason := unitConditionReason(conds, messagingv1beta1.ConditionSynced); reason != want.syncedReason {
 		t.Fatalf("%T Synced reason = %q, want %q", obj, reason, want.syncedReason)
 	}
-	if gen := unitConditionObservedGeneration(conds, messagingv1alpha1.ConditionSynced); gen != want.observedGen {
+	if gen := unitConditionObservedGeneration(conds, messagingv1beta1.ConditionSynced); gen != want.observedGen {
 		t.Fatalf("%T condition ObservedGeneration = %d, want %d", obj, gen, want.observedGen)
 	}
 	msg, lastSync, mqExists, statusGen := workloadStatusFields(obj)
@@ -233,27 +232,27 @@ func TestRequestsForConnection_EnqueuesDependents(t *testing.T) {
 
 func TestConnectionRefName(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 		},
 	}
 	name, err := connectionRefName(q)
 	if err != nil || name != "qm1" {
 		t.Fatalf("name=%q err=%v", name, err)
 	}
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm2"},
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm2"},
 		},
 	}
 	name, err = connectionRefName(topic)
 	if err != nil || name != "qm2" {
 		t.Fatalf("topic name=%q err=%v", name, err)
 	}
-	ch := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm3"},
+	ch := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm3"},
 		},
 	}
 	name, err = connectionRefName(ch)
@@ -308,7 +307,7 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 			}},
 		},
 	}
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
@@ -317,11 +316,11 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	if err != nil || !wait || result.RequeueAfter != 15*time.Second {
 		t.Fatalf("result=%+v wait=%v err=%v", result, wait, err)
 	}
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, client.ObjectKeyFromObject(q), updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionFalse {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionFalse {
 		t.Fatalf("conditions = %v", updated.Status.Conditions)
 	}
 	if !strings.Contains(updated.Status.Message, "credentials secret not found") {
@@ -329,7 +328,7 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	}
 	select {
 	case ev := <-recorder.Events:
-		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1alpha1.ReasonProgressing) {
+		if !strings.Contains(ev, corev1.EventTypeNormal) || !strings.Contains(ev, messagingv1beta1.ReasonProgressing) {
 			t.Fatalf("event = %q", ev)
 		}
 	case <-time.After(time.Second):
@@ -342,7 +341,7 @@ func TestWaitForConnectionReady_AlreadyReady(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
 	}
 	result, wait, err := waitForConnectionReady(ctx, nil, nil, q, conn, 1)
@@ -362,7 +361,7 @@ func TestPatchSyncedAvailable_AllKinds(t *testing.T) {
 	opts := syncStatusOpts{mqObjectExists: &exists}
 	want := patchedStatusExpect{
 		syncedStatus:      metav1.ConditionTrue,
-		syncedReason:      messagingv1alpha1.ReasonAvailable,
+		syncedReason:      messagingv1beta1.ReasonAvailable,
 		message:           message,
 		observedGen:       generation,
 		wantLastSync:      true,
@@ -383,7 +382,7 @@ func TestPatchSyncedAvailable_AllKinds(t *testing.T) {
 			select {
 			case ev := <-recorder.Events:
 				if !strings.Contains(ev, corev1.EventTypeNormal) ||
-					!strings.Contains(ev, messagingv1alpha1.ReasonAvailable) {
+					!strings.Contains(ev, messagingv1beta1.ReasonAvailable) {
 					t.Fatalf("event = %q", ev)
 				}
 			case <-time.After(time.Second):
@@ -402,7 +401,7 @@ func TestPatchSyncedProgressing_AllKinds(t *testing.T) {
 	const message = "waiting"
 	want := patchedStatusExpect{
 		syncedStatus: metav1.ConditionFalse,
-		syncedReason: messagingv1alpha1.ReasonProgressing,
+		syncedReason: messagingv1beta1.ReasonProgressing,
 		message:      message,
 		observedGen:  generation,
 	}
@@ -429,7 +428,7 @@ func TestPatchSyncedDeleting_AllKinds(t *testing.T) {
 	const message = "deleting"
 	want := patchedStatusExpect{
 		syncedStatus: metav1.ConditionFalse,
-		syncedReason: messagingv1alpha1.ReasonDeleting,
+		syncedReason: messagingv1beta1.ReasonDeleting,
 		message:      message,
 		observedGen:  generation,
 	}
@@ -452,7 +451,7 @@ func TestSetSyncedError_TerminalQueue(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
@@ -562,8 +561,8 @@ func TestAppendDependentsOrLog_ListError(t *testing.T) {
 	s := runtime.NewScheme()
 	cl := fake.NewClientBuilder().WithScheme(s).Build()
 	reqs := appendDependentsOrLog(ctx, cl, logr.Discard(), "ns", "qm1", "Queue",
-		func() *messagingv1alpha1.QueueList { return &messagingv1alpha1.QueueList{} },
-		func(l *messagingv1alpha1.QueueList) []*messagingv1alpha1.Queue { return nil },
+		func() *messagingv1beta1.QueueList { return &messagingv1beta1.QueueList{} },
+		func(l *messagingv1beta1.QueueList) []*messagingv1beta1.Queue { return nil },
 		nil,
 	)
 	if len(reqs) != 0 {
@@ -573,7 +572,7 @@ func TestAppendDependentsOrLog_ListError(t *testing.T) {
 
 func TestMQObjectFrom_Unsupported(t *testing.T) {
 	t.Parallel()
-	_, err := mqObjectFrom(&messagingv1alpha1.QueueManagerConnection{})
+	_, err := mqObjectFrom(&messagingv1beta1.QueueManagerConnection{})
 	if err == nil {
 		t.Fatal("expected error for non-workload type")
 	}
@@ -582,7 +581,7 @@ func TestMQObjectFrom_Unsupported(t *testing.T) {
 func TestSetSyncedError_UnsupportedType(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
 	}
 	_, err := setSyncedError(ctx, nil, nil, conn, 1, fmt.Errorf("fail"), syncStatusOpts{})
@@ -593,7 +592,7 @@ func TestSetSyncedError_UnsupportedType(t *testing.T) {
 
 func TestConnectionRefName_Unsupported(t *testing.T) {
 	t.Parallel()
-	if _, err := connectionRefName(&messagingv1alpha1.QueueManagerConnection{}); err == nil {
+	if _, err := connectionRefName(&messagingv1beta1.QueueManagerConnection{}); err == nil {
 		t.Fatal("expected error for unsupported type")
 	}
 }
@@ -603,7 +602,7 @@ func TestSetSyncedError_TransientChannel(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	ch := &messagingv1alpha1.Channel{
+	ch := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(ch).WithObjects(ch).Build()
@@ -626,7 +625,7 @@ func TestPatchSyncedDrift_AllKinds(t *testing.T) {
 	opts := syncStatusOpts{mqObjectExists: &exists}
 	want := patchedStatusExpect{
 		syncedStatus:   metav1.ConditionFalse,
-		syncedReason:   messagingv1alpha1.ReasonDriftDetected,
+		syncedReason:   messagingv1beta1.ReasonDriftDetected,
 		message:        message,
 		observedGen:    generation,
 		mqObjectExists: &exists,
@@ -648,7 +647,7 @@ func TestPatchSyncedDrift_AllKinds(t *testing.T) {
 func TestPatchSyncedDrift_UnsupportedType(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
 	}
 	if err := patchSyncedDrift(ctx, nil, nil, conn, 1, "drift", syncStatusOpts{}); err == nil {
@@ -661,7 +660,7 @@ func TestSetSyncedError_AuthorityRecord(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
@@ -688,7 +687,7 @@ func TestPatchSyncedOrphaned_AllKinds(t *testing.T) {
 	const message = "orphaned"
 	want := patchedStatusExpect{
 		syncedStatus: metav1.ConditionFalse,
-		syncedReason: messagingv1alpha1.ReasonOrphaned,
+		syncedReason: messagingv1beta1.ReasonOrphaned,
 		message:      message,
 		observedGen:  generation,
 	}
@@ -708,14 +707,14 @@ func TestPatchSyncedOrphaned_AllKinds(t *testing.T) {
 
 func TestSyncedConditions_AuthTypes(t *testing.T) {
 	t.Parallel()
-	car := &messagingv1alpha1.ChannelAuthRule{Status: messagingv1alpha1.ChannelAuthRuleStatus{
-		Conditions: []metav1.Condition{{Type: messagingv1alpha1.ConditionSynced, Status: metav1.ConditionTrue}},
+	car := &messagingv1beta1.ChannelAuthRule{Status: messagingv1beta1.ChannelAuthRuleStatus{
+		Conditions: []metav1.Condition{{Type: messagingv1beta1.ConditionSynced, Status: metav1.ConditionTrue}},
 	}}
 	if len(syncedConditions(car)) != 1 {
 		t.Fatal("expected channel auth rule conditions")
 	}
-	auth := &messagingv1alpha1.AuthorityRecord{Status: messagingv1alpha1.AuthorityRecordStatus{
-		Conditions: []metav1.Condition{{Type: messagingv1alpha1.ConditionSynced, Status: metav1.ConditionTrue}},
+	auth := &messagingv1beta1.AuthorityRecord{Status: messagingv1beta1.AuthorityRecordStatus{
+		Conditions: []metav1.Condition{{Type: messagingv1beta1.ConditionSynced, Status: metav1.ConditionTrue}},
 	}}
 	if len(syncedConditions(auth)) != 1 {
 		t.Fatal("expected authority record conditions")
@@ -724,18 +723,18 @@ func TestSyncedConditions_AuthTypes(t *testing.T) {
 
 func TestConnectionRefName_AuthTypes(t *testing.T) {
 	t.Parallel()
-	car := &messagingv1alpha1.ChannelAuthRule{
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+	car := &messagingv1beta1.ChannelAuthRule{
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 		},
 	}
 	name, err := connectionRefName(car)
 	if err != nil || name != "qm1" {
 		t.Fatalf("car name=%q err=%v", name, err)
 	}
-	auth := &messagingv1alpha1.AuthorityRecord{
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm2"},
+	auth := &messagingv1beta1.AuthorityRecord{
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm2"},
 		},
 	}
 	name, err = connectionRefName(auth)
@@ -746,11 +745,11 @@ func TestConnectionRefName_AuthTypes(t *testing.T) {
 
 func TestForceOrphanRequested(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{}
+	q := &messagingv1beta1.Queue{}
 	if forceOrphanRequested(q) {
 		t.Fatal("expected false without annotation")
 	}
-	q.Annotations = map[string]string{messagingv1alpha1.ForceOrphanAnnotation: "true"}
+	q.Annotations = map[string]string{messagingv1beta1.ForceOrphanAnnotation: "true"}
 	if !forceOrphanRequested(q) {
 		t.Fatal("expected true with force-orphan annotation")
 	}
@@ -761,7 +760,7 @@ func TestDeletionAwaitingConnection_Requeues(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
@@ -786,34 +785,34 @@ func TestOrphanFinalizeWorkload_AllKinds(t *testing.T) {
 	}
 	cases := []tc{
 		{
-			&messagingv1alpha1.Queue{ObjectMeta: metav1.ObjectMeta{
-				Name: "q1", Namespace: ns, Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			&messagingv1beta1.Queue{ObjectMeta: metav1.ObjectMeta{
+				Name: "q1", Namespace: ns, Finalizers: []string{messagingv1beta1.QueueFinalizer},
 			}},
-			messagingv1alpha1.QueueFinalizer,
+			messagingv1beta1.QueueFinalizer,
 		},
 		{
-			&messagingv1alpha1.Topic{ObjectMeta: metav1.ObjectMeta{
-				Name: "t1", Namespace: ns, Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			&messagingv1beta1.Topic{ObjectMeta: metav1.ObjectMeta{
+				Name: "t1", Namespace: ns, Finalizers: []string{messagingv1beta1.TopicFinalizer},
 			}},
-			messagingv1alpha1.TopicFinalizer,
+			messagingv1beta1.TopicFinalizer,
 		},
 		{
-			&messagingv1alpha1.Channel{ObjectMeta: metav1.ObjectMeta{
-				Name: "c1", Namespace: ns, Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			&messagingv1beta1.Channel{ObjectMeta: metav1.ObjectMeta{
+				Name: "c1", Namespace: ns, Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 			}},
-			messagingv1alpha1.ChannelFinalizer,
+			messagingv1beta1.ChannelFinalizer,
 		},
 		{
-			&messagingv1alpha1.ChannelAuthRule{ObjectMeta: metav1.ObjectMeta{
-				Name: "car1", Namespace: ns, Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			&messagingv1beta1.ChannelAuthRule{ObjectMeta: metav1.ObjectMeta{
+				Name: "car1", Namespace: ns, Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			}},
-			messagingv1alpha1.ChannelAuthRuleFinalizer,
+			messagingv1beta1.ChannelAuthRuleFinalizer,
 		},
 		{
-			&messagingv1alpha1.AuthorityRecord{ObjectMeta: metav1.ObjectMeta{
-				Name: "auth1", Namespace: ns, Finalizers: []string{messagingv1alpha1.AuthorityRecordFinalizer},
+			&messagingv1beta1.AuthorityRecord{ObjectMeta: metav1.ObjectMeta{
+				Name: "auth1", Namespace: ns, Finalizers: []string{messagingv1beta1.AuthorityRecordFinalizer},
 			}},
-			messagingv1alpha1.AuthorityRecordFinalizer,
+			messagingv1beta1.AuthorityRecordFinalizer,
 		},
 	}
 	for _, c := range cases {
@@ -828,12 +827,12 @@ func TestOrphanFinalizeWorkload_AllKinds(t *testing.T) {
 func TestReconcileWorkloadDeletion_NoFinalizer(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: "ns"},
 	}
 	result, err := reconcileWorkloadDeletion(
 		ctx, fake.NewClientBuilder().WithScheme(unitSchemeOrFatal(t)).WithObjects(q).Build(),
-		nil, nil, mqadmintest.NewMockFactory(t), q, 1, messagingv1alpha1.QueueFinalizer, "orphaned",
+		nil, nil, mqadmintest.NewMockFactory(t), q, 1, messagingv1beta1.QueueFinalizer, "orphaned",
 		func(context.Context, mqadmin.Admin) (ctrl.Result, error) {
 			t.Fatal("deleteFn should not run without finalizer")
 			return ctrl.Result{}, nil
@@ -849,22 +848,22 @@ func TestOrphanFinalizeWorkload_Queue(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
 			Generation: 1,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
 	result, err := orphanFinalizeWorkload(
-		ctx, cl, cl.Status(), nil, q, 1, messagingv1alpha1.QueueFinalizer, "orphaned",
+		ctx, cl, cl.Status(), nil, q, 1, messagingv1beta1.QueueFinalizer, "orphaned",
 	)
 	if err != nil || result != (ctrl.Result{}) {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
-	got := &messagingv1alpha1.Queue{}
+	got := &messagingv1beta1.Queue{}
 	if getErr := cl.Get(ctx, client.ObjectKey{Namespace: ns, Name: "orders"}, got); getErr != nil {
 		t.Fatal(getErr)
 	}
@@ -878,7 +877,7 @@ func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(auth).WithObjects(auth).Build()
@@ -893,7 +892,7 @@ func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 func TestSyncedConditionsNonMQObject(t *testing.T) {
 	t.Parallel()
 	// A non-MQObject (QueueManagerConnection) yields nil rather than panicking.
-	if conds := syncedConditions(&messagingv1alpha1.QueueManagerConnection{}); conds != nil {
+	if conds := syncedConditions(&messagingv1beta1.QueueManagerConnection{}); conds != nil {
 		t.Fatalf("expected nil conditions, got %v", conds)
 	}
 }

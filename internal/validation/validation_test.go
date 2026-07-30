@@ -10,28 +10,27 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestValidateConnectionRef(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 	deleting := conn.DeepCopy()
 	deleting.Name = "qm-deleting"
 	now := metav1.Now()
 	deleting.DeletionTimestamp = &now
-	deleting.Finalizers = []string{messagingv1alpha1.QueueManagerConnectionFinalizer}
+	deleting.Finalizers = []string{messagingv1beta1.QueueManagerConnectionFinalizer}
 
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, deleting).Build()
 	path := fieldRoot("connectionRef").Child("name")
@@ -65,14 +64,14 @@ func TestValidateConnectionRef(t *testing.T) {
 func TestValidateQueueSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
 
 	t.Run("unknown attribute warning", func(t *testing.T) {
 		t.Parallel()
-		spec := &messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		spec := &messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.Q",
 			Attributes:    map[string]string{"notreal": "x"},
 		}
@@ -86,8 +85,8 @@ func TestValidateQueueSpec(t *testing.T) {
 	})
 	t.Run("missing connection ref", func(t *testing.T) {
 		t.Parallel()
-		spec := &messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "missing"},
+		spec := &messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "missing"},
 			QueueName:     "APP.Q",
 		}
 		_, errs := ValidateQueueSpec(context.Background(), cl, "ns", "app-queue", spec)
@@ -100,12 +99,12 @@ func TestValidateQueueSpec(t *testing.T) {
 func TestValidateChannelSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
 
-	spec := &messagingv1alpha1.ChannelSpec{
-		ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+	spec := &messagingv1beta1.ChannelSpec{
+		ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 		ChannelName:   "ORDERS.APP",
 	}
 	warnings, errs := ValidateChannelSpec(context.Background(), cl, "ns", "orders-app", spec)
@@ -120,14 +119,14 @@ func TestValidateChannelSpec(t *testing.T) {
 func TestValidateChannelSpecSdrRequiresConnectionAttrs(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
 
-	spec := &messagingv1alpha1.ChannelSpec{
-		ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+	spec := &messagingv1beta1.ChannelSpec{
+		ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 		ChannelName:   "QM1.TO.QM2",
-		Type:          messagingv1alpha1.ChannelTypeSdr,
+		Type:          messagingv1beta1.ChannelTypeSdr,
 	}
 	_, errs := ValidateChannelSpec(context.Background(), cl, "ns", "qm1-to-qm2", spec)
 	if len(errs) != 2 {
@@ -145,12 +144,12 @@ func TestValidateChannelSpecSdrRequiresConnectionAttrs(t *testing.T) {
 func TestValidateTopicSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
-	_ = messagingv1alpha1.AddToScheme(scheme)
+	_ = messagingv1beta1.AddToScheme(scheme)
 	conn := sampleConnection("ns", "qm1")
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
 
-	spec := &messagingv1alpha1.TopicSpec{
-		ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+	spec := &messagingv1beta1.TopicSpec{
+		ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 		TopicName:     "RETAIL.ORDERS",
 		Attributes:    map[string]string{"topstr": "A.B"},
 	}
@@ -389,22 +388,22 @@ func TestValidateQueueManagerConnectionDeleteV1Beta1(t *testing.T) {
 	}
 }
 
-func sampleConnection(ns, name string) *messagingv1alpha1.QueueManagerConnection {
-	return &messagingv1alpha1.QueueManagerConnection{
+func sampleConnection(ns, name string) *messagingv1beta1.QueueManagerConnection {
+	return &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
 		},
 	}
 }
 
-func sampleManagedChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
-	return &messagingv1alpha1.Channel{
+func sampleManagedChannel(ns, name, connName, channelName string) *messagingv1beta1.Channel {
+	return &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
 		},
 	}

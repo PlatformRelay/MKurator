@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -30,7 +29,7 @@ func unitSchemeOrFatal(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	unitSchemeOnce.Do(func() {
 		s := runtime.NewScheme()
-		if err := messagingv1alpha1.AddToScheme(s); err != nil {
+		if err := messagingv1beta1.AddToScheme(s); err != nil {
 			t.Fatalf("AddToScheme: %v", err)
 		}
 		if err := messagingv1beta1.AddToScheme(s); err != nil {
@@ -93,7 +92,7 @@ func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 }
@@ -444,7 +443,7 @@ func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "qm1",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueManagerConnectionFinalizer},
 		},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
@@ -481,7 +480,7 @@ func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady) != metav1.ConditionFalse {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionReady) != metav1.ConditionFalse {
 		t.Fatalf("Ready = %v", updated.Status.Conditions)
 	}
 }
@@ -532,7 +531,7 @@ func TestQueueReconciler_UnsupportedType(t *testing.T) {
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionFalse {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionFalse {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
 	}
 	if updated.Status.DesiredMQSC != "" {
@@ -599,7 +598,7 @@ func TestQueueManagerConnectionReconciler_TransientPingFailure(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "qm1",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueManagerConnectionFinalizer},
 		},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
@@ -649,7 +648,7 @@ func TestQueueManagerConnectionReconciler_SteadyStateTransientPingPreservesReady
 			Name:       "qm1",
 			Namespace:  ns,
 			Generation: 1,
-			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueManagerConnectionFinalizer},
 		},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
@@ -661,9 +660,9 @@ func TestQueueManagerConnectionReconciler_SteadyStateTransientPingPreservesReady
 		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			ObservedGeneration: 1,
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		},
@@ -699,7 +698,7 @@ func TestQueueManagerConnectionReconciler_SteadyStateTransientPingPreservesReady
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady) != metav1.ConditionTrue {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionReady) != metav1.ConditionTrue {
 		t.Fatalf("Ready should stay True on transient ping, got %v", updated.Status.Conditions)
 	}
 }
@@ -772,7 +771,7 @@ func TestQueueReconciler_FirstPassAddsFinalizerWithoutSynced(t *testing.T) {
 	if !controllerutil.ContainsFinalizer(updated, messagingv1beta1.QueueFinalizer) {
 		t.Fatal("expected finalizer added")
 	}
-	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != "" {
+	if conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced) != "" {
 		t.Fatalf("expected empty Synced on first pass, got %v", updated.Status.Conditions)
 	}
 }
@@ -835,9 +834,9 @@ func TestQueueReconciler_AdoptionConflict(t *testing.T) {
 	_ = cl.Get(ctx, key, updated)
 	if conditionReason(
 		updated.Status.Conditions,
-		messagingv1alpha1.ConditionSynced,
-	) != messagingv1alpha1.ReasonAdoptionConflict {
-		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced))
+		messagingv1beta1.ConditionSynced,
+	) != messagingv1beta1.ReasonAdoptionConflict {
+		t.Fatalf("reason = %q", conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced))
 	}
 }
 
