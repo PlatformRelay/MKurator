@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -25,16 +26,16 @@ func TestChannelAuthRuleReconciler_TransientError(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "dev-app-addressmap",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 			UserSource:    "CHANNEL",
 		},
@@ -73,17 +74,17 @@ func TestChannelAuthRuleReconciler_DeleteTerminalError(t *testing.T) {
 
 	conn := readyConnForUnit(ns)
 	now := metav1.Now()
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "dev-app-addressmap",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers:        []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 		},
 	}
@@ -108,7 +109,7 @@ func TestChannelAuthRuleReconciler_DeleteTerminalError(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	var updated messagingv1alpha1.ChannelAuthRule
+	var updated messagingv1beta1.ChannelAuthRule
 	if err := cl.Get(ctx, key, &updated); err != nil {
 		t.Fatalf("Get after delete error: %v", err)
 	}
@@ -126,17 +127,17 @@ func TestChannelAuthRuleReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 
 	conn := readyConnForUnit(ns)
 	now := metav1.Now()
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "dev-app-addressmap",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers:        []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 		},
 	}
@@ -160,7 +161,7 @@ func TestChannelAuthRuleReconciler_DeleteSuccessRemovesFinalizer(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	var updated messagingv1alpha1.ChannelAuthRule
+	var updated messagingv1beta1.ChannelAuthRule
 	err = cl.Get(ctx, key, &updated)
 	if err == nil {
 		if len(updated.Finalizers) != 0 {
@@ -181,12 +182,12 @@ func TestChannelAuthRuleReconciler_AddsFinalizer(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "dev-app-addressmap", Namespace: ns},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 		},
 	}
@@ -210,7 +211,7 @@ func TestChannelAuthRuleReconciler_AddsFinalizer(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	updated := &messagingv1alpha1.ChannelAuthRule{}
+	updated := &messagingv1beta1.ChannelAuthRule{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +383,7 @@ func TestSetSyncedError_TransientChannelAuthRule(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns, Generation: 1},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(rule).WithObjects(rule).Build()
@@ -402,16 +403,16 @@ func TestChannelAuthRuleReconciler_NoDriftSkipsSet(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "dev-app-addressmap",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 			UserSource:    "CHANNEL",
 			CheckClient:   "REQUIRED",
@@ -452,16 +453,16 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "dev-app-addressmap",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 			UserSource:    "CHANNEL",
 			CheckClient:   "REQUIRED",
@@ -492,7 +493,7 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.ChannelAuthRule{}
+	updated := &messagingv1beta1.ChannelAuthRule{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -511,16 +512,16 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCBlockUser(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "dev-app-blockuser",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockUser,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeBlockUser,
 			UserList:      "nobody",
 			Description:   "Deny privileged user IDs",
 		},
@@ -549,7 +550,7 @@ func TestChannelAuthRuleReconciler_SetsDesiredMQSCBlockUser(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.ChannelAuthRule{}
+	updated := &messagingv1beta1.ChannelAuthRule{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -568,16 +569,16 @@ func TestChannelAuthRuleReconciler_DriftAppliesSet(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "dev-app-addressmap",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 			UserSource:    "CHANNEL",
 			CheckClient:   "REQUIRED",
@@ -619,19 +620,19 @@ func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "dev-app-addressmap",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			Annotations: map[string]string{
 				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 			},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "DEV.APP.SVRCONN.0TLS",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 			UserSource:    "CHANNEL",
 			CheckClient:   "REQUIRED",
@@ -663,7 +664,7 @@ func TestChannelAuthRuleReconciler_ObserveOnlyDriftSkipsSet(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.ChannelAuthRule{}
+	updated := &messagingv1beta1.ChannelAuthRule{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -680,17 +681,17 @@ func TestChannelAuthRuleReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 	key := types.NamespacedName{Namespace: ns, Name: "dev-app-addressmap"}
 	s := unitSchemeOrFatal(t)
 	conn := readyConnForUnit(ns)
-	rule := &messagingv1alpha1.ChannelAuthRule{
+	rule := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "dev-app-addressmap", Namespace: ns,
-			Finalizers: []string{messagingv1alpha1.ChannelAuthRuleFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelAuthRuleFinalizer},
 			Annotations: map[string]string{
 				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 			},
 		},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			ChannelName:   "DEV.APP.SVRCONN.0TLS", RuleType: messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			ChannelName:   "DEV.APP.SVRCONN.0TLS", RuleType: messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address: "*", UserSource: "CHANNEL", CheckClient: "REQUIRED",
 		},
 	}
@@ -704,7 +705,7 @@ func TestChannelAuthRuleReconciler_ObserveOnlyNotFoundSkipsSet(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.ChannelAuthRule{}
+	updated := &messagingv1beta1.ChannelAuthRule{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}

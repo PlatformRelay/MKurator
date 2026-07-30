@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/metrics"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -46,7 +46,7 @@ func (r *ChannelAuthRuleReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 //nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	rule := &messagingv1alpha1.ChannelAuthRule{}
+	rule := &messagingv1beta1.ChannelAuthRule{}
 	if err := r.Get(ctx, req.NamespacedName, rule); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -61,7 +61,7 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 	if !rule.DeletionTimestamp.IsZero() {
 		return reconcileWorkloadDeletion(
 			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, rule, rule.Generation,
-			messagingv1alpha1.ChannelAuthRuleFinalizer, "CHLAUTH rule orphaned in IBM MQ",
+			messagingv1beta1.ChannelAuthRuleFinalizer, "CHLAUTH rule orphaned in IBM MQ",
 			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
 				return r.handleDeletion(ctx, rule, admin)
 			},
@@ -89,8 +89,8 @@ func (r *ChannelAuthRuleReconciler) reconcile(ctx context.Context, req ctrl.Requ
 		return setSyncedError(ctx, r.Status(), r.Recorder, rule, rule.Generation, err, syncStatusOpts{})
 	}
 
-	if !controllerutil.ContainsFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer) {
-		controllerutil.AddFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer)
+	if !controllerutil.ContainsFinalizer(rule, messagingv1beta1.ChannelAuthRuleFinalizer) {
+		controllerutil.AddFinalizer(rule, messagingv1beta1.ChannelAuthRuleFinalizer)
 		if updateErr := r.Update(ctx, rule); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
@@ -138,7 +138,7 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 	ctx context.Context,
 	admin mqadmin.Admin,
 	spec mqadmin.ChannelAuthSpec,
-	rule *messagingv1alpha1.ChannelAuthRule,
+	rule *messagingv1beta1.ChannelAuthRule,
 ) (bool, bool, error) {
 	mqCtx, cancel := MQRequestContext(ctx)
 	defer cancel()
@@ -175,7 +175,7 @@ func (r *ChannelAuthRuleReconciler) ensureChannelAuth(
 //nolint:dupl // shared MQ object deletion flow; differs in spec mapping and finalizer
 func (r *ChannelAuthRuleReconciler) handleDeletion(
 	ctx context.Context,
-	rule *messagingv1alpha1.ChannelAuthRule,
+	rule *messagingv1beta1.ChannelAuthRule,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
 	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, rule, rule.Generation,
@@ -193,14 +193,14 @@ func (r *ChannelAuthRuleReconciler) handleDeletion(
 
 	recordNormalEvent(r.Recorder, rule, EventReasonDeleted, "CHLAUTH rule removed from IBM MQ")
 
-	controllerutil.RemoveFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer)
+	controllerutil.RemoveFinalizer(rule, messagingv1beta1.ChannelAuthRuleFinalizer)
 	if err := r.Update(ctx, rule); err != nil {
 		return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
 	}
 	return ctrl.Result{}, nil
 }
 
-func toMQChannelAuthSpec(rule *messagingv1alpha1.ChannelAuthRule) mqadmin.ChannelAuthSpec {
+func toMQChannelAuthSpec(rule *messagingv1beta1.ChannelAuthRule) mqadmin.ChannelAuthSpec {
 	return mqadmin.ChannelAuthSpec{
 		ChannelName:        rule.Spec.ChannelName,
 		RuleType:           mqadmin.ChannelAuthRuleType(rule.Spec.RuleType),
@@ -218,5 +218,5 @@ func toMQChannelAuthSpec(rule *messagingv1alpha1.ChannelAuthRule) mqadmin.Channe
 
 // SetupWithManager wires the reconciler.
 func (r *ChannelAuthRuleReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return setupMQObjectController(mgr, r, &messagingv1alpha1.ChannelAuthRule{})
+	return setupMQObjectController(mgr, r, &messagingv1beta1.ChannelAuthRule{})
 }
