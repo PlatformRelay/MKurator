@@ -220,10 +220,10 @@ func TestTopicReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 
 func TestToMQChannelSpecTypedDescription(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName: "ORDERS.APP",
-			Type:        messagingv1alpha1.ChannelTypeSvrconn,
+			Type:        messagingv1beta1.ChannelTypeSvrconn,
 			Description: "Application server-connection channel",
 		},
 	}
@@ -236,10 +236,10 @@ func TestToMQChannelSpecTypedDescription(t *testing.T) {
 func TestToMQChannelSpecTypedMaxMsgLength(t *testing.T) {
 	t.Parallel()
 	maxMsgLength := int32(4194304)
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:  "ORDERS.APP",
-			Type:         messagingv1alpha1.ChannelTypeSvrconn,
+			Type:         messagingv1beta1.ChannelTypeSvrconn,
 			MaxMsgLength: &maxMsgLength,
 		},
 	}
@@ -251,11 +251,11 @@ func TestToMQChannelSpecTypedMaxMsgLength(t *testing.T) {
 
 func TestToMQChannelSpecTypedTransportType(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
-			TransportType: messagingv1alpha1.ChannelTransportTypeTCP,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
+			TransportType: messagingv1beta1.ChannelTransportTypeTCP,
 		},
 	}
 	spec := toMQChannelSpec(channel)
@@ -267,10 +267,10 @@ func TestToMQChannelSpecTypedTransportType(t *testing.T) {
 func TestToMQChannelSpecTypedShareConv(t *testing.T) {
 	t.Parallel()
 	shareConv := int32(10)
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName: "ORDERS.APP",
-			Type:        messagingv1alpha1.ChannelTypeSvrconn,
+			Type:        messagingv1beta1.ChannelTypeSvrconn,
 			ShareConv:   &shareConv,
 		},
 	}
@@ -282,10 +282,10 @@ func TestToMQChannelSpecTypedShareConv(t *testing.T) {
 
 func TestToMQChannelSpecTypedMcaUser(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName: "ORDERS.APP",
-			Type:        messagingv1alpha1.ChannelTypeSvrconn,
+			Type:        messagingv1beta1.ChannelTypeSvrconn,
 			McaUser:     "appuser",
 		},
 	}
@@ -298,10 +298,10 @@ func TestToMQChannelSpecTypedMcaUser(t *testing.T) {
 func TestToMQChannelSpecTypedMaxInstances(t *testing.T) {
 	t.Parallel()
 	maxInstances := int32(100)
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:  "ORDERS.APP",
-			Type:         messagingv1alpha1.ChannelTypeSvrconn,
+			Type:         messagingv1beta1.ChannelTypeSvrconn,
 			MaxInstances: &maxInstances,
 		},
 	}
@@ -314,10 +314,10 @@ func TestToMQChannelSpecTypedMaxInstances(t *testing.T) {
 func TestToMQChannelSpecTypedMaxInstancesClient(t *testing.T) {
 	t.Parallel()
 	maxInstancesClient := int32(50)
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:        "ORDERS.APP",
-			Type:               messagingv1alpha1.ChannelTypeSvrconn,
+			Type:               messagingv1beta1.ChannelTypeSvrconn,
 			MaxInstancesClient: &maxInstancesClient,
 		},
 	}
@@ -329,10 +329,10 @@ func TestToMQChannelSpecTypedMaxInstancesClient(t *testing.T) {
 
 func TestToMQChannelSpecTypedSslCipherSpec(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 			SslCipherSpec: "TLS_RSA_WITH_AES_128_CBC_SHA256",
 		},
 	}
@@ -344,11 +344,11 @@ func TestToMQChannelSpecTypedSslCipherSpec(t *testing.T) {
 
 func TestToMQChannelSpecTypedSslClientAuth(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
-			SslClientAuth: messagingv1alpha1.ChannelSslClientAuthOptional,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
+			SslClientAuth: messagingv1beta1.ChannelSslClientAuthOptional,
 		},
 	}
 	spec := toMQChannelSpec(channel)
@@ -359,11 +359,11 @@ func TestToMQChannelSpecTypedSslClientAuth(t *testing.T) {
 
 func TestToMQChannelSpecTypedRcvrAttrs(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:   "QM2.FROM.QM1",
-			Type:          messagingv1alpha1.ChannelTypeRcvr,
-			TransportType: messagingv1alpha1.ChannelTransportTypeTCP,
+			Type:          messagingv1beta1.ChannelTypeRcvr,
+			TransportType: messagingv1beta1.ChannelTransportTypeTCP,
 			Description:   "inbound partner",
 		},
 	}
@@ -381,13 +381,13 @@ func TestToMQChannelSpecTypedRcvrAttrs(t *testing.T) {
 
 func TestToMQChannelSpecTypedSdrConnectionAttrs(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName:   "QM1.TO.QM2",
-			Type:          messagingv1alpha1.ChannelTypeSdr,
+			Type:          messagingv1beta1.ChannelTypeSdr,
 			ConnName:      "qm2.example.com(1414)",
 			XmitQueue:     "SYSTEM.DEFAULT.XMIT.QUEUE",
-			TransportType: messagingv1alpha1.ChannelTransportTypeTCP,
+			TransportType: messagingv1beta1.ChannelTransportTypeTCP,
 		},
 	}
 	spec := toMQChannelSpec(channel)
@@ -407,10 +407,10 @@ func TestToMQChannelSpecTypedSdrConnectionAttrs(t *testing.T) {
 
 func TestToMQChannelSpec(t *testing.T) {
 	t.Parallel()
-	channel := &messagingv1alpha1.Channel{
-		Spec: messagingv1alpha1.ChannelSpec{
+	channel := &messagingv1beta1.Channel{
+		Spec: messagingv1beta1.ChannelSpec{
 			ChannelName: "ORDERS.APP",
-			Type:        messagingv1alpha1.ChannelTypeSvrconn,
+			Type:        messagingv1beta1.ChannelTypeSvrconn,
 			Attributes: map[string]string{
 				"MaxMsgl": "4194304",
 			},
@@ -438,16 +438,16 @@ func TestChannelReconciler_SyncedWithoutDefine(t *testing.T) {
 		Type:       mqadmin.ChannelTypeSvrconn,
 		Attributes: map[string]string{"trptype": "tcp"},
 	}
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders-app",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 			Attributes:    map[string]string{"trptype": "tcp"},
 		},
 	}
@@ -478,7 +478,7 @@ func TestChannelReconciler_SyncedWithoutDefine(t *testing.T) {
 	}
 	assertDriftResyncRequeue(t, result)
 
-	updated := &messagingv1alpha1.Channel{}
+	updated := &messagingv1beta1.Channel{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -500,16 +500,16 @@ func TestChannelReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 		Type:       mqadmin.ChannelTypeSvrconn,
 		Attributes: map[string]string{"trptype": "tcp", "descr": "app channel"},
 	}
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders-app",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 			Attributes:    map[string]string{"trptype": "tcp", "descr": "app channel"},
 		},
 	}
@@ -533,7 +533,7 @@ func TestChannelReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Channel{}
+	updated := &messagingv1beta1.Channel{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -693,16 +693,16 @@ func TestChannelReconciler_DefinesWhenMissing(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders-app",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 			Attributes:    map[string]string{"trptype": "tcp"},
 		},
 	}
@@ -736,17 +736,17 @@ func TestChannelReconciler_DeletionDeleteFails(t *testing.T) {
 
 	now := metav1.Now()
 	conn := readyConnForUnit(ns)
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "orders-app",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers:        []string{messagingv1beta1.ChannelFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 		},
 	}
 
@@ -767,7 +767,7 @@ func TestChannelReconciler_DeletionDeleteFails(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.Channel{}
+	updated := &messagingv1beta1.Channel{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -785,17 +785,17 @@ func TestChannelReconciler_Deletion(t *testing.T) {
 
 	now := metav1.Now()
 	conn := readyConnForUnit(ns)
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "orders-app",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers:        []string{messagingv1beta1.ChannelFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 		},
 	}
 
@@ -817,7 +817,7 @@ func TestChannelReconciler_Deletion(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Channel{}
+	updated := &messagingv1beta1.Channel{}
 	err := cl.Get(ctx, key, updated)
 	if apierrors.IsNotFound(err) {
 		return
@@ -910,16 +910,16 @@ func TestChannelReconciler_TransientError(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders-app",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 		},
 	}
 

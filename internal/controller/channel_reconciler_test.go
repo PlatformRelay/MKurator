@@ -71,7 +71,7 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -130,7 +130,7 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -186,7 +186,7 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "qm1-to-qm2"}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -243,7 +243,7 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "qm2-from-qm1"}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -318,7 +318,7 @@ var _ = Describe("ChannelReconciler", func() {
 		channel := sampleChannel(ns, key, "qm1", channelName)
 		Expect(k8sClient.Create(ctx, channel)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, channel)).To(Succeed())
-		controllerutil.AddFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
+		controllerutil.AddFinalizer(channel, messagingv1beta1.ChannelFinalizer)
 		Expect(k8sClient.Update(ctx, channel)).To(Succeed())
 
 		rec := &ChannelReconciler{
@@ -336,7 +336,7 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(updated.DeletionTimestamp).NotTo(BeZero())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -357,10 +357,10 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		channel := sampleChannel(ns, key, "qm1", channelName)
-		channel.Spec.DeletionPolicy = messagingv1alpha1.DeletionPolicyOrphan
+		channel.Spec.DeletionPolicy = messagingv1beta1.DeletionPolicyOrphan
 		Expect(k8sClient.Create(ctx, channel)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, channel)).To(Succeed())
-		controllerutil.AddFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
+		controllerutil.AddFinalizer(channel, messagingv1beta1.ChannelFinalizer)
 		Expect(k8sClient.Update(ctx, channel)).To(Succeed())
 
 		rec := &ChannelReconciler{
@@ -377,7 +377,7 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -398,7 +398,7 @@ var _ = Describe("ChannelReconciler", func() {
 		channel := sampleChannel(ns, key, "qm1", channelName)
 		Expect(k8sClient.Create(ctx, channel)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, channel)).To(Succeed())
-		controllerutil.AddFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
+		controllerutil.AddFinalizer(channel, messagingv1beta1.ChannelFinalizer)
 		Expect(k8sClient.Update(ctx, channel)).To(Succeed())
 
 		rec := &ChannelReconciler{
@@ -413,7 +413,7 @@ var _ = Describe("ChannelReconciler", func() {
 		if channel.Annotations == nil {
 			channel.Annotations = map[string]string{}
 		}
-		channel.Annotations[messagingv1alpha1.ForceOrphanAnnotation] = "true"
+		channel.Annotations[messagingv1beta1.ForceOrphanAnnotation] = "true"
 		Expect(k8sClient.Update(ctx, channel)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, channel)).To(Succeed())
 
@@ -423,19 +423,19 @@ var _ = Describe("ChannelReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
 })
 
-func sampleChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
-	return &messagingv1alpha1.Channel{
+func sampleChannel(ns, name, connName, channelName string) *messagingv1beta1.Channel {
+	return &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
-			Type:          messagingv1alpha1.ChannelTypeSvrconn,
+			Type:          messagingv1beta1.ChannelTypeSvrconn,
 			Attributes: map[string]string{
 				"trptype": "tcp",
 			},
@@ -443,13 +443,13 @@ func sampleChannel(ns, name, connName, channelName string) *messagingv1alpha1.Ch
 	}
 }
 
-func sampleSdrChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
-	return &messagingv1alpha1.Channel{
+func sampleSdrChannel(ns, name, connName, channelName string) *messagingv1beta1.Channel {
+	return &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
-			Type:          messagingv1alpha1.ChannelTypeSdr,
+			Type:          messagingv1beta1.ChannelTypeSdr,
 			ConnName:      "qm2.example.com(1414)",
 			XmitQueue:     "SYSTEM.DEFAULT.XMIT.QUEUE",
 			Attributes: map[string]string{
@@ -459,13 +459,13 @@ func sampleSdrChannel(ns, name, connName, channelName string) *messagingv1alpha1
 	}
 }
 
-func sampleRcvrChannel(ns, name, connName, channelName string) *messagingv1alpha1.Channel {
-	return &messagingv1alpha1.Channel{
+func sampleRcvrChannel(ns, name, connName, channelName string) *messagingv1beta1.Channel {
+	return &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
-			Type:          messagingv1alpha1.ChannelTypeRcvr,
+			Type:          messagingv1beta1.ChannelTypeRcvr,
 			Description:   "inbound partner",
 			Attributes: map[string]string{
 				"trptype": "tcp",
