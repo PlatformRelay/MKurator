@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -499,7 +499,7 @@ func TestIntegration_Factory_ForConnection_Ping(t *testing.T) {
 	requireIntegration(t)
 	ctx := testContext(t)
 
-	if err := messagingv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+	if err := messagingv1beta1.AddToScheme(scheme.Scheme); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(scheme.Scheme); err != nil {
@@ -519,13 +519,13 @@ func TestIntegration_Factory_ForConnection_Ping(t *testing.T) {
 			"mqAdminPassword": []byte(cfg.Password),
 		},
 	}
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: cfg.QueueManager,
 			Endpoint:     cfg.Endpoint.String(),
-			TLS:          &messagingv1alpha1.TLSConfig{InsecureSkipVerify: true},
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			TLS:          &messagingv1beta1.TLSConfig{InsecureSkipVerify: true},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "mq-credentials",
 			},
 		},

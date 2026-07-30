@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -31,6 +32,9 @@ func unitSchemeOrFatal(t *testing.T) *runtime.Scheme {
 		s := runtime.NewScheme()
 		if err := messagingv1alpha1.AddToScheme(s); err != nil {
 			t.Fatalf("AddToScheme: %v", err)
+		}
+		if err := messagingv1beta1.AddToScheme(s); err != nil {
+			t.Fatalf("AddToScheme v1beta1: %v", err)
 		}
 		unitScheme = s
 	})
@@ -357,16 +361,16 @@ func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 	key := types.NamespacedName{Namespace: ns, Name: "qm1"}
 	s := unitSchemeOrFatal(t)
 
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "qm1",
 			Namespace:  ns,
 			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "mq-credentials",
 			},
 		},
@@ -394,7 +398,7 @@ func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.QueueManagerConnection{}
+	updated := &messagingv1beta1.QueueManagerConnection{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -512,16 +516,16 @@ func TestQueueManagerConnectionReconciler_TransientPingFailure(t *testing.T) {
 	key := types.NamespacedName{Namespace: ns, Name: "qm1"}
 	s := unitSchemeOrFatal(t)
 
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "qm1",
 			Namespace:  ns,
 			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "mq-credentials",
 			},
 		},
@@ -561,21 +565,21 @@ func TestQueueManagerConnectionReconciler_SteadyStateTransientPingPreservesReady
 	key := types.NamespacedName{Namespace: ns, Name: "qm1"}
 	s := unitSchemeOrFatal(t)
 
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "qm1",
 			Namespace:  ns,
 			Generation: 1,
 			Finalizers: []string{messagingv1alpha1.QueueManagerConnectionFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "mq-credentials",
 			},
 		},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			ObservedGeneration: 1,
 			Conditions: []metav1.Condition{{
 				Type:               messagingv1alpha1.ConditionReady,
@@ -612,7 +616,7 @@ func TestQueueManagerConnectionReconciler_SteadyStateTransientPingPreservesReady
 		t.Fatalf("RequeueAfter = %v", result.RequeueAfter)
 	}
 
-	updated := &messagingv1alpha1.QueueManagerConnection{}
+	updated := &messagingv1beta1.QueueManagerConnection{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -694,21 +698,21 @@ func TestQueueReconciler_FirstPassAddsFinalizerWithoutSynced(t *testing.T) {
 	}
 }
 
-func readyConnForUnit(ns string) *messagingv1alpha1.QueueManagerConnection {
-	return &messagingv1alpha1.QueueManagerConnection{
+func readyConnForUnit(ns string) *messagingv1beta1.QueueManagerConnection {
+	return &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "mq-credentials",
 			},
 		},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		},

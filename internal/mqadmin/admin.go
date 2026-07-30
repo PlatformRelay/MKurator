@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 // Factory builds Admin clients for a QueueManagerConnection.
+//
+// The connection is the v1beta1 hub (8e-1): the reconciler reads/finalizes/status-updates the
+// QMC natively as v1beta1, so the factory is handed the hub directly and reads spec.authentication
+// from the object it is given — no lossy down-conversion round trip, no hub re-read (ADR-0027).
 type Factory interface {
-	ForConnection(ctx context.Context, conn *messagingv1alpha1.QueueManagerConnection) (Admin, error)
+	ForConnection(ctx context.Context, conn *messagingv1beta1.QueueManagerConnection) (Admin, error)
 	// ReleaseConnection drops any cached client for the connection (e.g. on delete).
-	ReleaseConnection(ctx context.Context, conn *messagingv1alpha1.QueueManagerConnection) error
+	ReleaseConnection(ctx context.Context, conn *messagingv1beta1.QueueManagerConnection) error
 }
 
 // Admin is the seam between reconcilers and IBM MQ.

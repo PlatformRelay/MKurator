@@ -2,28 +2,21 @@ package mqrest
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
-// unionTestScheme registers v1alpha1 (spoke, what the factory is handed), v1beta1
-// (hub, what the factory re-reads for the authentication union) and core/v1 (Secrets).
+// unionTestScheme registers v1beta1 (the hub the factory is handed directly, 8e-1) and
+// core/v1 (Secrets).
 func unionTestScheme(t *testing.T) *runtime.Scheme {
 	t.Helper()
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
-		t.Fatal(err)
-	}
 	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
@@ -35,9 +28,8 @@ func unionTestScheme(t *testing.T) *runtime.Scheme {
 
 // AUTH-12 AC3: a v1beta1 QMC with authentication mode Basic + basic.secretRef resolves
 // its credentials end-to-end via the factory, reading THAT secret (not the legacy
-// credentialsSecretRef, which is nil for a union-only spec). Because the reconciler hands
-// the factory a down-converted v1alpha1 spoke (union dropped), the factory must re-read the
-// v1beta1 hub by identity to see the union.
+// credentialsSecretRef, which is nil for a union-only spec). The reconciler hands the factory
+// the hub directly (8e-1), so the union is read straight off the object — no hub re-read.
 func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
@@ -59,19 +51,11 @@ func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 			},
 		},
 	}
-	// Spoke as the reconciler sees it: union dropped, legacy ref empty.
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns, Generation: 3},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub).Build()
 	f := NewClientFactory(cl).(*ClientFactory)
 
-	name, err := f.resolveCredentialsSecretName(ctx, spoke)
+	name, err := f.resolveCredentialsSecretName(hub)
 	if err != nil {
 		t.Fatalf("resolveCredentialsSecretName: %v", err)
 	}
@@ -80,7 +64,7 @@ func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 	}
 
 	// End-to-end: buildConfig must read the union secret and populate credentials.
-	cfg, err := f.buildConfig(ctx, spoke, resolvedAuth{secretName: name, mode: authModeBasic})
+	cfg, err := f.buildConfig(ctx, hub, resolvedAuth{secretName: name, mode: authModeBasic})
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}
@@ -89,7 +73,7 @@ func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 	}
 
 	// Sharpest constraint (ADR-0023): the fingerprint must key off the union secret's RV.
-	fp, err := f.cacheFingerprint(ctx, spoke, name)
+	fp, err := f.cacheFingerprint(ctx, hub, name)
 	if err != nil {
 		t.Fatalf("cacheFingerprint: %v", err)
 	}
@@ -100,11 +84,11 @@ func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 	// End-to-end via the public seam (AC3): ForConnection resolves+builds+caches without
 	// error, and a second call returns the same cached client (identity-keyed, ADR-0023).
 	// NewClient only constructs the client (no network), so no live mqweb is needed.
-	admin1, err := f.ForConnection(ctx, spoke)
+	admin1, err := f.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection: %v", err)
 	}
-	admin2, err := f.ForConnection(ctx, spoke)
+	admin2, err := f.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection (cached): %v", err)
 	}
@@ -116,7 +100,6 @@ func TestClientFactory_ResolvesBasicUnionSecretName(t *testing.T) {
 // AUTH-12 AC1: a legacy QMC (no authentication union) still resolves credentials from
 // credentialsSecretRef — the pre-ADR-0027 Basic-compat path, unchanged.
 func TestClientFactory_LegacyCredentialsSecretRefStillResolves(t *testing.T) {
-	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
@@ -132,19 +115,11 @@ func TestClientFactory_LegacyCredentialsSecretRefStillResolves(t *testing.T) {
 			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "legacy-creds"},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-legacy", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager:         "QM1",
-			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "legacy-creds"},
-		},
-	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(legacySecret, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(legacySecret, hub).Build()
 	f := NewClientFactory(cl).(*ClientFactory)
 
-	name, err := f.resolveCredentialsSecretName(ctx, spoke)
+	name, err := f.resolveCredentialsSecretName(hub)
 	if err != nil {
 		t.Fatalf("resolveCredentialsSecretName: %v", err)
 	}
@@ -153,74 +128,23 @@ func TestClientFactory_LegacyCredentialsSecretRefStillResolves(t *testing.T) {
 	}
 }
 
-// When the v1beta1 hub is not registered in the scheme (older/fake clients) or the hub
-// object is absent, the factory falls back to the spoke's CredentialsSecretRef — preserving
-// legacy behaviour verbatim rather than failing.
-func TestClientFactory_HubUnreadableFallsBackToSpokeRef(t *testing.T) {
-	ctx := context.Background()
-	ns := "mkurator-system"
-
-	// Scheme WITHOUT v1beta1: hub Get returns a not-registered error -> legacy fallback.
-	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
-		t.Fatal(err)
-	}
-	if err := corev1.AddToScheme(s); err != nil {
-		t.Fatal(err)
-	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-fallback", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager:         "QM1",
-			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "spoke-creds"},
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(spoke).Build()
-	f := NewClientFactory(cl).(*ClientFactory)
-
-	name, err := f.resolveCredentialsSecretName(ctx, spoke)
-	if err != nil {
-		t.Fatalf("resolveCredentialsSecretName: %v", err)
-	}
-	if name != "spoke-creds" {
-		t.Fatalf("expected spoke-creds fallback, got %q", name)
-	}
-}
-
-// A non-NotFound, non-scheme hub read error is propagated, not swallowed: swallowing would
-// yield empty credentials and a confusing downstream "secret not found" for the wrong name.
-func TestClientFactory_HubReadErrorPropagates(t *testing.T) {
-	ctx := context.Background()
-	ns := "mkurator-system"
+// A spec carrying neither the authentication union nor credentialsSecretRef (CEL-rejected at
+// admission, but defensively guarded) yields an explicit error rather than a nil-deref on the
+// now-optional, pointer CredentialsSecretRef.
+func TestClientFactory_NoAuthNoCredentialsErrors(t *testing.T) {
 	s := unionTestScheme(t)
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-err", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager:         "QM1",
-			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "spoke-creds"},
+	hub := &messagingv1beta1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm-empty", Namespace: "mkurator-system"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			QueueManager: "QM1",
+			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
 		},
 	}
-	boom := errors.New("apiserver unavailable")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(spoke).
-		WithInterceptorFuncs(interceptor.Funcs{
-			Get: func(
-				_ context.Context, _ client.WithWatch, _ client.ObjectKey,
-				obj client.Object, _ ...client.GetOption,
-			) error {
-				if _, ok := obj.(*messagingv1beta1.QueueManagerConnection); ok {
-					return boom
-				}
-				return errors.New("unexpected get")
-			},
-		}).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(hub).Build()
 	f := NewClientFactory(cl).(*ClientFactory)
 
-	if _, err := f.resolveCredentialsSecretName(ctx, spoke); err == nil {
-		t.Fatal("expected hub read error to propagate, got nil")
-	} else if !errors.Is(err, boom) {
-		t.Fatalf("expected wrapped boom error, got %v", err)
+	if _, err := f.resolveCredentialsSecretName(hub); err == nil {
+		t.Fatal("expected an error when neither authentication union nor credentialsSecretRef is set")
 	}
 }
 
@@ -248,18 +172,11 @@ func TestClientFactory_ResolvesLTPAUnion(t *testing.T) {
 			},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-ltpa", Namespace: ns, Generation: 4},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(ltpaSecret, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(ltpaSecret, hub).Build()
 	f := NewClientFactory(cl).(*ClientFactory)
 
-	auth, err := f.resolveAuthentication(ctx, spoke)
+	auth, err := f.resolveAuthentication(hub)
 	if err != nil {
 		t.Fatalf("resolveAuthentication: %v", err)
 	}
@@ -270,7 +187,7 @@ func TestClientFactory_ResolvesLTPAUnion(t *testing.T) {
 		t.Fatalf("secretName = %q, want ltpa-creds", auth.secretName)
 	}
 
-	cfg, err := f.buildConfig(ctx, spoke, auth)
+	cfg, err := f.buildConfig(ctx, hub, auth)
 	if err != nil {
 		t.Fatalf("buildConfig: %v", err)
 	}

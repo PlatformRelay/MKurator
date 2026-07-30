@@ -12,17 +12,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 // unionRotationFixtures builds a v1beta1 hub whose authentication union references a Secret
-// DISTINCT from any legacy credentialsSecretRef, the down-converted v1alpha1 spoke the
-// reconciler hands the factory (union dropped), and the union Secret itself.
+// DISTINCT from any legacy credentialsSecretRef, plus the union Secret itself. The reconciler
+// hands the factory this hub directly (8e-1), so there is no down-converted spoke.
 func unionRotationFixtures(
 	ns, unionSecretName, credRV string,
-) (*messagingv1beta1.QueueManagerConnection, *messagingv1alpha1.QueueManagerConnection, *corev1.Secret) {
+) (*messagingv1beta1.QueueManagerConnection, *corev1.Secret) {
 	unionSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: unionSecretName, Namespace: ns, ResourceVersion: credRV},
 		Data: map[string][]byte{
@@ -41,15 +40,7 @@ func unionRotationFixtures(
 			},
 		},
 	}
-	// Spoke: union dropped on down-conversion; legacy credentialsSecretRef is empty.
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-union", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
-	return hub, spoke, unionSecret
+	return hub, unionSecret
 }
 
 // AUTH-14 AC1: rotating a union auth Secret (distinct from credentialsSecretRef) makes
@@ -62,8 +53,8 @@ func TestClientFactory_UnionSecretRotationReplacesAndCloses(t *testing.T) {
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
-	hub, spoke, unionSecret := unionRotationFixtures(ns, "union-creds", "1")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub, spoke).Build()
+	hub, unionSecret := unionRotationFixtures(ns, "union-creds", "1")
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub).Build()
 
 	tr := &idleTrackingTransport{}
 	factory := NewClientFactory(cl).(*ClientFactory)
@@ -72,14 +63,14 @@ func TestClientFactory_UnionSecretRotationReplacesAndCloses(t *testing.T) {
 		return NewClient(cfg)
 	}
 
-	c1, err := factory.ForConnection(ctx, spoke)
+	c1, err := factory.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection first: %v", err)
 	}
 
 	rotateCredSecret(ctx, t, cl, unionSecret, "2")
 
-	c2, err := factory.ForConnection(ctx, spoke)
+	c2, err := factory.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection after union rotation: %v", err)
 	}
@@ -105,8 +96,8 @@ func TestClientFactory_UnionCacheBoundedAcrossRotations(t *testing.T) {
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
-	hub, spoke, unionSecret := unionRotationFixtures(ns, "union-creds", "0")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub, spoke).Build()
+	hub, unionSecret := unionRotationFixtures(ns, "union-creds", "0")
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub).Build()
 
 	tr := &idleTrackingTransport{}
 	factory := NewClientFactory(cl).(*ClientFactory)
@@ -118,7 +109,7 @@ func TestClientFactory_UnionCacheBoundedAcrossRotations(t *testing.T) {
 	const rotations = 25
 	for i := 0; i < rotations; i++ {
 		rotateCredSecret(ctx, t, cl, unionSecret, fmt.Sprintf("%d", i+1))
-		if _, err := factory.ForConnection(ctx, spoke); err != nil {
+		if _, err := factory.ForConnection(ctx, hub); err != nil {
 			t.Fatalf("ForConnection union rotation %d: %v", i, err)
 		}
 	}
@@ -142,11 +133,11 @@ func TestClientFactory_ReleaseUnionConnectionMissingSecret(t *testing.T) {
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
-	hub, spoke, unionSecret := unionRotationFixtures(ns, "union-creds", "1")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub, spoke).Build()
+	hub, unionSecret := unionRotationFixtures(ns, "union-creds", "1")
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(unionSecret, hub).Build()
 	factory := NewClientFactory(cl)
 
-	if _, err := factory.ForConnection(ctx, spoke); err != nil {
+	if _, err := factory.ForConnection(ctx, hub); err != nil {
 		t.Fatalf("ForConnection: %v", err)
 	}
 
@@ -159,7 +150,7 @@ func TestClientFactory_ReleaseUnionConnectionMissingSecret(t *testing.T) {
 		t.Fatalf("delete hub: %v", err)
 	}
 
-	if err := factory.ReleaseConnection(ctx, spoke); err != nil {
+	if err := factory.ReleaseConnection(ctx, hub); err != nil {
 		t.Fatalf("ReleaseConnection with missing union secret: %v", err)
 	}
 
@@ -196,23 +187,14 @@ func TestClientFactory_BasicPathSecretGetCountUnchanged(t *testing.T) {
 			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "legacy-creds"},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-legacy", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager:         "QM1",
-			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "legacy-creds"},
-		},
-	}
-
 	counter := &secretGetCounter{}
 	cl := fake.NewClientBuilder().WithScheme(s).
-		WithObjects(credSecret, hub, spoke).
+		WithObjects(credSecret, hub).
 		WithInterceptorFuncs(counter.interceptor()).
 		Build()
 	factory := NewClientFactory(cl).(*ClientFactory)
 
-	if _, err := factory.ForConnection(ctx, spoke); err != nil {
+	if _, err := factory.ForConnection(ctx, hub); err != nil {
 		t.Fatalf("ForConnection: %v", err)
 	}
 

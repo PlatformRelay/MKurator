@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -281,7 +282,7 @@ func TestResolveConnection_NotFound(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).Build()
@@ -296,13 +297,13 @@ func TestWaitForConnectionReady_Requeues(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:    messagingv1alpha1.ConditionReady,
+				Type:    messagingv1beta1.ConditionReady,
 				Status:  metav1.ConditionFalse,
-				Reason:  messagingv1alpha1.ReasonError,
+				Reason:  messagingv1beta1.ReasonError,
 				Message: "credentials secret not found",
 			}},
 		},
@@ -481,7 +482,19 @@ func TestSetSyncedError_TerminalQueue(t *testing.T) {
 func TestConnectionWatchPredicates(t *testing.T) {
 	t.Parallel()
 	pred := connectionWatchPredicates()
-	ready := readyConnForUnit("ns")
+	// The workload QMC-status watch still delivers v1alpha1 informer objects (workload
+	// controllers flip to v1beta1 in 8e-3..7), so the predicate operates on v1alpha1 here.
+	ready := &messagingv1alpha1.QueueManagerConnection{
+		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
+		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+			Conditions: []metav1.Condition{{
+				Type:               messagingv1alpha1.ConditionReady,
+				Status:             metav1.ConditionTrue,
+				Reason:             messagingv1alpha1.ReasonAvailable,
+				LastTransitionTime: metav1.Now(),
+			}},
+		},
+	}
 	notReady := &messagingv1alpha1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
 	}

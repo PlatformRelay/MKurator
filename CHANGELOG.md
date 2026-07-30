@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
+## [Unreleased]
+
+### Bug Fixes
+
+- **controller:** QMC reconcile+factory native v1beta1, drop lossy round-trip (8e-1) [dd35299](https://github.com/platformrelay/MKurator/commit/dd3529991e4c98ddbadfd2211425576467ff4aec)
+
+- **api:** Preserve authentication union across v1alpha1 spoke round trip (AUTH-14) ([#168](https://github.com/platformrelay/MKurator/pull/168)) [d744a6f](https://github.com/platformrelay/MKurator/commit/d744a6ffdc8f22ef8a2b3d4c85dfe7bfc95eb659)
+
+- **cache:** Bypass informer for v1beta1 QMC hub reads (AUTH-14) ([#165](https://github.com/platformrelay/MKurator/pull/165)) [f16d881](https://github.com/platformrelay/MKurator/commit/f16d8817e9d4383df1b6dd3cc5db37ba4fcb3630)
+
+- **controller:** Address review findings on terminal-error backstop (AUTH-14) ([#162](https://github.com/platformrelay/MKurator/pull/162)) [fd0da61](https://github.com/platformrelay/MKurator/commit/fd0da617d8bb9a50f4a7e93189059ff821171414)
+
+- **controller:** Add terminal-error backstop requeue to QMC reconciler [1102948](https://github.com/platformrelay/MKurator/commit/1102948ef1f616227a70b2bbee8413c623f8191f)
+
 ## [0.14.0](https://github.com/platformrelay/MKurator/compare/v0.13.0..v0.14.0) - 2026-07-27
 
 ### Bug Fixes

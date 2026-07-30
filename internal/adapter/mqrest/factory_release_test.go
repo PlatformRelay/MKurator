@@ -9,14 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestClientFactory_ReleaseConnection(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -30,12 +30,12 @@ func TestClientFactory_ReleaseConnection(t *testing.T) {
 			"mqAdminPassword": []byte("passw0rd"),
 		},
 	}
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "mq-credentials"},
 		},
 	}
 
@@ -62,7 +62,7 @@ func TestClientFactory_ReleaseConnectionMissingSecret(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -76,12 +76,12 @@ func TestClientFactory_ReleaseConnectionMissingSecret(t *testing.T) {
 			"mqAdminPassword": []byte("passw0rd"),
 		},
 	}
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "mq-credentials"},
 		},
 	}
 
@@ -113,7 +113,7 @@ func TestClientFactory_ForConnectionUsesCache(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -127,12 +127,12 @@ func TestClientFactory_ForConnectionUsesCache(t *testing.T) {
 			"mqAdminPassword": []byte("passw0rd"),
 		},
 	}
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "mq-credentials"},
 		},
 	}
 

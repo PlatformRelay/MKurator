@@ -6,15 +6,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 type syncStatusOpts struct {
 	mqObjectExists *bool
 }
 
-func connectionWaitMessage(conn *messagingv1alpha1.QueueManagerConnection) string {
-	c, ok := findCondition(conn.Status.Conditions, messagingv1alpha1.ConditionReady)
+func connectionWaitMessage(conn *messagingv1beta1.QueueManagerConnection) string {
+	c, ok := findCondition(conn.Status.Conditions, messagingv1beta1.ConditionReady)
 	if !ok {
 		return fmt.Sprintf("waiting for connection %q to become Ready", conn.Name)
 	}

@@ -7,7 +7,7 @@ package mqadmintest
 import (
 	"context"
 
-	"github.com/platformrelay/mkurator/api/v1alpha1"
+	"github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -40,7 +40,7 @@ func (_m *MockFactory) EXPECT() *MockFactory_Expecter {
 }
 
 // ForConnection provides a mock function for the type MockFactory
-func (_mock *MockFactory) ForConnection(ctx context.Context, conn *v1alpha1.QueueManagerConnection) (mqadmin.Admin, error) {
+func (_mock *MockFactory) ForConnection(ctx context.Context, conn *v1beta1.QueueManagerConnection) (mqadmin.Admin, error) {
 	ret := _mock.Called(ctx, conn)
 
 	if len(ret) == 0 {
@@ -49,17 +49,17 @@ func (_mock *MockFactory) ForConnection(ctx context.Context, conn *v1alpha1.Queu
 
 	var r0 mqadmin.Admin
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.QueueManagerConnection) (mqadmin.Admin, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1beta1.QueueManagerConnection) (mqadmin.Admin, error)); ok {
 		return returnFunc(ctx, conn)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.QueueManagerConnection) mqadmin.Admin); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1beta1.QueueManagerConnection) mqadmin.Admin); ok {
 		r0 = returnFunc(ctx, conn)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(mqadmin.Admin)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, *v1alpha1.QueueManagerConnection) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *v1beta1.QueueManagerConnection) error); ok {
 		r1 = returnFunc(ctx, conn)
 	} else {
 		r1 = ret.Error(1)
@@ -74,20 +74,20 @@ type MockFactory_ForConnection_Call struct {
 
 // ForConnection is a helper method to define mock.On call
 //   - ctx context.Context
-//   - conn *v1alpha1.QueueManagerConnection
+//   - conn *v1beta1.QueueManagerConnection
 func (_e *MockFactory_Expecter) ForConnection(ctx interface{}, conn interface{}) *MockFactory_ForConnection_Call {
 	return &MockFactory_ForConnection_Call{Call: _e.mock.On("ForConnection", ctx, conn)}
 }
 
-func (_c *MockFactory_ForConnection_Call) Run(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection)) *MockFactory_ForConnection_Call {
+func (_c *MockFactory_ForConnection_Call) Run(run func(ctx context.Context, conn *v1beta1.QueueManagerConnection)) *MockFactory_ForConnection_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *v1alpha1.QueueManagerConnection
+		var arg1 *v1beta1.QueueManagerConnection
 		if args[1] != nil {
-			arg1 = args[1].(*v1alpha1.QueueManagerConnection)
+			arg1 = args[1].(*v1beta1.QueueManagerConnection)
 		}
 		run(
 			arg0,
@@ -102,13 +102,13 @@ func (_c *MockFactory_ForConnection_Call) Return(admin mqadmin.Admin, err error)
 	return _c
 }
 
-func (_c *MockFactory_ForConnection_Call) RunAndReturn(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection) (mqadmin.Admin, error)) *MockFactory_ForConnection_Call {
+func (_c *MockFactory_ForConnection_Call) RunAndReturn(run func(ctx context.Context, conn *v1beta1.QueueManagerConnection) (mqadmin.Admin, error)) *MockFactory_ForConnection_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ReleaseConnection provides a mock function for the type MockFactory
-func (_mock *MockFactory) ReleaseConnection(ctx context.Context, conn *v1alpha1.QueueManagerConnection) error {
+func (_mock *MockFactory) ReleaseConnection(ctx context.Context, conn *v1beta1.QueueManagerConnection) error {
 	ret := _mock.Called(ctx, conn)
 
 	if len(ret) == 0 {
@@ -116,7 +116,7 @@ func (_mock *MockFactory) ReleaseConnection(ctx context.Context, conn *v1alpha1.
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.QueueManagerConnection) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1beta1.QueueManagerConnection) error); ok {
 		r0 = returnFunc(ctx, conn)
 	} else {
 		r0 = ret.Error(0)
@@ -131,20 +131,20 @@ type MockFactory_ReleaseConnection_Call struct {
 
 // ReleaseConnection is a helper method to define mock.On call
 //   - ctx context.Context
-//   - conn *v1alpha1.QueueManagerConnection
+//   - conn *v1beta1.QueueManagerConnection
 func (_e *MockFactory_Expecter) ReleaseConnection(ctx interface{}, conn interface{}) *MockFactory_ReleaseConnection_Call {
 	return &MockFactory_ReleaseConnection_Call{Call: _e.mock.On("ReleaseConnection", ctx, conn)}
 }
 
-func (_c *MockFactory_ReleaseConnection_Call) Run(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection)) *MockFactory_ReleaseConnection_Call {
+func (_c *MockFactory_ReleaseConnection_Call) Run(run func(ctx context.Context, conn *v1beta1.QueueManagerConnection)) *MockFactory_ReleaseConnection_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *v1alpha1.QueueManagerConnection
+		var arg1 *v1beta1.QueueManagerConnection
 		if args[1] != nil {
-			arg1 = args[1].(*v1alpha1.QueueManagerConnection)
+			arg1 = args[1].(*v1beta1.QueueManagerConnection)
 		}
 		run(
 			arg0,
@@ -159,7 +159,7 @@ func (_c *MockFactory_ReleaseConnection_Call) Return(err error) *MockFactory_Rel
 	return _c
 }
 
-func (_c *MockFactory_ReleaseConnection_Call) RunAndReturn(run func(ctx context.Context, conn *v1alpha1.QueueManagerConnection) error) *MockFactory_ReleaseConnection_Call {
+func (_c *MockFactory_ReleaseConnection_Call) RunAndReturn(run func(ctx context.Context, conn *v1beta1.QueueManagerConnection) error) *MockFactory_ReleaseConnection_Call {
 	_c.Call.Return(run)
 	return _c
 }

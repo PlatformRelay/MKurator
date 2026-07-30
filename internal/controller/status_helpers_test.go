@@ -8,13 +8,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestConnectionWaitMessage_ReadyCondition(t *testing.T) {
 	t.Parallel()
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
 				Type:    messagingv1alpha1.ConditionReady,
 				Status:  metav1.ConditionFalse,
@@ -32,7 +33,7 @@ func TestConnectionWaitMessage_ReadyCondition(t *testing.T) {
 
 func TestConnectionWaitMessage_NoReadyCondition(t *testing.T) {
 	t.Parallel()
-	conn := &messagingv1alpha1.QueueManagerConnection{ObjectMeta: metav1.ObjectMeta{Name: "qm1"}}
+	conn := &messagingv1beta1.QueueManagerConnection{ObjectMeta: metav1.ObjectMeta{Name: "qm1"}}
 	msg := connectionWaitMessage(conn)
 	if msg != `waiting for connection "qm1" to become Ready` {
 		t.Fatalf("message = %q", msg)
@@ -41,9 +42,9 @@ func TestConnectionWaitMessage_NoReadyCondition(t *testing.T) {
 
 func TestConnectionWaitMessage_ReadyTrueStillWaiting(t *testing.T) {
 	t.Parallel()
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
 				Type:   messagingv1alpha1.ConditionReady,
 				Status: metav1.ConditionTrue,
@@ -59,9 +60,9 @@ func TestConnectionWaitMessage_ReadyTrueStillWaiting(t *testing.T) {
 
 func TestConnectionWaitMessage_ReasonOnly(t *testing.T) {
 	t.Parallel()
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
 				Type:   messagingv1alpha1.ConditionReady,
 				Status: metav1.ConditionFalse,
@@ -138,7 +139,7 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 		t.Parallel()
 		// QueueManagerConnection is not an MQObject; applyMQObjectStatusFields must
 		// safely no-op (leave status untouched) rather than panic.
-		conn := &messagingv1alpha1.QueueManagerConnection{}
+		conn := &messagingv1beta1.QueueManagerConnection{}
 		applyMQObjectStatusFields(conn, opts, "synced", &now)
 		if len(conn.Status.Conditions) != 0 || conn.Status.ObservedGeneration != 0 {
 			t.Fatalf("status mutated: %+v", conn.Status)
@@ -148,9 +149,9 @@ func TestApplyMQObjectStatusFields(t *testing.T) {
 
 func TestConnectionWaitMessage_MessageOnly(t *testing.T) {
 	t.Parallel()
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1"},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
 				Type:    messagingv1alpha1.ConditionReady,
 				Status:  metav1.ConditionFalse,

@@ -8,54 +8,54 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestMQConnectivityChecker_Check(t *testing.T) {
 	t.Parallel()
 
 	scheme := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(scheme); err != nil {
+	if err := messagingv1beta1.AddToScheme(scheme); err != nil {
 		t.Fatalf("AddToScheme: %v", err)
 	}
 
-	ready := &messagingv1alpha1.QueueManagerConnection{
+	ready := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-up", Namespace: "default"},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "creds",
 			},
 		},
 	}
 	ready.Status.Conditions = []metav1.Condition{{
-		Type:   messagingv1alpha1.ConditionReady,
+		Type:   messagingv1beta1.ConditionReady,
 		Status: metav1.ConditionTrue,
-		Reason: messagingv1alpha1.ReasonAvailable,
+		Reason: messagingv1beta1.ReasonAvailable,
 	}}
 
-	unready := &messagingv1alpha1.QueueManagerConnection{
+	unready := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm-down", Namespace: "default"},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager: "QM1",
 			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{
 				Name: "creds",
 			},
 		},
 	}
 	unready.Status.Conditions = []metav1.Condition{{
-		Type:   messagingv1alpha1.ConditionReady,
+		Type:   messagingv1beta1.ConditionReady,
 		Status: metav1.ConditionFalse,
-		Reason: messagingv1alpha1.ReasonError,
+		Reason: messagingv1beta1.ReasonError,
 	}}
 
 	t.Run("no QMCs", func(t *testing.T) {
 		t.Parallel()
 		c := fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithStatusSubresource(&messagingv1alpha1.QueueManagerConnection{}).
+			WithStatusSubresource(&messagingv1beta1.QueueManagerConnection{}).
 			Build()
 		checker := &MQConnectivityChecker{Client: c}
 		if err := checker.Check(nil); err != nil {
@@ -67,7 +67,7 @@ func TestMQConnectivityChecker_Check(t *testing.T) {
 		t.Parallel()
 		c := fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithStatusSubresource(&messagingv1alpha1.QueueManagerConnection{}).
+			WithStatusSubresource(&messagingv1beta1.QueueManagerConnection{}).
 			WithObjects(ready).
 			Build()
 		checker := &MQConnectivityChecker{Client: c}
@@ -89,7 +89,7 @@ func TestMQConnectivityChecker_Check(t *testing.T) {
 		t.Parallel()
 		c := fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithStatusSubresource(&messagingv1alpha1.QueueManagerConnection{}).
+			WithStatusSubresource(&messagingv1beta1.QueueManagerConnection{}).
 			Build()
 		check := NewMQConnectivityChecker(c)
 		if err := check(nil); err != nil {
@@ -101,7 +101,7 @@ func TestMQConnectivityChecker_Check(t *testing.T) {
 		t.Parallel()
 		c := fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithStatusSubresource(&messagingv1alpha1.QueueManagerConnection{}).
+			WithStatusSubresource(&messagingv1beta1.QueueManagerConnection{}).
 			WithObjects(unready).
 			Build()
 		checker := &MQConnectivityChecker{Client: c}
