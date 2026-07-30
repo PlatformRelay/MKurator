@@ -10,7 +10,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
@@ -37,11 +36,11 @@ func withFixedDriftResyncInterval(d time.Duration) func() {
 }
 
 func cleanupNamespace(ctx context.Context, ns string) {
-	deleteAllOf(ctx, &messagingv1alpha1.QueueList{}, ns)
-	deleteAllOf(ctx, &messagingv1alpha1.TopicList{}, ns)
-	deleteAllOf(ctx, &messagingv1alpha1.ChannelList{}, ns)
-	deleteAllOf(ctx, &messagingv1alpha1.ChannelAuthRuleList{}, ns)
-	deleteAllOf(ctx, &messagingv1alpha1.AuthorityRecordList{}, ns)
+	deleteAllOf(ctx, &messagingv1beta1.QueueList{}, ns)
+	deleteAllOf(ctx, &messagingv1beta1.TopicList{}, ns)
+	deleteAllOf(ctx, &messagingv1beta1.ChannelList{}, ns)
+	deleteAllOf(ctx, &messagingv1beta1.ChannelAuthRuleList{}, ns)
+	deleteAllOf(ctx, &messagingv1beta1.AuthorityRecordList{}, ns)
 	deleteAllOf(ctx, &messagingv1beta1.QueueManagerConnectionList{}, ns)
 	deleteAllOf(ctx, &corev1.SecretList{}, ns)
 	deleteAllOf(ctx, &eventsv1.EventList{}, ns)
@@ -50,35 +49,35 @@ func cleanupNamespace(ctx context.Context, ns string) {
 func deleteAllOf(ctx context.Context, list client.ObjectList, ns string) {
 	Expect(k8sClient.List(ctx, list, client.InNamespace(ns))).To(Succeed())
 	switch items := list.(type) {
-	case *messagingv1alpha1.QueueList:
+	case *messagingv1beta1.QueueList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil
 			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
 		}
-	case *messagingv1alpha1.TopicList:
+	case *messagingv1beta1.TopicList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil
 			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
 		}
-	case *messagingv1alpha1.ChannelList:
+	case *messagingv1beta1.ChannelList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil
 			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
 		}
-	case *messagingv1alpha1.ChannelAuthRuleList:
+	case *messagingv1beta1.ChannelAuthRuleList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil
 			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
 		}
-	case *messagingv1alpha1.AuthorityRecordList:
+	case *messagingv1beta1.AuthorityRecordList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil
