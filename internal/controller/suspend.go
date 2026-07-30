@@ -12,12 +12,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 const suspendedMessage = "Reconciliation suspended"
 
 func workloadSuspended(obj client.Object) bool {
 	switch o := obj.(type) {
+	case *messagingv1beta1.Queue:
+		return o.Spec.Suspend
 	case *messagingv1alpha1.Queue:
 		return o.Spec.Suspend
 	case *messagingv1alpha1.Topic:

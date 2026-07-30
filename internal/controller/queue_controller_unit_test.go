@@ -49,16 +49,16 @@ func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 			Attributes:    map[string]string{"maxdepth": "5000"},
 		},
 	}
@@ -89,12 +89,91 @@ func TestQueueReconciler_SyncedWithoutDefine(t *testing.T) {
 	}
 	assertDriftResyncRequeue(t, result)
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
 	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != metav1.ConditionTrue {
 		t.Fatalf("Synced = %v", updated.Status.Conditions)
+	}
+}
+
+// TestQueueReconciler_IdempotentFinalizerNoStatusFlip reconciles an already-synced v1beta1 Queue
+// that already carries the finalizer a second time and asserts the finalizer is not duplicated and
+// the Synced condition / ObservedGeneration do not spuriously flip (8e-3 acceptance criterion 3).
+func TestQueueReconciler_IdempotentFinalizerNoStatusFlip(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	q := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orders",
+			Namespace:  ns,
+			Generation: 1,
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
+		},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+			Type:          messagingv1beta1.QueueTypeLocal,
+			Attributes:    map[string]string{"maxdepth": "5000"},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(q, conn).
+		WithObjects(conn, q).
+		Build()
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetQueue(mock.Anything, mock.Anything).Return(&mqadmin.QueueState{
+		Attributes: map[string]string{"maxdepth": "5000"},
+	}, nil)
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &QueueReconciler{Client: cl, Scheme: s, MQFactory: mockFactory}
+
+	// First reconcile drives the Queue to synced (finalizer already present, no add needed).
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("first reconcile: %v", err)
+	}
+	first := &messagingv1beta1.Queue{}
+	if err := cl.Get(ctx, key, first); err != nil {
+		t.Fatal(err)
+	}
+	if conditionStatus(first.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
+		t.Fatalf("first Synced = %v", first.Status.Conditions)
+	}
+	firstSynced, _ := findCondition(first.Status.Conditions, messagingv1beta1.ConditionSynced)
+
+	// Second reconcile of an already-synced Queue must be a no-op on finalizer + status.
+	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("second reconcile: %v", err)
+	}
+	second := &messagingv1beta1.Queue{}
+	if err := cl.Get(ctx, key, second); err != nil {
+		t.Fatal(err)
+	}
+	if len(second.Finalizers) != 1 {
+		t.Fatalf("finalizer duplicated/removed: %v", second.Finalizers)
+	}
+	if conditionStatus(second.Status.Conditions, messagingv1beta1.ConditionSynced) != metav1.ConditionTrue {
+		t.Fatalf("second Synced flipped: %v", second.Status.Conditions)
+	}
+	if second.Status.ObservedGeneration != first.Status.ObservedGeneration {
+		t.Fatalf("ObservedGeneration flipped: %d -> %d",
+			first.Status.ObservedGeneration, second.Status.ObservedGeneration)
+	}
+	secondSynced, _ := findCondition(second.Status.Conditions, messagingv1beta1.ConditionSynced)
+	if !secondSynced.LastTransitionTime.Equal(&firstSynced.LastTransitionTime) {
+		t.Fatalf("Synced LastTransitionTime flipped: %v -> %v",
+			firstSynced.LastTransitionTime, secondSynced.LastTransitionTime)
 	}
 }
 
@@ -106,16 +185,16 @@ func TestQueueReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 			Attributes:    map[string]string{"maxdepth": "5000", "descr": "orders"},
 		},
 	}
@@ -144,7 +223,7 @@ func TestQueueReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -162,12 +241,12 @@ func TestQueueReconciler_AddsFinalizer(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 		},
 	}
 
@@ -189,7 +268,7 @@ func TestQueueReconciler_AddsFinalizer(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -207,17 +286,17 @@ func TestQueueReconciler_DeletionDeleteFails(t *testing.T) {
 
 	now := metav1.Now()
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "orders",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers:        []string{messagingv1beta1.QueueFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 		},
 	}
 
@@ -239,7 +318,7 @@ func TestQueueReconciler_DeletionDeleteFails(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -257,17 +336,17 @@ func TestQueueReconciler_Deletion(t *testing.T) {
 
 	now := metav1.Now()
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "orders",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers:        []string{messagingv1beta1.QueueFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 		},
 	}
 
@@ -293,7 +372,7 @@ func TestQueueReconciler_Deletion(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	err := cl.Get(ctx, key, updated)
 	if apierrors.IsNotFound(err) {
 		return
@@ -314,16 +393,16 @@ func TestQueueReconciler_TransientError(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 		},
 	}
 
@@ -415,16 +494,16 @@ func TestQueueReconciler_UnsupportedType(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueType("model"),
+			Type:          messagingv1beta1.QueueType("model"),
 		},
 	}
 
@@ -449,7 +528,7 @@ func TestQueueReconciler_UnsupportedType(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -469,16 +548,16 @@ func TestQueueReconciler_DefineOnDrift(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 			Attributes:    map[string]string{"maxdepth": "5000"},
 		},
 	}
@@ -663,12 +742,12 @@ func TestQueueReconciler_FirstPassAddsFinalizerWithoutSynced(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 		},
 	}
 
@@ -686,11 +765,11 @@ func TestQueueReconciler_FirstPassAddsFinalizerWithoutSynced(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
-	if !controllerutil.ContainsFinalizer(updated, messagingv1alpha1.QueueFinalizer) {
+	if !controllerutil.ContainsFinalizer(updated, messagingv1beta1.QueueFinalizer) {
 		t.Fatal("expected finalizer added")
 	}
 	if conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced) != "" {
@@ -726,18 +805,18 @@ func TestQueueReconciler_AdoptionConflict(t *testing.T) {
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
-			QueueName:     "APP.ORDERS", Type: messagingv1alpha1.QueueTypeLocal,
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS", Type: messagingv1beta1.QueueTypeLocal,
 			Attributes: map[string]string{"maxdepth": "5000"},
-			WorkloadLifecyclePolicies: messagingv1alpha1.WorkloadLifecyclePolicies{
-				AdoptionPolicy: messagingv1alpha1.AdoptionPolicyAdoptIfMatching,
+			WorkloadLifecyclePolicies: messagingv1beta1.WorkloadLifecyclePolicies{
+				AdoptionPolicy: messagingv1beta1.AdoptionPolicyAdoptIfMatching,
 			},
 		},
 	}
@@ -752,7 +831,7 @@ func TestQueueReconciler_AdoptionConflict(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	_ = cl.Get(ctx, key, updated)
 	if conditionReason(
 		updated.Status.Conditions,
@@ -769,18 +848,18 @@ func TestQueueReconciler_OrphanDeleteWithoutConnection(t *testing.T) {
 	key := types.NamespacedName{Namespace: ns, Name: "orders"}
 	s := unitSchemeOrFatal(t)
 	now := metav1.Now()
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "orders",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers:        []string{messagingv1beta1.QueueFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "missing-qmc"},
-			QueueName:     "APP.ORDERS", Type: messagingv1alpha1.QueueTypeLocal,
-			WorkloadLifecyclePolicies: messagingv1alpha1.WorkloadLifecyclePolicies{
-				DeletionPolicy: messagingv1alpha1.DeletionPolicyOrphan,
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "missing-qmc"},
+			QueueName:     "APP.ORDERS", Type: messagingv1beta1.QueueTypeLocal,
+			WorkloadLifecyclePolicies: messagingv1beta1.WorkloadLifecyclePolicies{
+				DeletionPolicy: messagingv1beta1.DeletionPolicyOrphan,
 			},
 		},
 	}
@@ -790,9 +869,9 @@ func TestQueueReconciler_OrphanDeleteWithoutConnection(t *testing.T) {
 	if err != nil || result != (ctrl.Result{}) {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	_ = cl.Get(ctx, key, updated)
-	if controllerutil.ContainsFinalizer(updated, messagingv1alpha1.QueueFinalizer) {
+	if controllerutil.ContainsFinalizer(updated, messagingv1beta1.QueueFinalizer) {
 		t.Fatal("finalizer should be removed")
 	}
 }

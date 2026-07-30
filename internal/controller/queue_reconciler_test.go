@@ -71,7 +71,7 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -141,7 +141,7 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -217,7 +217,7 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(Equal(5 * time.Minute))
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -299,7 +299,7 @@ var _ = Describe("QueueReconciler", func() {
 		q := sampleQueue(ns, key, "qm1", testQueueName)
 		Expect(k8sClient.Create(ctx, q)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
-		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+		controllerutil.AddFinalizer(q, messagingv1beta1.QueueFinalizer)
 		Expect(k8sClient.Update(ctx, q)).To(Succeed())
 
 		rec := &QueueReconciler{
@@ -317,7 +317,7 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(updated.DeletionTimestamp).NotTo(BeZero())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -335,10 +335,10 @@ var _ = Describe("QueueReconciler", func() {
 		}}}
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 		q := sampleQueue(ns, key, "qm1", testQueueName)
-		q.Spec.DeletionPolicy = messagingv1alpha1.DeletionPolicyOrphan
+		q.Spec.DeletionPolicy = messagingv1beta1.DeletionPolicyOrphan
 		Expect(k8sClient.Create(ctx, q)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
-		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+		controllerutil.AddFinalizer(q, messagingv1beta1.QueueFinalizer)
 		Expect(k8sClient.Update(ctx, q)).To(Succeed())
 		rec := &QueueReconciler{
 			Client:    k8sClient,
@@ -351,7 +351,7 @@ var _ = Describe("QueueReconciler", func() {
 		result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Namespace: ns, Name: key}})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -372,7 +372,7 @@ var _ = Describe("QueueReconciler", func() {
 		q := sampleQueue(ns, key, "qm1", testQueueName)
 		Expect(k8sClient.Create(ctx, q)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, q)).To(Succeed())
-		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+		controllerutil.AddFinalizer(q, messagingv1beta1.QueueFinalizer)
 		Expect(k8sClient.Update(ctx, q)).To(Succeed())
 
 		rec := &QueueReconciler{
@@ -387,7 +387,7 @@ var _ = Describe("QueueReconciler", func() {
 		if q.Annotations == nil {
 			q.Annotations = map[string]string{}
 		}
-		q.Annotations[messagingv1alpha1.ForceOrphanAnnotation] = "true"
+		q.Annotations[messagingv1beta1.ForceOrphanAnnotation] = "true"
 		Expect(k8sClient.Update(ctx, q)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, q)).To(Succeed())
 
@@ -397,7 +397,7 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -433,7 +433,7 @@ var _ = Describe("QueueReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeZero())
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -490,12 +490,12 @@ var _ = Describe("QueueReconciler", func() {
 		_, err = rec.Reconcile(ctx, req)
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.Queue{}
+		updated := &messagingv1beta1.Queue{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		if updated.Annotations == nil {
 			updated.Annotations = map[string]string{}
 		}
-		updated.Annotations[messagingv1alpha1.ReconcileRequestedAtAnnotation] = time.Now().UTC().Format(time.RFC3339)
+		updated.Annotations[messagingv1beta1.ReconcileRequestedAtAnnotation] = time.Now().UTC().Format(time.RFC3339)
 		Expect(k8sClient.Update(ctx, updated)).To(Succeed())
 
 		_, err = rec.Reconcile(ctx, req)
@@ -507,13 +507,13 @@ var _ = Describe("QueueReconciler", func() {
 	})
 })
 
-func sampleQueue(ns, name, connName, queueName string) *messagingv1alpha1.Queue {
-	return &messagingv1alpha1.Queue{
+func sampleQueue(ns, name, connName, queueName string) *messagingv1beta1.Queue {
+	return &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			QueueName:     queueName,
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 			Attributes: map[string]string{
 				testAttrMaxDepth: testMaxDepth,
 			},
