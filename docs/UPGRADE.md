@@ -279,6 +279,39 @@ admission (no silent merge). Prefer typed fields in new manifests; use
 
 Map-only **`v1alpha1`** manifests are unaffected until you bump `apiVersion`.
 
+## Removing `v1alpha1` (drop the conversion webhook)
+
+**Breaking.** This release **stops serving `v1alpha1`**: the six CRDs are now
+single-version (`v1beta1` served and stored) and the conversion webhook is gone.
+New and existing manifests must use `apiVersion: messaging.mkurator.dev/v1beta1`.
+
+> [!WARNING]
+> Complete the [storage flip](#moving-etcd-storage-to-v1beta1-012x--013x) —
+> **rewrite stored objects, then prune `status.storedVersions` to `["v1beta1"]`**
+> — *before* installing this release. Applying CRDs that no longer list
+> `v1alpha1` to a cluster whose `status.storedVersions` still contains `v1alpha1`
+> leaves the API server unable to decode those stored records (a bricked upgrade).
+> There is no conversion webhook in this release to fall back on.
+
+Pre-flight check (every kind must print exactly `["v1beta1"]`):
+
+```sh
+for crd in queuemanagerconnections queues topics channels channelauthrules authorityrecords; do
+  printf '%s: ' "${crd}"
+  kubectl get crd "${crd}.messaging.mkurator.dev" -o jsonpath='{.status.storedVersions}{"\n"}'
+done
+```
+
+If any kind still lists `v1alpha1`, run the rewrite + prune steps above first.
+The e2e suite enforces this as a red gate (`CRD stored-version guard`): after the
+single-version CRDs apply, `status.storedVersions` must be `["v1beta1"]` for all
+six kinds.
+
+Upgrading from a build where `v1alpha1` was ever the etcd **storage** version
+(≤ v0.12) therefore requires the one-time rewrite + prune first. Clusters that
+already completed the v0.13 storage flip (storedVersions already `["v1beta1"]`)
+upgrade with no CR action.
+
 ## `spec.authentication` union (Basic users: no action)
 
 The `QueueManagerConnection` `spec.authentication` union ([ADR-0027](adr/0027-mqweb-authentication-modes.md))
