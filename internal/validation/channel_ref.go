@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
@@ -26,7 +25,7 @@ func ValidateManagedChannelRef(
 		return errs
 	}
 
-	var channels messagingv1alpha1.ChannelList
+	var channels messagingv1beta1.ChannelList
 	if err := reader.List(ctx, &channels, client.InNamespace(namespace)); err != nil {
 		if !k8sruntime.IsNotRegisteredError(err) {
 			return field.ErrorList{
@@ -35,7 +34,7 @@ func ValidateManagedChannelRef(
 		}
 	}
 
-	var match *messagingv1alpha1.Channel
+	var match *messagingv1beta1.Channel
 	for i := range channels.Items {
 		ch := &channels.Items[i]
 		if ch.Spec.ChannelName != channelName {

@@ -6,7 +6,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
@@ -16,7 +15,7 @@ func invalidObject(gvk schema.GroupVersionKind, name string, errs field.ErrorLis
 
 // QueueInvalid returns an Invalid status error for Queue admission failures.
 func QueueInvalid(name string, errs field.ErrorList) error {
-	gvk := messagingv1alpha1.GroupVersion.WithKind("Queue")
+	gvk := messagingv1beta1.GroupVersion.WithKind("Queue")
 	return invalidObject(gvk, name, errs)
 }
 
@@ -28,7 +27,7 @@ func QueueInvalidV1Beta1(name string, errs field.ErrorList) error {
 
 // TopicInvalid returns an Invalid status error for Topic admission failures.
 func TopicInvalid(name string, errs field.ErrorList) error {
-	gvk := messagingv1alpha1.GroupVersion.WithKind("Topic")
+	gvk := messagingv1beta1.GroupVersion.WithKind("Topic")
 	return invalidObject(gvk, name, errs)
 }
 
@@ -40,7 +39,7 @@ func TopicInvalidV1Beta1(name string, errs field.ErrorList) error {
 
 // ChannelInvalid returns an Invalid status error for Channel admission failures.
 func ChannelInvalid(name string, errs field.ErrorList) error {
-	gvk := messagingv1alpha1.GroupVersion.WithKind("Channel")
+	gvk := messagingv1beta1.GroupVersion.WithKind("Channel")
 	return invalidObject(gvk, name, errs)
 }
 
@@ -52,7 +51,7 @@ func ChannelInvalidV1Beta1(name string, errs field.ErrorList) error {
 
 // ChannelAuthRuleInvalid returns an Invalid status error for ChannelAuthRule admission failures.
 func ChannelAuthRuleInvalid(name string, errs field.ErrorList) error {
-	gvk := messagingv1alpha1.GroupVersion.WithKind("ChannelAuthRule")
+	gvk := messagingv1beta1.GroupVersion.WithKind("ChannelAuthRule")
 	return invalidObject(gvk, name, errs)
 }
 
@@ -64,7 +63,7 @@ func ChannelAuthRuleInvalidV1Beta1(name string, errs field.ErrorList) error {
 
 // AuthorityRecordInvalid returns an Invalid status error for AuthorityRecord admission failures.
 func AuthorityRecordInvalid(name string, errs field.ErrorList) error {
-	gvk := messagingv1alpha1.GroupVersion.WithKind("AuthorityRecord")
+	gvk := messagingv1beta1.GroupVersion.WithKind("AuthorityRecord")
 	return invalidObject(gvk, name, errs)
 }
 
@@ -76,7 +75,7 @@ func AuthorityRecordInvalidV1Beta1(name string, errs field.ErrorList) error {
 
 // QueueManagerConnectionInvalid returns an Invalid status error for QMC admission failures.
 func QueueManagerConnectionInvalid(name string, errs field.ErrorList) error {
-	gvk := messagingv1alpha1.GroupVersion.WithKind("QueueManagerConnection")
+	gvk := messagingv1beta1.GroupVersion.WithKind("QueueManagerConnection")
 	return apierrors.NewInvalid(
 		schema.GroupKind{Group: gvk.Group, Kind: gvk.Kind},
 		name,

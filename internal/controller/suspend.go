@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
@@ -21,23 +20,13 @@ func workloadSuspended(obj client.Object) bool {
 	switch o := obj.(type) {
 	case *messagingv1beta1.Queue:
 		return o.Spec.Suspend
-	case *messagingv1alpha1.Queue:
-		return o.Spec.Suspend
 	case *messagingv1beta1.Topic:
-		return o.Spec.Suspend
-	case *messagingv1alpha1.Topic:
 		return o.Spec.Suspend
 	case *messagingv1beta1.Channel:
 		return o.Spec.Suspend
-	case *messagingv1alpha1.Channel:
-		return o.Spec.Suspend
 	case *messagingv1beta1.ChannelAuthRule:
 		return o.Spec.Suspend
-	case *messagingv1alpha1.ChannelAuthRule:
-		return o.Spec.Suspend
 	case *messagingv1beta1.AuthorityRecord:
-		return o.Spec.Suspend
-	case *messagingv1alpha1.AuthorityRecord:
 		return o.Spec.Suspend
 	default:
 		return false
@@ -46,9 +35,9 @@ func workloadSuspended(obj client.Object) bool {
 
 func workloadAlreadySuspended(obj client.Object, generation int64) bool {
 	for _, c := range syncedConditions(obj) {
-		if c.Type == messagingv1alpha1.ConditionSynced &&
+		if c.Type == messagingv1beta1.ConditionSynced &&
 			c.Status == metav1.ConditionFalse &&
-			c.Reason == messagingv1alpha1.ReasonSuspended &&
+			c.Reason == messagingv1beta1.ReasonSuspended &&
 			c.ObservedGeneration == generation {
 			return true
 		}
@@ -82,7 +71,7 @@ func patchSyncedSuspended(
 ) error {
 	return patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
 		conditionStatus: metav1.ConditionFalse,
-		reason:          messagingv1alpha1.ReasonSuspended,
+		reason:          messagingv1beta1.ReasonSuspended,
 		generation:      generation,
 		message:         message,
 		emitEvent:       true,
@@ -125,8 +114,8 @@ func (reconcileRequestedAnnotationChanged) Update(e event.UpdateEvent) bool {
 	if !okOld || !okNew {
 		return false
 	}
-	oldAnn := annotationValue(oldMeta.GetAnnotations(), messagingv1alpha1.ReconcileRequestedAtAnnotation)
-	newAnn := annotationValue(newMeta.GetAnnotations(), messagingv1alpha1.ReconcileRequestedAtAnnotation)
+	oldAnn := annotationValue(oldMeta.GetAnnotations(), messagingv1beta1.ReconcileRequestedAtAnnotation)
+	newAnn := annotationValue(newMeta.GetAnnotations(), messagingv1beta1.ReconcileRequestedAtAnnotation)
 	return oldAnn != newAnn
 }
 

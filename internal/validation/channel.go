@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -15,7 +15,7 @@ func ValidateChannelSpec(
 	ctx context.Context,
 	reader client.Reader,
 	namespace, _ string,
-	spec *messagingv1alpha1.ChannelSpec,
+	spec *messagingv1beta1.ChannelSpec,
 ) ([]string, field.ErrorList) {
 	errs := ValidateConnectionRef(ctx, reader, namespace, spec.ConnectionRef.Name,
 		field.NewPath("spec").Child("connectionRef").Child("name"))
@@ -25,7 +25,7 @@ func ValidateChannelSpec(
 }
 
 func validateChannelTypeRequirements(
-	spec *messagingv1alpha1.ChannelSpec,
+	spec *messagingv1beta1.ChannelSpec,
 	path *field.Path,
 ) field.ErrorList {
 	chType := mqadmin.NormalizeChannelType(mqadmin.ChannelType(spec.Type))

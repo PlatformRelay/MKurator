@@ -296,10 +296,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 8e-8a: v1alpha1 is no longer served. The conversion webhook and the
-	// v1alpha1 validating webhook are no longer wired; only the v1beta1
-	// validating webhook is registered. The v1alpha1 webhook and conversion
-	// packages remain on disk (unwired) for removal in 8e-8b.
+	// The CRDs are single-version v1beta1; only the v1beta1 validating webhook
+	// is registered. No conversion webhook is served.
 	if err := webhookv1beta1.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup v1beta1 webhooks")
 		os.Exit(1)
