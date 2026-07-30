@@ -20,15 +20,12 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/cacheconfig"
 	"github.com/platformrelay/mkurator/internal/controller"
 	"github.com/platformrelay/mkurator/internal/health"
 	"github.com/platformrelay/mkurator/internal/logging"
-	webhookconversion "github.com/platformrelay/mkurator/internal/webhook/conversion"
-	webhookv1alpha1 "github.com/platformrelay/mkurator/internal/webhook/v1alpha1"
 	webhookv1beta1 "github.com/platformrelay/mkurator/internal/webhook/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
@@ -40,7 +37,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(messagingv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(messagingv1beta1.AddToScheme(scheme))
 
 	// +kubebuilder:scaffold:scheme
@@ -300,14 +296,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := webhookconversion.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to setup conversion webhook")
-		os.Exit(1)
-	}
-	if err := webhookv1alpha1.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to setup webhooks")
-		os.Exit(1)
-	}
+	// 8e-8a: v1alpha1 is no longer served. The conversion webhook and the
+	// v1alpha1 validating webhook are no longer wired; only the v1beta1
+	// validating webhook is registered. The v1alpha1 webhook and conversion
+	// packages remain on disk (unwired) for removal in 8e-8b.
 	if err := webhookv1beta1.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup v1beta1 webhooks")
 		os.Exit(1)

@@ -6,8 +6,7 @@ publish/subscribe access and scope; the operator reconciles the desired
 attributes through `mqweb` and reports drift via status conditions. It does not
 create the queue manager itself, nor does it manage subscriptions.
 
-- **API group/version:** `messaging.mkurator.dev/v1beta1` (also served as
-  `v1alpha1` via the conversion webhook — see [Custom resources](README.md)).
+- **API group/version:** `messaging.mkurator.dev/v1beta1` (the only served version — see [Custom resources](README.md)).
 - **Short name:** `tp` (`kubectl get tp`).
 - **Scope:** namespaced; `spec.connectionRef` resolves in the same namespace
   ([ADR-0023](../adr/0023-connection-client-cache-lifecycle.md)).

@@ -32,19 +32,15 @@ require_kind "Service"
 require_kind "Certificate"
 require_kind "Issuer"
 
+# 8e-8a: v1alpha1 is no longer served; only the six v1beta1 validating
+# webhook paths are rendered.
 webhook_count="$(grep -c 'path: /validate-messaging-mkurator-dev-v1' "${rendered}" || true)"
-if [[ "${webhook_count}" -ne 12 ]]; then
-  echo "helm-verify-admission: expected 12 validating webhook paths, found ${webhook_count}" >&2
+if [[ "${webhook_count}" -ne 6 ]]; then
+  echo "helm-verify-admission: expected 6 validating webhook paths, found ${webhook_count}" >&2
   exit 1
 fi
 
 for path in \
-  /validate-messaging-mkurator-dev-v1alpha1-authorityrecord \
-  /validate-messaging-mkurator-dev-v1alpha1-channel \
-  /validate-messaging-mkurator-dev-v1alpha1-channelauthrule \
-  /validate-messaging-mkurator-dev-v1alpha1-queue \
-  /validate-messaging-mkurator-dev-v1alpha1-queuemanagerconnection \
-  /validate-messaging-mkurator-dev-v1alpha1-topic \
   /validate-messaging-mkurator-dev-v1beta1-authorityrecord \
   /validate-messaging-mkurator-dev-v1beta1-channel \
   /validate-messaging-mkurator-dev-v1beta1-channelauthrule \
@@ -78,7 +74,6 @@ fi
 # Keep Helm webhook paths/names in sync with kubebuilder output.
 manifests="${ROOT}/config/webhook/manifests.yaml"
 for webhook_name in \
-  vauthorityrecord.kb.io vchannel.kb.io vchannelauthrule.kb.io vqueue.kb.io vqueuemanagerconnection.kb.io vtopic.kb.io \
   vauthorityrecord-v1beta1.kb.io vchannel-v1beta1.kb.io vchannelauthrule-v1beta1.kb.io vqueue-v1beta1.kb.io \
   vqueuemanagerconnection-v1beta1.kb.io vtopic-v1beta1.kb.io
 do
