@@ -104,11 +104,9 @@ tasks:
     desc: Generate CRDs, RBAC, and webhook configuration
     deps: [install]
     cmds:
-      # 8e-8a: only v1beta1 is served. Narrow CRD/webhook codegen to the v1beta1
-      # API + v1beta1 webhook packages so controller-gen emits single-version
-      # CRDs and no v1alpha1 validating-webhook entries. The v1alpha1 Go types
-      # and webhook package stay on disk (unwired) for 8e-8b; deepcopy still
-      # runs over ./api/... in the generate task.
+      # Only v1beta1 exists. CRD/webhook codegen runs over the v1beta1 API +
+      # v1beta1 webhook packages so controller-gen emits single-version CRDs;
+      # deepcopy runs over ./api/... in the generate task.
       - go tool controller-gen rbac:roleName=manager-role crd webhook paths="./api/v1beta1/...;./internal/controller/...;./internal/webhook/v1beta1/...;./cmd/..." output:crd:artifacts:config=config/crd/bases
 
   generate:
