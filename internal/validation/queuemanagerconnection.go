@@ -114,6 +114,7 @@ type connectionDependent struct {
 	name string
 }
 
+//nolint:gocyclo // one List + match block per MQ object kind (Queue/Topic/Channel/ChannelAuthRule/AuthorityRecord).
 func listConnectionDependents(
 	ctx context.Context,
 	reader client.Reader,

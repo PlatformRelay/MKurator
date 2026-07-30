@@ -86,7 +86,10 @@ func TestValueTypeDeepCopy(t *testing.T) {
 		}},
 		{"BasicAuth", func() any { v := BasicAuth{SecretRef: SecretReference{Name: "b"}}; return v.DeepCopy() }},
 		{"LTPAAuth", func() any { v := LTPAAuth{SecretRef: SecretReference{Name: "l"}}; return v.DeepCopy() }},
-		{"ClientCertAuth", func() any { v := ClientCertAuth{SecretRef: SecretReference{Name: "c"}}; return v.DeepCopy() }},
+		{
+			"ClientCertAuth",
+			func() any { v := ClientCertAuth{SecretRef: SecretReference{Name: "c"}}; return v.DeepCopy() },
+		},
 		{"MQWebAuthentication", func() any {
 			v := MQWebAuthentication{
 				Mode:       MQWebAuthenticationModeBasic,
@@ -108,7 +111,12 @@ func TestValueTypeDeepCopy(t *testing.T) {
 			return v.DeepCopy()
 		}},
 		{"TopicSpec", func() any {
-			v := TopicSpec{ConnectionRef: ref, TopicName: "T", Attributes: map[string]string{"k": "v"}, WorkloadLifecyclePolicies: wlp}
+			v := TopicSpec{
+				ConnectionRef:             ref,
+				TopicName:                 "T",
+				Attributes:                map[string]string{"k": "v"},
+				WorkloadLifecyclePolicies: wlp,
+			}
 			return v.DeepCopy()
 		}},
 		{"TopicStatus", func() any {
