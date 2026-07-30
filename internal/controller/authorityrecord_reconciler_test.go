@@ -71,7 +71,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -131,7 +131,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -158,7 +158,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		auth := sampleAuthorityRecord(ns, "app-channel-chg-dsp", "qm1", channelProfile)
-		auth.Spec.ObjectType = messagingv1alpha1.AuthorityObjectTypeChannel
+		auth.Spec.ObjectType = messagingv1beta1.AuthorityObjectTypeChannel
 		auth.Spec.Authorities = []string{"CHG", "DSP"}
 		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
 
@@ -193,7 +193,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "app-channel-chg-dsp"}, updated)).
 			To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -220,7 +220,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		auth := sampleAuthorityRecord(ns, "app-nlist-chg-dsp", "qm1", nlistProfile)
-		auth.Spec.ObjectType = messagingv1alpha1.AuthorityObjectTypeNList
+		auth.Spec.ObjectType = messagingv1beta1.AuthorityObjectTypeNList
 		auth.Spec.Authorities = []string{"CHG", "DSP"}
 		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
 
@@ -255,7 +255,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "app-nlist-chg-dsp"}, updated)).
 			To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -280,7 +280,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
-		auth.Finalizers = []string{messagingv1alpha1.AuthorityRecordFinalizer}
+		auth.Finalizers = []string{messagingv1beta1.AuthorityRecordFinalizer}
 		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
 
 		desired := mqadmin.AuthoritySpec{
@@ -381,7 +381,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
 		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, auth)).To(Succeed())
-		controllerutil.AddFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer)
+		controllerutil.AddFinalizer(auth, messagingv1beta1.AuthorityRecordFinalizer)
 		Expect(k8sClient.Update(ctx, auth)).To(Succeed())
 
 		rec := &AuthorityRecordReconciler{
@@ -399,7 +399,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(updated.DeletionTimestamp).NotTo(BeZero())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -420,10 +420,10 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
-		auth.Spec.DeletionPolicy = messagingv1alpha1.DeletionPolicyOrphan
+		auth.Spec.DeletionPolicy = messagingv1beta1.DeletionPolicyOrphan
 		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, auth)).To(Succeed())
-		controllerutil.AddFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer)
+		controllerutil.AddFinalizer(auth, messagingv1beta1.AuthorityRecordFinalizer)
 		Expect(k8sClient.Update(ctx, auth)).To(Succeed())
 
 		rec := &AuthorityRecordReconciler{
@@ -440,7 +440,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -461,7 +461,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		auth := sampleAuthorityRecord(ns, key, "qm1", profile)
 		Expect(k8sClient.Create(ctx, auth)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, auth)).To(Succeed())
-		controllerutil.AddFinalizer(auth, messagingv1alpha1.AuthorityRecordFinalizer)
+		controllerutil.AddFinalizer(auth, messagingv1beta1.AuthorityRecordFinalizer)
 		Expect(k8sClient.Update(ctx, auth)).To(Succeed())
 
 		rec := &AuthorityRecordReconciler{
@@ -476,7 +476,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		if auth.Annotations == nil {
 			auth.Annotations = map[string]string{}
 		}
-		auth.Annotations[messagingv1alpha1.ForceOrphanAnnotation] = "true"
+		auth.Annotations[messagingv1beta1.ForceOrphanAnnotation] = "true"
 		Expect(k8sClient.Update(ctx, auth)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, auth)).To(Succeed())
 
@@ -486,7 +486,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.AuthorityRecord{}
+		updated := &messagingv1beta1.AuthorityRecord{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -551,20 +551,20 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 			err := k8sClient.Get(
 				ctx,
 				types.NamespacedName{Namespace: ns, Name: key},
-				&messagingv1alpha1.AuthorityRecord{},
+				&messagingv1beta1.AuthorityRecord{},
 			)
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		}).Should(Succeed())
 	})
 })
 
-func sampleAuthorityRecord(ns, name, connName, profile string) *messagingv1alpha1.AuthorityRecord {
-	return &messagingv1alpha1.AuthorityRecord{
+func sampleAuthorityRecord(ns, name, connName, profile string) *messagingv1beta1.AuthorityRecord {
+	return &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			Profile:       profile,
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET", "PUT"},
 		},
