@@ -70,7 +70,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.ChannelAuthRule{}
+		updated := &messagingv1beta1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -129,7 +129,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.ChannelAuthRule{}
+		updated := &messagingv1beta1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -187,7 +187,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.ChannelAuthRule{}
+		updated := &messagingv1beta1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: blockKey}, updated)).To(Succeed())
 		Expect(updated.Status.DesiredMQSC).To(ContainSubstring("TYPE(BLOCKUSER)"))
 		Expect(updated.Status.DesiredMQSC).To(ContainSubstring("USERLIST('nobody')"))
@@ -207,7 +207,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
-		rule.Finalizers = []string{messagingv1alpha1.ChannelAuthRuleFinalizer}
+		rule.Finalizers = []string{messagingv1beta1.ChannelAuthRuleFinalizer}
 		Expect(k8sClient.Create(ctx, rule)).To(Succeed())
 
 		desired := mqadmin.ChannelAuthSpec{
@@ -311,7 +311,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
 		Expect(k8sClient.Create(ctx, rule)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, rule)).To(Succeed())
-		controllerutil.AddFinalizer(rule, messagingv1alpha1.ChannelAuthRuleFinalizer)
+		controllerutil.AddFinalizer(rule, messagingv1beta1.ChannelAuthRuleFinalizer)
 		Expect(k8sClient.Update(ctx, rule)).To(Succeed())
 
 		rec := &ChannelAuthRuleReconciler{
@@ -329,7 +329,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.ChannelAuthRule{}
+		updated := &messagingv1beta1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(updated.DeletionTimestamp).NotTo(BeZero())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -350,7 +350,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
-		rule.Finalizers = []string{messagingv1alpha1.ChannelAuthRuleFinalizer}
+		rule.Finalizers = []string{messagingv1beta1.ChannelAuthRuleFinalizer}
 		rule.Annotations = map[string]string{
 			messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 		}
@@ -387,7 +387,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.ChannelAuthRule{}
+		updated := &messagingv1beta1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(messagingv1alpha1.ReasonDriftDetected))
@@ -407,7 +407,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		rule := sampleChannelAuthRule(ns, key, "qm1", channelName)
-		rule.Finalizers = []string{messagingv1alpha1.ChannelAuthRuleFinalizer}
+		rule.Finalizers = []string{messagingv1beta1.ChannelAuthRuleFinalizer}
 		rule.Annotations = map[string]string{
 			messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 		}
@@ -438,7 +438,7 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.ChannelAuthRule{}
+		updated := &messagingv1beta1.ChannelAuthRule{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(messagingv1alpha1.ReasonDriftDetected))
@@ -507,20 +507,20 @@ var _ = Describe("ChannelAuthRuleReconciler", func() {
 			err := k8sClient.Get(
 				ctx,
 				types.NamespacedName{Namespace: ns, Name: key},
-				&messagingv1alpha1.ChannelAuthRule{},
+				&messagingv1beta1.ChannelAuthRule{},
 			)
 			g.Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 		}).Should(Succeed())
 	})
 })
 
-func sampleChannelAuthRule(ns, name, connName, channelName string) *messagingv1alpha1.ChannelAuthRule {
-	return &messagingv1alpha1.ChannelAuthRule{
+func sampleChannelAuthRule(ns, name, connName, channelName string) *messagingv1beta1.ChannelAuthRule {
+	return &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 			Address:       "*",
 			UserSource:    "CHANNEL",
 			CheckClient:   "REQUIRED",
@@ -528,13 +528,13 @@ func sampleChannelAuthRule(ns, name, connName, channelName string) *messagingv1a
 	}
 }
 
-func sampleBlockUserChannelAuthRule(ns, name, connName, channelName string) *messagingv1alpha1.ChannelAuthRule {
-	return &messagingv1alpha1.ChannelAuthRule{
+func sampleBlockUserChannelAuthRule(ns, name, connName, channelName string) *messagingv1beta1.ChannelAuthRule {
+	return &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			ChannelName:   channelName,
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockUser,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeBlockUser,
 			UserList:      "nobody",
 			Description:   "Deny privileged user IDs",
 		},
