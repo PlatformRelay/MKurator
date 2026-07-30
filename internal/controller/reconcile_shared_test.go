@@ -177,48 +177,48 @@ func TestRequestsForConnection_EnqueuesDependents(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
 	}
-	queue := &messagingv1alpha1.Queue{
+	queue := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
 		},
 	}
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: ns},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: ns},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
 		},
 	}
-	car := &messagingv1alpha1.ChannelAuthRule{
+	car := &messagingv1beta1.ChannelAuthRule{
 		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: ns},
-		Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelAuthRuleSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
-			RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 		},
 	}
-	auth := &messagingv1alpha1.AuthorityRecord{
+	auth := &messagingv1beta1.AuthorityRecord{
 		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: ns},
-		Spec: messagingv1alpha1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.AuthorityRecordSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 			Principal:     "app",
 			Authorities:   []string{"GET"},
 		},
@@ -264,11 +264,11 @@ func TestConnectionRefName(t *testing.T) {
 
 func TestConnectionReadyChanged(t *testing.T) {
 	t.Parallel()
-	old := &messagingv1alpha1.QueueManagerConnection{}
-	newReady := &messagingv1alpha1.QueueManagerConnection{
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+	old := &messagingv1beta1.QueueManagerConnection{}
+	newReady := &messagingv1beta1.QueueManagerConnection{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:   messagingv1alpha1.ConditionReady,
+				Type:   messagingv1beta1.ConditionReady,
 				Status: metav1.ConditionTrue,
 			}},
 		},
@@ -482,20 +482,20 @@ func TestSetSyncedError_TerminalQueue(t *testing.T) {
 func TestConnectionWatchPredicates(t *testing.T) {
 	t.Parallel()
 	pred := connectionWatchPredicates()
-	// The workload QMC-status watch still delivers v1alpha1 informer objects (workload
-	// controllers flip to v1beta1 in 8e-3..7), so the predicate operates on v1alpha1 here.
-	ready := &messagingv1alpha1.QueueManagerConnection{
+	// The workload QMC-status watch delivers v1beta1 informer objects (single served version
+	// after 8e-8a), so the predicate operates on v1beta1.
+	ready := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
-		Status: messagingv1alpha1.QueueManagerConnectionStatus{
+		Status: messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		},
 	}
-	notReady := &messagingv1alpha1.QueueManagerConnection{
+	notReady := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: "ns"},
 	}
 
@@ -505,7 +505,7 @@ func TestConnectionWatchPredicates(t *testing.T) {
 	if pred.Create(event.CreateEvent{Object: notReady}) {
 		t.Fatal("expected create skip when connection not ready")
 	}
-	if pred.Create(event.CreateEvent{Object: &messagingv1alpha1.Queue{}}) {
+	if pred.Create(event.CreateEvent{Object: &messagingv1beta1.Queue{}}) {
 		t.Fatal("expected create skip for non-connection object")
 	}
 
@@ -522,7 +522,7 @@ func TestConnectionWatchPredicates(t *testing.T) {
 	if !pred.Update(event.UpdateEvent{ObjectOld: prev, ObjectNew: next}) {
 		t.Fatal("expected update on generation change")
 	}
-	if pred.Update(event.UpdateEvent{ObjectOld: &messagingv1alpha1.Queue{}, ObjectNew: next}) {
+	if pred.Update(event.UpdateEvent{ObjectOld: &messagingv1beta1.Queue{}, ObjectNew: next}) {
 		t.Fatal("expected update skip for wrong types")
 	}
 }
@@ -533,13 +533,13 @@ func TestWatchConnectionStatus(t *testing.T) {
 	ns := "mkurator-system"
 	s := unitSchemeOrFatal(t)
 
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
 	}
-	queue := &messagingv1alpha1.Queue{
+	queue := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
 		},
 	}

@@ -397,7 +397,7 @@ func mqObjectItems[T mqWorkloadObject, S ~[]E, E any](items S, ptr func(*E) T) [
 func requestsForConnection(
 	ctx context.Context,
 	c client.Client,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) []reconcile.Request {
 	logger := log.FromContext(ctx)
 	ns := conn.Namespace
@@ -405,32 +405,32 @@ func requestsForConnection(
 	var reqs []reconcile.Request
 
 	reqs = appendDependentsOrLog(ctx, c, logger, ns, connName, "Queue",
-		func() *messagingv1alpha1.QueueList { return &messagingv1alpha1.QueueList{} },
-		func(l *messagingv1alpha1.QueueList) []*messagingv1alpha1.Queue {
-			return mqObjectItems(l.Items, func(q *messagingv1alpha1.Queue) *messagingv1alpha1.Queue { return q })
+		func() *messagingv1beta1.QueueList { return &messagingv1beta1.QueueList{} },
+		func(l *messagingv1beta1.QueueList) []*messagingv1beta1.Queue {
+			return mqObjectItems(l.Items, func(q *messagingv1beta1.Queue) *messagingv1beta1.Queue { return q })
 		},
 		reqs,
 	)
 	reqs = appendDependentsOrLog(ctx, c, logger, ns, connName, "Topic",
-		func() *messagingv1alpha1.TopicList { return &messagingv1alpha1.TopicList{} },
-		func(l *messagingv1alpha1.TopicList) []*messagingv1alpha1.Topic {
-			return mqObjectItems(l.Items, func(t *messagingv1alpha1.Topic) *messagingv1alpha1.Topic { return t })
+		func() *messagingv1beta1.TopicList { return &messagingv1beta1.TopicList{} },
+		func(l *messagingv1beta1.TopicList) []*messagingv1beta1.Topic {
+			return mqObjectItems(l.Items, func(t *messagingv1beta1.Topic) *messagingv1beta1.Topic { return t })
 		},
 		reqs,
 	)
 	reqs = appendDependentsOrLog(ctx, c, logger, ns, connName, "Channel",
-		func() *messagingv1alpha1.ChannelList { return &messagingv1alpha1.ChannelList{} },
-		func(l *messagingv1alpha1.ChannelList) []*messagingv1alpha1.Channel {
-			return mqObjectItems(l.Items, func(ch *messagingv1alpha1.Channel) *messagingv1alpha1.Channel { return ch })
+		func() *messagingv1beta1.ChannelList { return &messagingv1beta1.ChannelList{} },
+		func(l *messagingv1beta1.ChannelList) []*messagingv1beta1.Channel {
+			return mqObjectItems(l.Items, func(ch *messagingv1beta1.Channel) *messagingv1beta1.Channel { return ch })
 		},
 		reqs,
 	)
 	reqs = appendDependentsOrLog(ctx, c, logger, ns, connName, "ChannelAuthRule",
-		func() *messagingv1alpha1.ChannelAuthRuleList { return &messagingv1alpha1.ChannelAuthRuleList{} },
-		func(l *messagingv1alpha1.ChannelAuthRuleList) []*messagingv1alpha1.ChannelAuthRule {
+		func() *messagingv1beta1.ChannelAuthRuleList { return &messagingv1beta1.ChannelAuthRuleList{} },
+		func(l *messagingv1beta1.ChannelAuthRuleList) []*messagingv1beta1.ChannelAuthRule {
 			return mqObjectItems(
 				l.Items,
-				func(r *messagingv1alpha1.ChannelAuthRule) *messagingv1alpha1.ChannelAuthRule {
+				func(r *messagingv1beta1.ChannelAuthRule) *messagingv1beta1.ChannelAuthRule {
 					return r
 				},
 			)
@@ -438,11 +438,11 @@ func requestsForConnection(
 		reqs,
 	)
 	reqs = appendDependentsOrLog(ctx, c, logger, ns, connName, "AuthorityRecord",
-		func() *messagingv1alpha1.AuthorityRecordList { return &messagingv1alpha1.AuthorityRecordList{} },
-		func(l *messagingv1alpha1.AuthorityRecordList) []*messagingv1alpha1.AuthorityRecord {
+		func() *messagingv1beta1.AuthorityRecordList { return &messagingv1beta1.AuthorityRecordList{} },
+		func(l *messagingv1beta1.AuthorityRecordList) []*messagingv1beta1.AuthorityRecord {
 			return mqObjectItems(
 				l.Items,
-				func(a *messagingv1alpha1.AuthorityRecord) *messagingv1alpha1.AuthorityRecord {
+				func(a *messagingv1beta1.AuthorityRecord) *messagingv1beta1.AuthorityRecord {
 					return a
 				},
 			)
@@ -455,7 +455,7 @@ func requestsForConnection(
 
 func connectionEnqueueMapper(c client.Client) handler.MapFunc {
 	return func(ctx context.Context, obj client.Object) []reconcile.Request {
-		conn, ok := obj.(*messagingv1alpha1.QueueManagerConnection)
+		conn, ok := obj.(*messagingv1beta1.QueueManagerConnection)
 		if !ok {
 			return nil
 		}
@@ -469,35 +469,35 @@ func watchConnectionStatus(c client.Client) handler.EventHandler {
 
 // conditionsReady reports whether a Ready=True condition is present. It is version-agnostic
 // (both API versions share the identical condition Type string), so the native-v1beta1 resolved
-// connection path and the legacy v1alpha1 QMC-watch fan-out share one implementation.
+// connection path and the QMC-watch fan-out share one implementation.
 func conditionsReady(conds []metav1.Condition) bool {
 	for _, c := range conds {
-		if c.Type == messagingv1alpha1.ConditionReady && c.Status == metav1.ConditionTrue {
+		if c.Type == messagingv1beta1.ConditionReady && c.Status == metav1.ConditionTrue {
 			return true
 		}
 	}
 	return false
 }
 
-// connectionReady reports Ready=True for the v1alpha1 QMC informer object delivered to the
-// workload controllers' connection-status watch (still v1alpha1 until 8e-3..7 flip those lanes).
-func connectionReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
+// connectionReady reports Ready=True for the v1beta1 QMC informer object delivered to the
+// workload controllers' connection-status watch.
+func connectionReady(conn *messagingv1beta1.QueueManagerConnection) bool {
 	return conditionsReady(conn.Status.Conditions)
 }
 
-func connectionReadyChanged(oldConn, newConn *messagingv1alpha1.QueueManagerConnection) bool {
+func connectionReadyChanged(oldConn, newConn *messagingv1beta1.QueueManagerConnection) bool {
 	return connectionReady(oldConn) != connectionReady(newConn)
 }
 
 func connectionWatchPredicates() predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			conn, ok := e.Object.(*messagingv1alpha1.QueueManagerConnection)
+			conn, ok := e.Object.(*messagingv1beta1.QueueManagerConnection)
 			return ok && connectionReady(conn)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldConn, okOld := e.ObjectOld.(*messagingv1alpha1.QueueManagerConnection)
-			newConn, okNew := e.ObjectNew.(*messagingv1alpha1.QueueManagerConnection)
+			oldConn, okOld := e.ObjectOld.(*messagingv1beta1.QueueManagerConnection)
+			newConn, okNew := e.ObjectNew.(*messagingv1beta1.QueueManagerConnection)
 			if !okOld || !okNew {
 				return false
 			}
@@ -511,7 +511,7 @@ func setupMQObjectController(mgr ctrl.Manager, reconciler reconcile.Reconciler, 
 		For(forObj, builder.WithPredicates(workloadReconcilePredicates())).
 		WithOptions(controllerOptions()).
 		Watches(
-			&messagingv1alpha1.QueueManagerConnection{},
+			&messagingv1beta1.QueueManagerConnection{},
 			watchConnectionStatus(mgr.GetClient()),
 			builder.WithPredicates(connectionWatchPredicates()),
 		).
