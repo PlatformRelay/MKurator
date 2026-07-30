@@ -339,17 +339,17 @@ func TestChannelReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	channel := &messagingv1alpha1.Channel{
+	channel := &messagingv1beta1.Channel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders-app",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.ChannelFinalizer},
+			Finalizers: []string{messagingv1beta1.ChannelFinalizer},
 			Annotations: map[string]string{
 				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 			},
 		},
-		Spec: messagingv1alpha1.ChannelSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.ChannelSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			ChannelName:   "ORDERS.APP",
 			Attributes:    map[string]string{"sslciph": "NULL"},
 		},
@@ -374,7 +374,7 @@ func TestChannelReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Channel{}
+	updated := &messagingv1beta1.Channel{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}

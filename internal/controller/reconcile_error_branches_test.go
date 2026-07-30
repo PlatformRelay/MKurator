@@ -175,7 +175,7 @@ var _ = Describe("ChannelReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -209,7 +209,7 @@ var _ = Describe("ChannelReconciler error branches", func() {
 		readyConnectionStatus(ctx, ns, "qm1")
 
 		channel := sampleChannel(ns, key, "qm1", channelName)
-		channel.Spec.AdoptionPolicy = messagingv1alpha1.AdoptionPolicyFailIfExists
+		channel.Spec.AdoptionPolicy = messagingv1beta1.AdoptionPolicyFailIfExists
 		Expect(k8sClient.Create(ctx, channel)).To(Succeed())
 
 		desired := mqadmin.ChannelSpec{
@@ -244,7 +244,7 @@ var _ = Describe("ChannelReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Channel{}
+		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))

@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/metrics"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -46,7 +46,7 @@ func (r *ChannelReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 //nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	channel := &messagingv1alpha1.Channel{}
+	channel := &messagingv1beta1.Channel{}
 	if err := r.Get(ctx, req.NamespacedName, channel); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -61,7 +61,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 	if !channel.DeletionTimestamp.IsZero() {
 		return reconcileWorkloadDeletion(
 			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, channel, channel.Generation,
-			messagingv1alpha1.ChannelFinalizer, "Channel orphaned in IBM MQ",
+			messagingv1beta1.ChannelFinalizer, "Channel orphaned in IBM MQ",
 			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
 				return r.handleDeletion(ctx, channel, admin)
 			},
@@ -94,8 +94,8 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 		return setSyncedError(ctx, r.Status(), r.Recorder, channel, channel.Generation, err, syncStatusOpts{})
 	}
 
-	if !controllerutil.ContainsFinalizer(channel, messagingv1alpha1.ChannelFinalizer) {
-		controllerutil.AddFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
+	if !controllerutil.ContainsFinalizer(channel, messagingv1beta1.ChannelFinalizer) {
+		controllerutil.AddFinalizer(channel, messagingv1beta1.ChannelFinalizer)
 		if updateErr := r.Update(ctx, channel); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
@@ -148,7 +148,7 @@ func (r *ChannelReconciler) reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ChannelReconciler) ensureChannel(
 	ctx context.Context,
 	admin mqadmin.Admin,
-	channel *messagingv1alpha1.Channel,
+	channel *messagingv1beta1.Channel,
 	spec mqadmin.ChannelSpec,
 	observeOnly bool,
 ) (bool, string, error) {
@@ -180,7 +180,7 @@ func (r *ChannelReconciler) ensureChannel(
 //nolint:dupl // shared MQ object deletion flow; differs in spec mapping and finalizer
 func (r *ChannelReconciler) handleDeletion(
 	ctx context.Context,
-	channel *messagingv1alpha1.Channel,
+	channel *messagingv1beta1.Channel,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
 	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, channel, channel.Generation,
@@ -198,14 +198,14 @@ func (r *ChannelReconciler) handleDeletion(
 
 	recordNormalEvent(r.Recorder, channel, EventReasonDeleted, "Channel removed from IBM MQ")
 
-	controllerutil.RemoveFinalizer(channel, messagingv1alpha1.ChannelFinalizer)
+	controllerutil.RemoveFinalizer(channel, messagingv1beta1.ChannelFinalizer)
 	if err := r.Update(ctx, channel); err != nil {
 		return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
 	}
 	return ctrl.Result{}, nil
 }
 
-func toMQChannelSpec(channel *messagingv1alpha1.Channel) mqadmin.ChannelSpec {
+func toMQChannelSpec(channel *messagingv1beta1.Channel) mqadmin.ChannelSpec {
 	attrs := map[string]string{}
 	for k, v := range channel.Spec.Attributes {
 		attrs[mqadmin.NormalizeAttrKey(k)] = v
@@ -256,5 +256,5 @@ func toMQChannelSpec(channel *messagingv1alpha1.Channel) mqadmin.ChannelSpec {
 
 // SetupWithManager wires the reconciler.
 func (r *ChannelReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return setupMQObjectController(mgr, r, &messagingv1alpha1.Channel{})
+	return setupMQObjectController(mgr, r, &messagingv1beta1.Channel{})
 }
