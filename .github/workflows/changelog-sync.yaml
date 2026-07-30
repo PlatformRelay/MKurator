@@ -1,0 +1,89 @@
+name: changelog-sync
+
+# Self-healing CHANGELOG.md sync (ported from kollect).
+#
+# Why this exists: git-cliff renders each [Unreleased] entry with the commit's
+# SHA (cliff.toml embeds {{ commit.id }}). Every rebase/squash merge assigns a
+# NEW SHA that the pre-merge CHANGELOG.md cannot know, so CHANGELOG.md drifts on
+# main after any user-facing (feat/fix/perf/refactor) merge. (docs/test/chore/ci/
+# build/style/merge commits are cliff-skipped and never drift.) This workflow
+# regenerates CHANGELOG.md after each push to main and commits the result, so
+# those merges self-heal instead of needing a manual `task changelog:write`.
+#
+# ACTIVATION (operator) — until done, the job SOFT-FAILS with a warning and never
+# blocks a merge (it is not a required check):
+#   1. Install a GitHub App on platformrelay/MKurator that can push to main
+#      (kollect uses org Integration App ID 4389790 — the same App can be
+#      installed here, or use a dedicated one).
+#   2. Add that App as a `protect-main` ruleset bypass actor (bypass_mode: always).
+#      GITHUB_TOKEN / github-actions[bot] cannot be a bypass actor — only a
+#      User/Team/Role/Integration (GitHub App) may bypass a ruleset.
+#   3. Set repo secrets:
+#        CHANGELOG_SYNC_GITHUB_APP_ID
+#        CHANGELOG_SYNC_GITHUB_APP_PRIVATE_KEY   (App private-key PEM)
+
+on:
+  push:
+    branches: [main]
+    # Loop guard: the sync commit only touches CHANGELOG.md, so ignoring it here
+    # prevents this workflow from re-triggering itself.
+    paths-ignore:
+      - "CHANGELOG.md"
+
+# arduino/setup-task still declares node20; keep the repo-wide Node 24 shim.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Read-only baseline (OpenSSF Scorecard "Token-Permissions"). The write grant is
+# scoped to the `sync` job below — the only job that commits/pushes CHANGELOG.md.
+permissions:
+  contents: read
+
+concurrency:
+  group: changelog-sync-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commits & pushes the regenerated CHANGELOG.md back to main
+    steps:
+      - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+        id: app-token
+        with:
+          app-id: ${{ secrets.CHANGELOG_SYNC_GITHUB_APP_ID }}
+          private-key: ${{ secrets.CHANGELOG_SYNC_GITHUB_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # git-cliff needs full history + tags
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token }}
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.51.1
+      - name: Regenerate CHANGELOG.md
+        run: task changelog:write
+        env:
+          CI: "true"
+      - name: Commit & push if drifted
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "::notice title=changelog-sync::CHANGELOG.md already in sync — nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          # `:memo: docs(...)` is cliff-skipped (gitmoji stripped, then ^docs skip),
+          # so this sync commit never re-drifts the changelog. [skip ci] keeps the
+          # App-token push from re-triggering workflows; paths-ignore is the primary
+          # loop guard when only CHANGELOG.md changes.
+          git commit -m ":memo: docs(changelog): sync CHANGELOG.md [skip ci]"
+          if git push origin HEAD:main; then
+            echo "::notice title=changelog-sync::Pushed regenerated CHANGELOG.md to main."
+          else
+            echo "::warning title=changelog-sync::Could not push CHANGELOG.md — ensure CHANGELOG_SYNC_GITHUB_APP_ID + CHANGELOG_SYNC_GITHUB_APP_PRIVATE_KEY are set and the App is a protect-main bypass actor (always). CHANGELOG.md remains drifted until then."
+          fi
