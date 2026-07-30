@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -106,7 +107,7 @@ var _ = Describe("TopicReconciler", func() {
 
 		mockFactory := mqadmintest.NewMockFactory(GinkgoT())
 		mockFactory.EXPECT().
-			ForConnection(mock.Anything, mock.MatchedBy(func(c *messagingv1alpha1.QueueManagerConnection) bool {
+			ForConnection(mock.Anything, mock.MatchedBy(func(c *messagingv1beta1.QueueManagerConnection) bool {
 				return c.Name == "qm1" && c.Namespace == ns
 			})).
 			Return(mockAdmin, nil)

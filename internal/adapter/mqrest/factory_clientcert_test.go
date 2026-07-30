@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -53,11 +52,11 @@ func genKeypair(t *testing.T, cn string) (certPEM, keyPEM []byte) {
 	return certPEM, keyPEM
 }
 
-// clientCertFixtures builds the tls Secret, v1beta1 hub (ClientCert union) and the
-// down-converted v1alpha1 spoke the reconciler hands the factory.
+// clientCertFixtures builds the tls Secret and the v1beta1 hub (ClientCert union) that the
+// reconciler hands the factory directly (8e-1).
 func clientCertFixtures(
 	t *testing.T, ns, secretName, rv string,
-) (*messagingv1beta1.QueueManagerConnection, *messagingv1alpha1.QueueManagerConnection, *corev1.Secret) {
+) (*messagingv1beta1.QueueManagerConnection, *corev1.Secret) {
 	t.Helper()
 	certPEM, keyPEM := genKeypair(t, "mkurator-admin")
 	secret := &corev1.Secret{
@@ -78,14 +77,7 @@ func clientCertFixtures(
 			},
 		},
 	}
-	spoke := &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: "qm-mtls", Namespace: ns, Generation: 1},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://ibm-mq.ibm-mq.svc:9443",
-		},
-	}
-	return hub, spoke, secret
+	return hub, secret
 }
 
 // AC1: the factory resolves ClientCert mode from the union, reading the tls Secret (not the
@@ -96,11 +88,11 @@ func TestClientFactory_ResolvesClientCertUnion(t *testing.T) {
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
-	hub, spoke, secret := clientCertFixtures(t, ns, "mtls-creds", "1")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, hub, spoke).Build()
+	hub, secret := clientCertFixtures(t, ns, "mtls-creds", "1")
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, hub).Build()
 	factory := NewClientFactory(cl).(*ClientFactory)
 
-	auth, err := factory.resolveAuthentication(ctx, spoke)
+	auth, err := factory.resolveAuthentication(hub)
 	if err != nil {
 		t.Fatalf("resolveAuthentication: %v", err)
 	}
@@ -111,7 +103,7 @@ func TestClientFactory_ResolvesClientCertUnion(t *testing.T) {
 		t.Fatalf("mode = %v, want authModeClientCert", auth.mode)
 	}
 
-	admin, err := factory.ForConnection(ctx, spoke)
+	admin, err := factory.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection: %v", err)
 	}
@@ -143,12 +135,12 @@ func TestClientFactory_ClientCertBadKeypairIsConfigurationError(t *testing.T) {
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
-	hub, spoke, secret := clientCertFixtures(t, ns, "mtls-creds", "1")
+	hub, secret := clientCertFixtures(t, ns, "mtls-creds", "1")
 	secret.Data["tls.crt"] = []byte("-----BEGIN CERTIFICATE-----\nnonsense\n-----END CERTIFICATE-----")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, hub, spoke).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, hub).Build()
 	factory := NewClientFactory(cl)
 
-	_, err := factory.ForConnection(ctx, spoke)
+	_, err := factory.ForConnection(ctx, hub)
 	if err == nil {
 		t.Fatal("expected a build error for a bad keypair")
 	}
@@ -169,8 +161,8 @@ func TestClientFactory_ClientCertSecretRotationReplacesAndCloses(t *testing.T) {
 	ns := "mkurator-system"
 	s := unionTestScheme(t)
 
-	hub, spoke, secret := clientCertFixtures(t, ns, "mtls-creds", "1")
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, hub, spoke).Build()
+	hub, secret := clientCertFixtures(t, ns, "mtls-creds", "1")
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, hub).Build()
 
 	tr := &idleTrackingTransport{}
 	factory := NewClientFactory(cl).(*ClientFactory)
@@ -181,14 +173,14 @@ func TestClientFactory_ClientCertSecretRotationReplacesAndCloses(t *testing.T) {
 		return NewClient(cfg)
 	}
 
-	c1, err := factory.ForConnection(ctx, spoke)
+	c1, err := factory.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection first: %v", err)
 	}
 
 	rotateCredSecret(ctx, t, cl, secret, "2")
 
-	c2, err := factory.ForConnection(ctx, spoke)
+	c2, err := factory.ForConnection(ctx, hub)
 	if err != nil {
 		t.Fatalf("ForConnection after cert rotation: %v", err)
 	}

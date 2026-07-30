@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 // ErrNoHealthyQMC is returned when at least one non-deleting QueueManagerConnection
@@ -24,7 +24,7 @@ var ErrNoHealthyQMC = errors.New("no QueueManagerConnection reports Ready=True")
 //   - No non-deleting QueueManagerConnections → ready (MQ not configured yet).
 //   - At least one non-deleting QMC with Ready=True → ready.
 //   - Otherwise → not ready (all connections down or still progressing).
-func EvaluateMQConnectivity(conns []messagingv1alpha1.QueueManagerConnection) error {
+func EvaluateMQConnectivity(conns []messagingv1beta1.QueueManagerConnection) error {
 	active := 0
 	for i := range conns {
 		conn := &conns[i]
@@ -42,9 +42,9 @@ func EvaluateMQConnectivity(conns []messagingv1alpha1.QueueManagerConnection) er
 	return ErrNoHealthyQMC
 }
 
-func qmcReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
+func qmcReady(conn *messagingv1beta1.QueueManagerConnection) bool {
 	for _, c := range conn.Status.Conditions {
-		if c.Type == messagingv1alpha1.ConditionReady && c.Status == metav1.ConditionTrue {
+		if c.Type == messagingv1beta1.ConditionReady && c.Status == metav1.ConditionTrue {
 			return true
 		}
 	}
@@ -58,7 +58,7 @@ type MQConnectivityChecker struct {
 
 // Check implements healthz.Checker.
 func (c *MQConnectivityChecker) Check(_ *http.Request) error {
-	var list messagingv1alpha1.QueueManagerConnectionList
+	var list messagingv1beta1.QueueManagerConnectionList
 	if err := c.Client.List(context.Background(), &list); err != nil {
 		return fmt.Errorf("list QueueManagerConnections: %w", err)
 	}

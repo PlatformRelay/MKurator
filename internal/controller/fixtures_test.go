@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 const (
@@ -41,7 +42,7 @@ func cleanupNamespace(ctx context.Context, ns string) {
 	deleteAllOf(ctx, &messagingv1alpha1.ChannelList{}, ns)
 	deleteAllOf(ctx, &messagingv1alpha1.ChannelAuthRuleList{}, ns)
 	deleteAllOf(ctx, &messagingv1alpha1.AuthorityRecordList{}, ns)
-	deleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnectionList{}, ns)
+	deleteAllOf(ctx, &messagingv1beta1.QueueManagerConnectionList{}, ns)
 	deleteAllOf(ctx, &corev1.SecretList{}, ns)
 	deleteAllOf(ctx, &eventsv1.EventList{}, ns)
 }
@@ -84,7 +85,7 @@ func deleteAllOf(ctx context.Context, list client.ObjectList, ns string) {
 			Expect(k8sClient.Update(ctx, obj)).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, obj))).To(Succeed())
 		}
-	case *messagingv1alpha1.QueueManagerConnectionList:
+	case *messagingv1beta1.QueueManagerConnectionList:
 		for i := range items.Items {
 			obj := &items.Items[i]
 			obj.Finalizers = nil

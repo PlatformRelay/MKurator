@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/metrics"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -48,7 +48,7 @@ func (r *QueueManagerConnectionReconciler) Reconcile(ctx context.Context, req ct
 
 func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	conn := &messagingv1alpha1.QueueManagerConnection{}
+	conn := &messagingv1beta1.QueueManagerConnection{}
 	if err := r.Get(ctx, req.NamespacedName, conn); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -57,11 +57,11 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 	}
 
 	if !conn.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer) {
+		if controllerutil.ContainsFinalizer(conn, messagingv1beta1.QueueManagerConnectionFinalizer) {
 			if err := r.MQFactory.ReleaseConnection(ctx, conn); err != nil {
 				return ctrl.Result{}, fmt.Errorf("release mq client: %w", err)
 			}
-			controllerutil.RemoveFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer)
+			controllerutil.RemoveFinalizer(conn, messagingv1beta1.QueueManagerConnectionFinalizer)
 			if err := r.Update(ctx, conn); err != nil {
 				return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
 			}
@@ -69,8 +69,8 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
-	if !controllerutil.ContainsFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer) {
-		controllerutil.AddFinalizer(conn, messagingv1alpha1.QueueManagerConnectionFinalizer)
+	if !controllerutil.ContainsFinalizer(conn, messagingv1beta1.QueueManagerConnectionFinalizer) {
+		controllerutil.AddFinalizer(conn, messagingv1beta1.QueueManagerConnectionFinalizer)
 		if err := r.Update(ctx, conn); err != nil {
 			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", err)
 		}
@@ -79,11 +79,11 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 
 	gen := conn.Generation
 	readyMsg := "mqweb connection is healthy"
-	alreadyReady := connectionReady(conn) && conn.Status.ObservedGeneration == gen
+	alreadyReady := conditionsReady(conn.Status.Conditions) && conn.Status.ObservedGeneration == gen
 
 	if !alreadyReady {
-		setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
-			metav1.ConditionFalse, messagingv1alpha1.ReasonProgressing, "Testing mqweb connectivity", gen)
+		setCondition(&conn.Status.Conditions, messagingv1beta1.ConditionReady,
+			metav1.ConditionFalse, messagingv1beta1.ReasonProgressing, "Testing mqweb connectivity", gen)
 		if err := r.Status().Update(ctx, conn); err != nil {
 			return ctrl.Result{}, fmt.Errorf("update status progressing: %w", err)
 		}
@@ -104,12 +104,12 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
-	if conditionChanged(conn.Status.Conditions, messagingv1alpha1.ConditionReady,
-		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable) {
-		recordNormalEvent(r.Recorder, conn, messagingv1alpha1.ReasonAvailable, readyMsg)
+	if conditionChanged(conn.Status.Conditions, messagingv1beta1.ConditionReady,
+		metav1.ConditionTrue, messagingv1beta1.ReasonAvailable) {
+		recordNormalEvent(r.Recorder, conn, messagingv1beta1.ReasonAvailable, readyMsg)
 	}
-	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
-		metav1.ConditionTrue, messagingv1alpha1.ReasonAvailable, readyMsg, gen)
+	setCondition(&conn.Status.Conditions, messagingv1beta1.ConditionReady,
+		metav1.ConditionTrue, messagingv1beta1.ReasonAvailable, readyMsg, gen)
 	conn.Status.ObservedGeneration = gen
 	if err := r.Status().Update(ctx, conn); err != nil {
 		return ctrl.Result{}, fmt.Errorf("update status: %w", err)
@@ -120,23 +120,24 @@ func (r *QueueManagerConnectionReconciler) reconcile(ctx context.Context, req ct
 
 func (r *QueueManagerConnectionReconciler) fail(
 	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 	gen int64,
 	err error,
 ) (ctrl.Result, error) {
-	if connectionReady(conn) && conn.Status.ObservedGeneration == gen && errors.Is(err, mqadmin.ErrTransient) {
+	if conditionsReady(conn.Status.Conditions) && conn.Status.ObservedGeneration == gen &&
+		errors.Is(err, mqadmin.ErrTransient) {
 		return ctrl.Result{RequeueAfter: TransientRequeueInterval()}, nil
 	}
 
 	recordReconcileWarning(r.Recorder, conn, err)
 
-	reason := messagingv1alpha1.ReasonError
+	reason := messagingv1beta1.ReasonError
 	msg := err.Error()
 	var requeue ctrl.Result
 	if errors.Is(err, mqadmin.ErrTransient) {
 		requeue = ctrl.Result{RequeueAfter: TransientRequeueInterval()}
 	}
-	setCondition(&conn.Status.Conditions, messagingv1alpha1.ConditionReady,
+	setCondition(&conn.Status.Conditions, messagingv1beta1.ConditionReady,
 		metav1.ConditionFalse, reason, msg, gen)
 	if statusErr := r.Status().Update(ctx, conn); statusErr != nil {
 		return requeue, fmt.Errorf("update status: %w", statusErr)
@@ -154,7 +155,7 @@ func (r *QueueManagerConnectionReconciler) fail(
 // SetupWithManager wires the reconciler.
 func (r *QueueManagerConnectionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&messagingv1alpha1.QueueManagerConnection{}).
+		For(&messagingv1beta1.QueueManagerConnection{}).
 		WithOptions(controllerOptions()).
 		Watches(
 			&corev1.Secret{},

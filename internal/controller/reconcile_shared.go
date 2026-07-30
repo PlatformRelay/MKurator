@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -90,12 +91,15 @@ func patchSyncedStatus(
 	return status.Update(ctx, obj)
 }
 
+// resolveConnection reads the QueueManagerConnection natively as the v1beta1 hub (8e-1). Every
+// caller (the QMC reconciler and the workload reconcilers) hands this hub straight to the mqadmin
+// factory, so spec.authentication survives without a lossy down-conversion round trip (ADR-0027).
 func resolveConnection(
 	ctx context.Context,
 	c client.Client,
 	namespace, name string,
-) (*messagingv1alpha1.QueueManagerConnection, error) {
-	conn := &messagingv1alpha1.QueueManagerConnection{}
+) (*messagingv1beta1.QueueManagerConnection, error) {
+	conn := &messagingv1beta1.QueueManagerConnection{}
 	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, conn); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return nil, &mqadmin.ConnectionNotFoundError{Name: name, Cause: err}
@@ -110,10 +114,10 @@ func waitForConnectionReady(
 	status client.StatusWriter,
 	recorder events.EventRecorder,
 	obj client.Object,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 	generation int64,
 ) (ctrl.Result, bool, error) {
-	if connectionReady(conn) {
+	if conditionsReady(conn.Status.Conditions) {
 		return ctrl.Result{}, false, nil
 	}
 	msg := connectionWaitMessage(conn)
@@ -463,13 +467,22 @@ func watchConnectionStatus(c client.Client) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(connectionEnqueueMapper(c))
 }
 
-func connectionReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
-	for _, c := range conn.Status.Conditions {
+// conditionsReady reports whether a Ready=True condition is present. It is version-agnostic
+// (both API versions share the identical condition Type string), so the native-v1beta1 resolved
+// connection path and the legacy v1alpha1 QMC-watch fan-out share one implementation.
+func conditionsReady(conds []metav1.Condition) bool {
+	for _, c := range conds {
 		if c.Type == messagingv1alpha1.ConditionReady && c.Status == metav1.ConditionTrue {
 			return true
 		}
 	}
 	return false
+}
+
+// connectionReady reports Ready=True for the v1alpha1 QMC informer object delivered to the
+// workload controllers' connection-status watch (still v1alpha1 until 8e-3..7 flip those lanes).
+func connectionReady(conn *messagingv1alpha1.QueueManagerConnection) bool {
+	return conditionsReady(conn.Status.Conditions)
 }
 
 func connectionReadyChanged(oldConn, newConn *messagingv1alpha1.QueueManagerConnection) bool {

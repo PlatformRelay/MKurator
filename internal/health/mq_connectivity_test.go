@@ -6,37 +6,37 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestEvaluateMQConnectivity(t *testing.T) {
 	t.Parallel()
 
-	ready := func(name string) messagingv1alpha1.QueueManagerConnection {
-		return messagingv1alpha1.QueueManagerConnection{
+	ready := func(name string) messagingv1beta1.QueueManagerConnection {
+		return messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
-			Status: messagingv1alpha1.QueueManagerConnectionStatus{
+			Status: messagingv1beta1.QueueManagerConnectionStatus{
 				Conditions: []metav1.Condition{{
-					Type:   messagingv1alpha1.ConditionReady,
+					Type:   messagingv1beta1.ConditionReady,
 					Status: metav1.ConditionTrue,
-					Reason: messagingv1alpha1.ReasonAvailable,
+					Reason: messagingv1beta1.ReasonAvailable,
 				}},
 			},
 		}
 	}
-	unready := func(name string) messagingv1alpha1.QueueManagerConnection {
-		return messagingv1alpha1.QueueManagerConnection{
+	unready := func(name string) messagingv1beta1.QueueManagerConnection {
+		return messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
-			Status: messagingv1alpha1.QueueManagerConnectionStatus{
+			Status: messagingv1beta1.QueueManagerConnectionStatus{
 				Conditions: []metav1.Condition{{
-					Type:   messagingv1alpha1.ConditionReady,
+					Type:   messagingv1beta1.ConditionReady,
 					Status: metav1.ConditionFalse,
-					Reason: messagingv1alpha1.ReasonError,
+					Reason: messagingv1beta1.ReasonError,
 				}},
 			},
 		}
 	}
-	deleting := func(name string) messagingv1alpha1.QueueManagerConnection {
+	deleting := func(name string) messagingv1beta1.QueueManagerConnection {
 		conn := unready(name)
 		now := metav1.Now()
 		conn.DeletionTimestamp = &now
@@ -45,32 +45,32 @@ func TestEvaluateMQConnectivity(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		conns   []messagingv1alpha1.QueueManagerConnection
+		conns   []messagingv1beta1.QueueManagerConnection
 		wantErr error
 	}{
 		{name: "no QMCs", conns: nil},
-		{name: "only deleting unready", conns: []messagingv1alpha1.QueueManagerConnection{deleting("gone")}},
-		{name: "one ready", conns: []messagingv1alpha1.QueueManagerConnection{ready("qm1")}},
+		{name: "only deleting unready", conns: []messagingv1beta1.QueueManagerConnection{deleting("gone")}},
+		{name: "one ready", conns: []messagingv1beta1.QueueManagerConnection{ready("qm1")}},
 		{
 			name: "one ready one failing",
-			conns: []messagingv1alpha1.QueueManagerConnection{
+			conns: []messagingv1beta1.QueueManagerConnection{
 				unready("bad"),
 				ready("good"),
 			},
 		},
 		{
 			name:    "all unready",
-			conns:   []messagingv1alpha1.QueueManagerConnection{unready("a"), unready("b")},
+			conns:   []messagingv1beta1.QueueManagerConnection{unready("a"), unready("b")},
 			wantErr: ErrNoHealthyQMC,
 		},
 		{
 			name:    "no status yet",
-			conns:   []messagingv1alpha1.QueueManagerConnection{{ObjectMeta: metav1.ObjectMeta{Name: "new"}}},
+			conns:   []messagingv1beta1.QueueManagerConnection{{ObjectMeta: metav1.ObjectMeta{Name: "new"}}},
 			wantErr: ErrNoHealthyQMC,
 		},
 		{
 			name: "deleting ignored unready active blocks",
-			conns: []messagingv1alpha1.QueueManagerConnection{
+			conns: []messagingv1beta1.QueueManagerConnection{
 				deleting("old"),
 				unready("active"),
 			},

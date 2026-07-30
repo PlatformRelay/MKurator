@@ -13,12 +13,9 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
@@ -69,17 +66,16 @@ func (f *ClientFactory) createClient(cfg Config) (mqadmin.Admin, error) {
 // ForConnection implements mqadmin.Factory.
 func (f *ClientFactory) ForConnection(
 	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) (mqadmin.Admin, error) {
 	key := connectionCacheKey(conn)
 
-	// Resolve the effective Basic credentials Secret name once (ADR-0027). The reconciler
-	// hands us a v1alpha1 (spoke) view whose authentication union was dropped on
-	// down-conversion, so we re-read the v1beta1 hub to honour authentication.basic.secretRef.
+	// Resolve the effective credentials Secret name once (ADR-0027). The reconciler hands us the
+	// v1beta1 hub directly (8e-1), so we read spec.authentication straight off it — no hub re-read.
 	// A union QMC's fingerprint and config must both key off THIS secret, not the legacy
-	// CredentialsSecretRef (which is empty for a union-only spec) — otherwise rotation of the
+	// CredentialsSecretRef (which is nil for a union-only spec) — otherwise rotation of the
 	// union's secret would not invalidate the cache (ADR-0023 sharpest constraint).
-	auth, err := f.resolveAuthentication(ctx, conn)
+	auth, err := f.resolveAuthentication(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +130,7 @@ func (f *ClientFactory) ForConnection(
 // so deletion succeeds when credentials were removed first (ADR-0023).
 func (f *ClientFactory) ReleaseConnection(
 	_ context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) error {
 	key := connectionCacheKey(conn)
 
@@ -151,7 +147,7 @@ func (f *ClientFactory) ReleaseConnection(
 	return nil
 }
 
-func connectionCacheKey(conn *messagingv1alpha1.QueueManagerConnection) string {
+func connectionCacheKey(conn *messagingv1beta1.QueueManagerConnection) string {
 	return fmt.Sprintf("%s/%s", conn.Namespace, conn.Name)
 }
 
@@ -174,10 +170,9 @@ type resolvedAuth struct {
 // resolveCredentialsSecretName returns just the effective Secret name (kept as a thin
 // wrapper over resolveAuthentication for the fingerprint path and existing tests).
 func (f *ClientFactory) resolveCredentialsSecretName(
-	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) (string, error) {
-	auth, err := f.resolveAuthentication(ctx, conn)
+	auth, err := f.resolveAuthentication(conn)
 	if err != nil {
 		return "", err
 	}
@@ -187,46 +182,39 @@ func (f *ClientFactory) resolveCredentialsSecretName(
 // resolveAuthentication returns the effective Secret name and mode this connection
 // authenticates with, honouring the v1beta1 authentication union (ADR-0027, AUTH-12/13).
 //
-// The reconciler passes a v1alpha1 (spoke) QMC whose authentication union was dropped by
-// down-conversion, so we re-read the v1beta1 hub by namespace/name:
+// The reconciler hands the factory the v1beta1 hub directly (8e-1), so spec.authentication is
+// read straight off the object — no hub re-read, no lossy down-conversion round trip. This
+// supersedes the #168 annotation mitigation: the union can no longer be wiped en route, so the
+// re-read fallback that existed to recover it (and its NoMatch/NotRegistered special-casing) is
+// gone.
 //   - authentication union, mode Basic      -> Basic against authentication.basic.secretRef
 //   - authentication union, mode LTPA       -> LTPA against authentication.ltpa.secretRef (AUTH-13)
 //   - authentication union, mode ClientCert -> mTLS against authentication.clientCert.secretRef (AUTH-16)
-//   - union absent (legacy spec)            -> Basic against hub credentialsSecretRef
+//   - union absent (legacy spec)            -> Basic against credentialsSecretRef
 //
-// Fallback (legacy behaviour): if the hub is NotFound — including test/fake clients whose
-// scheme has no v1beta1 registered, which surface as NotFound — we use the spoke's
-// CredentialsSecretRef as Basic, preserving pre-ADR-0027 behaviour verbatim. Any other read
-// error is propagated: swallowing it would yield empty credentials and a confusing
-// downstream error. Basic, LTPA, and ClientCert are the accepted enum values.
+// A spec carrying neither the union nor credentialsSecretRef is rejected by CEL at admission;
+// should one slip through, an explicit error beats a nil-deref on the (now-optional, pointer)
+// CredentialsSecretRef. Basic, LTPA, and ClientCert are the accepted enum values.
 func (f *ClientFactory) resolveAuthentication(
-	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) (resolvedAuth, error) {
-	hub := &messagingv1beta1.QueueManagerConnection{}
-	err := f.K8s.Get(ctx, client.ObjectKey{Namespace: conn.Namespace, Name: conn.Name}, hub)
-	switch {
-	case err == nil:
-		if a := hub.Spec.Authentication; a != nil {
-			switch {
-			case a.Mode == messagingv1beta1.MQWebAuthenticationModeBasic && a.Basic != nil:
-				return resolvedAuth{secretName: a.Basic.SecretRef.Name, mode: authModeBasic}, nil
-			case a.Mode == messagingv1beta1.MQWebAuthenticationModeLTPA && a.LTPA != nil:
-				return resolvedAuth{secretName: a.LTPA.SecretRef.Name, mode: authModeLTPA}, nil
-			case a.Mode == messagingv1beta1.MQWebAuthenticationModeClientCert && a.ClientCert != nil:
-				return resolvedAuth{secretName: a.ClientCert.SecretRef.Name, mode: authModeClientCert}, nil
-			}
+	if a := conn.Spec.Authentication; a != nil {
+		switch {
+		case a.Mode == messagingv1beta1.MQWebAuthenticationModeBasic && a.Basic != nil:
+			return resolvedAuth{secretName: a.Basic.SecretRef.Name, mode: authModeBasic}, nil
+		case a.Mode == messagingv1beta1.MQWebAuthenticationModeLTPA && a.LTPA != nil:
+			return resolvedAuth{secretName: a.LTPA.SecretRef.Name, mode: authModeLTPA}, nil
+		case a.Mode == messagingv1beta1.MQWebAuthenticationModeClientCert && a.ClientCert != nil:
+			return resolvedAuth{secretName: a.ClientCert.SecretRef.Name, mode: authModeClientCert}, nil
 		}
-		if hub.Spec.CredentialsSecretRef != nil {
-			return resolvedAuth{secretName: hub.Spec.CredentialsSecretRef.Name, mode: authModeBasic}, nil
-		}
-		return resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic}, nil
-	case k8serrors.IsNotFound(err), meta.IsNoMatchError(err), runtime.IsNotRegisteredError(err):
-		// Hub not readable (missing object or v1beta1 not in scheme): legacy Basic fallback.
-		return resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic}, nil
-	default:
-		return resolvedAuth{}, fmt.Errorf("resolve authentication for connection %q: %w", connectionCacheKey(conn), err)
 	}
+	if conn.Spec.CredentialsSecretRef != nil {
+		return resolvedAuth{secretName: conn.Spec.CredentialsSecretRef.Name, mode: authModeBasic}, nil
+	}
+	return resolvedAuth{}, fmt.Errorf(
+		"resolve authentication for connection %q: neither authentication union nor credentialsSecretRef set",
+		connectionCacheKey(conn),
+	)
 }
 
 // cacheFingerprint keys the cached client off the QMC generation plus the resourceVersion of
@@ -239,7 +227,7 @@ func (f *ClientFactory) resolveAuthentication(
 // perf-neutral: it Gets only credName (+ CA when set), never an extra union Secret.
 func (f *ClientFactory) cacheFingerprint(
 	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 	credName string,
 ) (cacheFingerprint, error) {
 	credSecret := &corev1.Secret{}
@@ -290,7 +278,7 @@ func closeClientIdleConnections(admin mqadmin.Admin) {
 
 func (f *ClientFactory) buildConfig(
 	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 	auth resolvedAuth,
 ) (Config, error) {
 	ns := conn.Namespace
@@ -362,7 +350,7 @@ func (f *ClientFactory) buildConfig(
 // is a no-op (no Authorization header).
 func (f *ClientFactory) buildClientCertConfig(
 	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 	credName string,
 	credSecret *corev1.Secret,
 ) (Config, error) {
@@ -405,7 +393,7 @@ func (f *ClientFactory) buildClientCertConfig(
 // (ADR-0027 AC1: "existing caSecretRef server-auth trust is unchanged").
 func (f *ClientFactory) buildServerTLSConfig(
 	ctx context.Context,
-	conn *messagingv1alpha1.QueueManagerConnection,
+	conn *messagingv1beta1.QueueManagerConnection,
 ) (*tls.Config, error) {
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
 	if conn.Spec.TLS != nil && conn.Spec.TLS.InsecureSkipVerify {
@@ -439,7 +427,7 @@ func (f *ClientFactory) buildServerTLSConfig(
 	return tlsCfg, nil
 }
 
-func endpointAndPrefix(conn *messagingv1alpha1.QueueManagerConnection) (*url.URL, string, error) {
+func endpointAndPrefix(conn *messagingv1beta1.QueueManagerConnection) (*url.URL, string, error) {
 	endpoint, err := url.Parse(conn.Spec.Endpoint)
 	if err != nil {
 		return nil, "", fmt.Errorf("parse endpoint: %w", err)

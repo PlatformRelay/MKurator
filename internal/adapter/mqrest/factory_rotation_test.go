@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -37,7 +37,7 @@ func testConnAndSecret(
 	ns string,
 	generation int64,
 	credRV string,
-) (*messagingv1alpha1.QueueManagerConnection, *corev1.Secret) {
+) (*messagingv1beta1.QueueManagerConnection, *corev1.Secret) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns, ResourceVersion: credRV},
 		Data: map[string][]byte{
@@ -45,12 +45,12 @@ func testConnAndSecret(
 			"mqAdminPassword": []byte("passw0rd"),
 		},
 	}
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns, Generation: generation},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
 			QueueManager:         "QM1",
 			Endpoint:             "https://ibm-mq.ibm-mq.svc:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "mq-credentials"},
 		},
 	}
 	return conn, secret
@@ -92,7 +92,7 @@ func TestClientFactory_ReplaceOnRotationClosesOldTransport(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -133,7 +133,7 @@ func TestClientFactory_CacheBoundedAcrossRotations(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -167,7 +167,7 @@ func TestClientFactory_ReplaceOnGenerationChange(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
