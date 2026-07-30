@@ -10,16 +10,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
 func TestConnectionReferencesSecret(t *testing.T) {
 	t.Parallel()
-	conn := &messagingv1alpha1.QueueManagerConnection{
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "creds"},
-			TLS: &messagingv1alpha1.TLSConfig{
-				CASecretRef: &messagingv1alpha1.SecretReference{Name: "ca"},
+	conn := &messagingv1beta1.QueueManagerConnection{
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "creds"},
+			TLS: &messagingv1beta1.TLSConfig{
+				CASecretRef: &messagingv1beta1.SecretReference{Name: "ca"},
 			},
 		},
 	}
@@ -39,7 +39,7 @@ func TestRequestsForSecret_EnqueuesReferencingConnections(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -50,16 +50,16 @@ func TestRequestsForSecret_EnqueuesReferencingConnections(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns},
 		Data:       map[string][]byte{"password": []byte("old")},
 	}
-	connMatch := &messagingv1alpha1.QueueManagerConnection{
+	connMatch := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "mq-credentials"},
 		},
 	}
-	connOther := &messagingv1alpha1.QueueManagerConnection{
+	connOther := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm2", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "other"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "other"},
 		},
 	}
 
@@ -114,7 +114,7 @@ func TestSecretEnqueueMapper(t *testing.T) {
 	ctx := context.Background()
 	ns := "mkurator-system"
 	s := runtime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
+	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatal(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -123,10 +123,10 @@ func TestSecretEnqueueMapper(t *testing.T) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "mq-credentials", Namespace: ns},
 	}
-	conn := &messagingv1alpha1.QueueManagerConnection{
+	conn := &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: "mq-credentials"},
+		Spec: messagingv1beta1.QueueManagerConnectionSpec{
+			CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: "mq-credentials"},
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret, conn).Build()
