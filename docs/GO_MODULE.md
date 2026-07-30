@@ -23,7 +23,7 @@ clone may use another directory name (for example `IBM-Message-Queue-Operator`).
 
 ```
 .
-├── api/v1alpha1/              # CRD types, conditions, finalizer constants
+├── api/v1beta1/               # CRD types, conditions, finalizer constants
 ├── cmd/                       # Manager bootstrap (scheme, reconcilers, webhooks)
 ├── internal/
 │   ├── controller/            # Reconcilers + shared reconcile helpers
@@ -31,7 +31,7 @@ clone may use another directory name (for example `IBM-Message-Queue-Operator`).
 │   ├── adapter/
 │   │   ├── mqrest/            # mqweb REST implementation of MQAdmin (production)
 │   │   └── mqpcf/             # PCF stub / future backend (not wired in main)
-│   ├── webhook/v1alpha1/      # Validating admission handlers
+│   ├── webhook/v1beta1/       # Validating admission handlers
 │   ├── validation/            # Pure validation rules (shared with webhooks)
 │   ├── health/                # Readiness: at least one Ready QMC
 │   ├── logging/               # slog/logr bootstrap
@@ -65,7 +65,7 @@ flowchart TB
     pcf["internal/adapter/mqpcf"]
   end
   subgraph core [Contracts]
-    api["api/v1alpha1"]
+    api["api/v1beta1"]
     port["internal/mqadmin"]
     val["internal/validation"]
   end
@@ -92,7 +92,7 @@ expect. Run `task arch:lint` (go-arch-lint) via `task lint` — config at
 
 | Layer | May import | Must not import |
 |-------|------------|-----------------|
-| **`api/v1alpha1`** | `k8s.io/*`, `sigs.k8s.io/controller-runtime/pkg/scheme` | `internal/*`, `cmd`, adapters |
+| **`api/v1beta1`** | `k8s.io/*`, `sigs.k8s.io/controller-runtime/pkg/scheme` | `internal/*`, `cmd`, adapters |
 | **`internal/validation`** | `api`, `k8s.io/apimachinery` | `controller`, `mqrest`, `mqadmin` |
 | **`internal/mqadmin`** | `api` (for `Factory` signatures), stdlib | `mqrest`, `controller`, `webhook` |
 | **`internal/adapter/mqrest`** | `mqadmin`, `api`, `k8s.io/client-go` | `controller`, `webhook` |
@@ -139,7 +139,7 @@ Regenerate with `task generate && task manifests`; CI and pre-commit run
 
 | Artifact | Generator | Location |
 |----------|-----------|----------|
-| Deepcopy | `controller-gen object` | `api/v1alpha1/zz_generated.deepcopy.go` |
+| Deepcopy | `controller-gen object` | `api/v1beta1/zz_generated.deepcopy.go` |
 | CRDs | `controller-gen crd` | `config/crd/bases/*.yaml` |
 | RBAC / webhook config | `controller-gen rbac,webhook` | `config/rbac/`, `config/webhook/` |
 | `MQAdmin` mock | mockery (`.mockery.yaml`) | `test/mocks/` |
