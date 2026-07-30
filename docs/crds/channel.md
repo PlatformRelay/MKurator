@@ -6,8 +6,7 @@ a receiver channel (`RCVR`), selected by `spec.type`. The operator reconciles th
 desired attributes through `mqweb` and reports drift via status conditions; it
 does not create the queue manager itself, nor does it start or stop the channel.
 
-- **API group/version:** `messaging.mkurator.dev/v1beta1` (also served as
-  `v1alpha1` via the conversion webhook — see [Custom resources](README.md)).
+- **API group/version:** `messaging.mkurator.dev/v1beta1` (the only served version — see [Custom resources](README.md)).
 - **Short name:** `chl` (`kubectl get chl`).
 - **Scope:** namespaced; `spec.connectionRef` resolves in the same namespace
   ([ADR-0023](../adr/0023-connection-client-cache-lifecycle.md)).

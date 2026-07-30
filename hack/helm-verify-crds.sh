@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Assert Helm chart CRDs serve v1alpha1 + v1beta1, store the v1beta1 hub,
-# include conversion webhook wiring, and match config/crd.
+# Assert Helm chart CRDs are single-version (serve + store only the v1beta1 hub),
+# carry NO conversion webhook stanza, and match config/crd (8e-8a: v1alpha1 is
+# no longer served).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,8 +36,6 @@ def load_crds(path: pathlib.Path) -> dict[str, dict]:
 
 
 kustomize_bundle = root / "config" / "crd"
-# Reuse helm-sync-crds source: kustomize build output is checked in verify.sh;
-# here we only compare helm files to a fresh kustomize build via subprocess-free read.
 import subprocess
 
 built = subprocess.check_output(
@@ -56,31 +55,28 @@ if missing:
 
 for name in sorted(expected):
     doc = helm_docs[name]
-    conversion = doc.get("spec", {}).get("conversion", {})
-    if conversion.get("strategy") != "Webhook":
-        raise SystemExit(f"helm-verify-crds: {name} conversion.strategy must be Webhook")
-    webhook = conversion.get("webhook", {})
-    service = webhook.get("clientConfig", {}).get("service", {})
-    if service.get("name") != "mkurator-webhook-service":
-        raise SystemExit(f"helm-verify-crds: {name} missing mkurator-webhook-service")
-    if service.get("path") != "/convert":
-        raise SystemExit(f"helm-verify-crds: {name} conversion webhook path must be /convert")
+
+    # 8e-8a: no conversion webhook — a dangling conversion stanza would fail
+    # every CR write on admission.
+    if doc.get("spec", {}).get("conversion"):
+        raise SystemExit(
+            f"helm-verify-crds: {name} must NOT carry a conversion stanza (v1alpha1 dropped)"
+        )
 
     annotations = doc.get("metadata", {}).get("annotations", {})
-    if annotations.get("cert-manager.io/inject-ca-from") != "mkurator-system/mkurator-serving-cert":
-        raise SystemExit(f"helm-verify-crds: {name} missing cert-manager CA injection annotation")
+    if "cert-manager.io/inject-ca-from" in annotations:
+        raise SystemExit(
+            f"helm-verify-crds: {name} must NOT carry the conversion cert-manager CA injection annotation"
+        )
 
     versions = {v["name"]: v for v in doc["spec"]["versions"]}
-    for version in ("v1alpha1", "v1beta1"):
-        if version not in versions:
-            raise SystemExit(f"helm-verify-crds: {name} missing version {version}")
-        if not versions[version].get("served"):
-            raise SystemExit(f"helm-verify-crds: {name} must serve {version}")
-
-    alpha = versions["v1alpha1"]
+    if set(versions) != {"v1beta1"}:
+        raise SystemExit(
+            f"helm-verify-crds: {name} must be single-version v1beta1, got {sorted(versions)}"
+        )
     beta = versions["v1beta1"]
-    if alpha.get("storage"):
-        raise SystemExit(f"helm-verify-crds: {name} must not store v1alpha1")
+    if not beta.get("served"):
+        raise SystemExit(f"helm-verify-crds: {name} must serve v1beta1")
     if not beta.get("storage"):
         raise SystemExit(f"helm-verify-crds: {name} must store v1beta1")
 

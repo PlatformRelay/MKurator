@@ -32,12 +32,16 @@ copy_generated() {
 
 copy_generated
 
+# Keep these in lockstep with the Taskfile manifests/generate targets. 8e-8a:
+# CRD/webhook codegen is narrowed to the v1beta1 API + v1beta1 webhook packages
+# (single-version CRDs, no v1alpha1 validating webhook); deepcopy still spans
+# ./api/... so the kept-but-unwired v1alpha1 types stay generated.
 go tool controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 go tool controller-gen \
   rbac:roleName=manager-role \
   crd \
   webhook \
-  paths="./api/...;./internal/controller/...;./internal/webhook/...;./cmd/..." \
+  paths="./api/v1beta1/...;./internal/controller/...;./internal/webhook/v1beta1/...;./cmd/..." \
   output:crd:artifacts:config=config/crd/bases
 
 if grep -q 'packages:' .mockery.yaml 2>/dev/null && ! grep -q 'packages: {}' .mockery.yaml; then

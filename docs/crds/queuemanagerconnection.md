@@ -8,8 +8,7 @@ that carries the administrative credentials. The `Queue`, `Topic`, `Channel`,
 `spec.connectionRef.name` to a `QueueManagerConnection` in the same namespace and
 reuse its cached client ([ADR-0023](../adr/0023-connection-client-cache-lifecycle.md)).
 
-- **API group/version:** `messaging.mkurator.dev/v1beta1` (also served as
-  `v1alpha1` via the conversion webhook — see [Custom resources](README.md)).
+- **API group/version:** `messaging.mkurator.dev/v1beta1` (the only served version — see [Custom resources](README.md)).
 - **Short name:** `qmc` (`kubectl get qmc`).
 - **Scope:** namespaced; `spec.credentialsSecretRef` and `spec.tls.caSecretRef`
   resolve in the same namespace as the CR.

@@ -1,9 +1,10 @@
 # Custom resources
 
-API group: **`messaging.mkurator.dev`** — both **`v1alpha1`** and **`v1beta1`**
-are served (all six kinds), with a conversion webhook between them. New manifests
-should use **`v1beta1`** (the samples below default to it); `v1alpha1` remains the
-etcd storage version until the hub migration is proven in CI
+API group: **`messaging.mkurator.dev`** — **`v1beta1`** is the only served and
+stored version (all six kinds). The earlier **`v1alpha1`** version and its
+conversion webhook were removed; upgrading from a build where `v1alpha1` was ever
+the etcd storage version (≤ v0.12) requires the one-time stored-object
+rewrite+prune in [UPGRADE.md](../UPGRADE.md) *first*
 ([ADR-0026](../adr/0026-v1beta1-graduation-plan.md), [API_STABILITY.md](../API_STABILITY.md)).
 
 Field-level reference pages (every `spec`/`status` field) are being added per
