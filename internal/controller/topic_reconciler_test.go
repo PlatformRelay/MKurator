@@ -71,7 +71,7 @@ var _ = Describe("TopicReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -129,7 +129,7 @@ var _ = Describe("TopicReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
@@ -203,7 +203,7 @@ var _ = Describe("TopicReconciler", func() {
 		topic := sampleTopic(ns, key, "qm1", topicName)
 		Expect(k8sClient.Create(ctx, topic)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, topic)).To(Succeed())
-		controllerutil.AddFinalizer(topic, messagingv1alpha1.TopicFinalizer)
+		controllerutil.AddFinalizer(topic, messagingv1beta1.TopicFinalizer)
 		Expect(k8sClient.Update(ctx, topic)).To(Succeed())
 
 		rec := &TopicReconciler{
@@ -221,7 +221,7 @@ var _ = Describe("TopicReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(updated.DeletionTimestamp).NotTo(BeZero())
 		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
@@ -242,10 +242,10 @@ var _ = Describe("TopicReconciler", func() {
 		Expect(k8sClient.Status().Update(ctx, conn)).To(Succeed())
 
 		topic := sampleTopic(ns, key, "qm1", topicName)
-		topic.Spec.DeletionPolicy = messagingv1alpha1.DeletionPolicyOrphan
+		topic.Spec.DeletionPolicy = messagingv1beta1.DeletionPolicyOrphan
 		Expect(k8sClient.Create(ctx, topic)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, topic)).To(Succeed())
-		controllerutil.AddFinalizer(topic, messagingv1alpha1.TopicFinalizer)
+		controllerutil.AddFinalizer(topic, messagingv1beta1.TopicFinalizer)
 		Expect(k8sClient.Update(ctx, topic)).To(Succeed())
 
 		rec := &TopicReconciler{
@@ -262,7 +262,7 @@ var _ = Describe("TopicReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
@@ -283,7 +283,7 @@ var _ = Describe("TopicReconciler", func() {
 		topic := sampleTopic(ns, key, "qm1", topicName)
 		Expect(k8sClient.Create(ctx, topic)).To(Succeed())
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, topic)).To(Succeed())
-		controllerutil.AddFinalizer(topic, messagingv1alpha1.TopicFinalizer)
+		controllerutil.AddFinalizer(topic, messagingv1beta1.TopicFinalizer)
 		Expect(k8sClient.Update(ctx, topic)).To(Succeed())
 
 		rec := &TopicReconciler{
@@ -298,7 +298,7 @@ var _ = Describe("TopicReconciler", func() {
 		if topic.Annotations == nil {
 			topic.Annotations = map[string]string{}
 		}
-		topic.Annotations[messagingv1alpha1.ForceOrphanAnnotation] = "true"
+		topic.Annotations[messagingv1beta1.ForceOrphanAnnotation] = "true"
 		Expect(k8sClient.Update(ctx, topic)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, topic)).To(Succeed())
 
@@ -308,17 +308,17 @@ var _ = Describe("TopicReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
 })
 
-func sampleTopic(ns, name, connName, topicName string) *messagingv1alpha1.Topic {
-	return &messagingv1alpha1.Topic{
+func sampleTopic(ns, name, connName, topicName string) *messagingv1beta1.Topic {
+	return &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: connName},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: connName},
 			TopicName:     topicName,
 			Attributes: map[string]string{
 				"topstr": "retail/orders",

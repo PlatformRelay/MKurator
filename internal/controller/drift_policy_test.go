@@ -287,17 +287,17 @@ func TestTopicReconciler_ObserveOnlySyncedWithoutDefine(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "retail",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers: []string{messagingv1beta1.TopicFinalizer},
 			Annotations: map[string]string{
 				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 			},
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 			Attributes:    map[string]string{"topstr": "retail/orders"},
 		},
@@ -322,7 +322,7 @@ func TestTopicReconciler_ObserveOnlySyncedWithoutDefine(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Topic{}
+	updated := &messagingv1beta1.Topic{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}

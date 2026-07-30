@@ -100,6 +100,11 @@ func patchSyncedAdoptionBlocked(
 			metav1.ConditionFalse, reason, message, generation)
 		applyMQObjectStatusFields(o, opts, message, nil)
 		return status.Update(ctx, o)
+	case *messagingv1beta1.Topic:
+		setCondition(&o.Status.Conditions, messagingv1beta1.ConditionSynced,
+			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
+		return status.Update(ctx, o)
 	case *messagingv1alpha1.Topic:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)
