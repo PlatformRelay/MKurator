@@ -28,6 +28,16 @@ var _ = Describe("v1alpha1 to v1beta1 CRD upgrade", Serial, Label("conversion", 
 	)
 
 	BeforeEach(func() {
+		// Retired 2026-07-30 (Phase 8e decision C, lane 8e-3). This spec forces v1alpha1 as the CRD
+		// storage version and exercises a live cross-version conversion round-trip across a reconcile.
+		// The 8e-3 v1beta1-native Queue reconciler ends that round-trip by design: finalizer-add no
+		// longer down-converts through the intentionally-lossy attributes<->typed fold. Production
+		// storage has been v1beta1 since v0.13, so this scenario is not production-reachable; v1beta1
+		// attribute-fold fidelity stays covered by unit fuzz + api/v1alpha1/queue_conversion_test.go,
+		// and the v1beta1-storage attribute path is covered green by mq_e2e_test.go. The conversion
+		// webhook and this whole file are removed in 8e-8. See INBOX 2026-07-30 DECIDED note.
+		Skip("v1alpha1-storage conversion round-trip retired in 8e-3 (Phase 8e decision C); removed in 8e-8")
+
 		if !mqE2EEnabled() {
 			Skip("IBM MQ e2e disabled; set KURATOR_E2E_MQ=1 and run task cluster:up")
 		}
