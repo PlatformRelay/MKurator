@@ -9,6 +9,8 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ## [Unreleased]
 
+## [0.15.0](https://github.com/platformrelay/MKurator/compare/v0.14.0..v0.15.0) - 2026-07-30
+
 ### Removed
 
 - **api!:** **BREAKING** — remove `messaging.mkurator.dev/v1alpha1` entirely
