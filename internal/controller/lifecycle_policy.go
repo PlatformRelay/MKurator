@@ -21,6 +21,11 @@ func workloadLifecyclePolicies(obj client.Object) messagingv1alpha1.WorkloadLife
 		}
 	case *messagingv1alpha1.Queue:
 		return o.Spec.WorkloadLifecyclePolicies
+	case *messagingv1beta1.Topic:
+		return messagingv1alpha1.WorkloadLifecyclePolicies{
+			DeletionPolicy: messagingv1alpha1.DeletionPolicy(o.Spec.DeletionPolicy),
+			AdoptionPolicy: messagingv1alpha1.AdoptionPolicy(o.Spec.AdoptionPolicy),
+		}
 	case *messagingv1alpha1.Topic:
 		return o.Spec.WorkloadLifecyclePolicies
 	case *messagingv1alpha1.Channel:
@@ -55,6 +60,8 @@ func workloadFirstAdoption(obj client.Object) bool {
 	case *messagingv1beta1.Queue:
 		return o.Status.ObservedGeneration == 0
 	case *messagingv1alpha1.Queue:
+		return o.Status.ObservedGeneration == 0
+	case *messagingv1beta1.Topic:
 		return o.Status.ObservedGeneration == 0
 	case *messagingv1alpha1.Topic:
 		return o.Status.ObservedGeneration == 0

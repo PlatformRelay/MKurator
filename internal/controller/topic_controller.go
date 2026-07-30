@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/metrics"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -45,7 +45,7 @@ func (r *TopicReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 //nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	topic := &messagingv1alpha1.Topic{}
+	topic := &messagingv1beta1.Topic{}
 	if err := r.Get(ctx, req.NamespacedName, topic); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -60,7 +60,7 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if !topic.DeletionTimestamp.IsZero() {
 		return reconcileWorkloadDeletion(
 			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, topic, topic.Generation,
-			messagingv1alpha1.TopicFinalizer, "Topic orphaned in IBM MQ",
+			messagingv1beta1.TopicFinalizer, "Topic orphaned in IBM MQ",
 			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
 				return r.handleDeletion(ctx, topic, admin)
 			},
@@ -86,8 +86,8 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return setSyncedError(ctx, r.Status(), r.Recorder, topic, topic.Generation, err, syncStatusOpts{})
 	}
 
-	if !controllerutil.ContainsFinalizer(topic, messagingv1alpha1.TopicFinalizer) {
-		controllerutil.AddFinalizer(topic, messagingv1alpha1.TopicFinalizer)
+	if !controllerutil.ContainsFinalizer(topic, messagingv1beta1.TopicFinalizer) {
+		controllerutil.AddFinalizer(topic, messagingv1beta1.TopicFinalizer)
 		if updateErr := r.Update(ctx, topic); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
@@ -133,7 +133,7 @@ func (r *TopicReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *TopicReconciler) ensureTopic(
 	ctx context.Context,
 	admin mqadmin.Admin,
-	topic *messagingv1alpha1.Topic,
+	topic *messagingv1beta1.Topic,
 	spec mqadmin.TopicSpec,
 	observeOnly bool,
 ) (bool, string, error) {
@@ -164,7 +164,7 @@ func (r *TopicReconciler) ensureTopic(
 
 func (r *TopicReconciler) handleDeletion(
 	ctx context.Context,
-	topic *messagingv1alpha1.Topic,
+	topic *messagingv1beta1.Topic,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
 	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, topic, topic.Generation,
@@ -181,14 +181,14 @@ func (r *TopicReconciler) handleDeletion(
 
 	recordNormalEvent(r.Recorder, topic, EventReasonDeleted, "Topic removed from IBM MQ")
 
-	controllerutil.RemoveFinalizer(topic, messagingv1alpha1.TopicFinalizer)
+	controllerutil.RemoveFinalizer(topic, messagingv1beta1.TopicFinalizer)
 	if err := r.Update(ctx, topic); err != nil {
 		return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
 	}
 	return ctrl.Result{}, nil
 }
 
-func toMQTopicSpec(topic *messagingv1alpha1.Topic) mqadmin.TopicSpec {
+func toMQTopicSpec(topic *messagingv1beta1.Topic) mqadmin.TopicSpec {
 	attrs := map[string]string{}
 	for k, v := range topic.Spec.Attributes {
 		attrs[mqadmin.NormalizeAttrKey(k)] = v
@@ -222,5 +222,5 @@ func toMQTopicSpec(topic *messagingv1alpha1.Topic) mqadmin.TopicSpec {
 
 // SetupWithManager wires the reconciler.
 func (r *TopicReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return setupMQObjectController(mgr, r, &messagingv1alpha1.Topic{})
+	return setupMQObjectController(mgr, r, &messagingv1beta1.Topic{})
 }

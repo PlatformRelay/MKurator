@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -59,7 +60,7 @@ var _ = Describe("TopicReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -89,7 +90,7 @@ var _ = Describe("TopicReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(Equal(TransientRequeueInterval()))
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
@@ -99,7 +100,7 @@ var _ = Describe("TopicReconciler error branches", func() {
 		readyConnectionStatus(ctx, ns, "qm1")
 
 		topic := sampleTopic(ns, key, "qm1", topicName)
-		topic.Spec.AdoptionPolicy = messagingv1alpha1.AdoptionPolicyFailIfExists
+		topic.Spec.AdoptionPolicy = messagingv1beta1.AdoptionPolicyFailIfExists
 		Expect(k8sClient.Create(ctx, topic)).To(Succeed())
 
 		mockAdmin := mqadmintest.NewMockAdmin(GinkgoT())
@@ -129,7 +130,7 @@ var _ = Describe("TopicReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		expectDriftResyncRequeue(result)
 
-		updated := &messagingv1alpha1.Topic{}
+		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))

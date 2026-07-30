@@ -13,14 +13,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
 
 func TestToMQTopicSpec(t *testing.T) {
 	t.Parallel()
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
 			TopicName: "RETAIL.ORDERS",
 			Attributes: map[string]string{
 				"TopStr": "retail/orders",
@@ -35,8 +36,8 @@ func TestToMQTopicSpec(t *testing.T) {
 
 func TestToMQTopicSpecTypedTopicString(t *testing.T) {
 	t.Parallel()
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
 			TopicName:   "RETAIL.ORDERS",
 			TopicString: "retail/orders",
 		},
@@ -49,8 +50,8 @@ func TestToMQTopicSpecTypedTopicString(t *testing.T) {
 
 func TestToMQTopicSpecTypedDescription(t *testing.T) {
 	t.Parallel()
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
 			TopicName:   "RETAIL.ORDERS",
 			Description: "Retail orders topic",
 		},
@@ -63,10 +64,10 @@ func TestToMQTopicSpecTypedDescription(t *testing.T) {
 
 func TestToMQTopicSpecTypedDefPersistence(t *testing.T) {
 	t.Parallel()
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
 			TopicName:      "RETAIL.ORDERS",
-			DefPersistence: messagingv1alpha1.QueueDefaultPersistenceYes,
+			DefPersistence: messagingv1beta1.QueueDefaultPersistenceYes,
 		},
 	}
 	spec := toMQTopicSpec(topic)
@@ -77,11 +78,11 @@ func TestToMQTopicSpecTypedDefPersistence(t *testing.T) {
 
 func TestToMQTopicSpecTypedPublishSubscribe(t *testing.T) {
 	t.Parallel()
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
 			TopicName: "RETAIL.ORDERS",
-			Publish:   messagingv1alpha1.TopicAccessEnabledEnabled,
-			Subscribe: messagingv1alpha1.TopicAccessEnabledDisabled,
+			Publish:   messagingv1beta1.TopicAccessEnabledEnabled,
+			Subscribe: messagingv1beta1.TopicAccessEnabledDisabled,
 		},
 	}
 	spec := toMQTopicSpec(topic)
@@ -95,8 +96,8 @@ func TestToMQTopicSpecTypedPublishSubscribe(t *testing.T) {
 
 func TestToMQTopicSpecTypedPublishSubscribeScope(t *testing.T) {
 	t.Parallel()
-	topic := &messagingv1alpha1.Topic{
-		Spec: messagingv1alpha1.TopicSpec{
+	topic := &messagingv1beta1.Topic{
+		Spec: messagingv1beta1.TopicSpec{
 			TopicName:      "RETAIL.ORDERS",
 			PublishScope:   "QMGR",
 			SubscribeScope: "QMGR",
@@ -119,14 +120,14 @@ func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "retail-orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers: []string{messagingv1beta1.TopicFinalizer},
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 			Attributes:    map[string]string{"topstr": "retail/orders"},
 		},
@@ -158,7 +159,7 @@ func TestTopicReconciler_SyncedWithoutDefine(t *testing.T) {
 	}
 	assertDriftResyncRequeue(t, result)
 
-	updated := &messagingv1alpha1.Topic{}
+	updated := &messagingv1beta1.Topic{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -175,14 +176,14 @@ func TestTopicReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "retail-orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers: []string{messagingv1beta1.TopicFinalizer},
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 			Attributes:    map[string]string{"topstr": "retail/orders", "descr": "orders topic"},
 		},
@@ -207,7 +208,7 @@ func TestTopicReconciler_SetsDesiredMQSCInStatus(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Topic{}
+	updated := &messagingv1beta1.Topic{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -550,14 +551,14 @@ func TestTopicReconciler_DefinesWhenMissing(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "retail-orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers: []string{messagingv1beta1.TopicFinalizer},
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 			Attributes:    map[string]string{"topstr": "retail/orders"},
 		},
@@ -592,15 +593,15 @@ func TestTopicReconciler_DeletionDeleteFails(t *testing.T) {
 
 	now := metav1.Now()
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "retail-orders",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers:        []string{messagingv1beta1.TopicFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
@@ -623,7 +624,7 @@ func TestTopicReconciler_DeletionDeleteFails(t *testing.T) {
 	if _, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
 		t.Fatalf("Reconcile: %v", err)
 	}
-	updated := &messagingv1alpha1.Topic{}
+	updated := &messagingv1beta1.Topic{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -641,15 +642,15 @@ func TestTopicReconciler_Deletion(t *testing.T) {
 
 	now := metav1.Now()
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "retail-orders",
 			Namespace:         ns,
-			Finalizers:        []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers:        []string{messagingv1beta1.TopicFinalizer},
 			DeletionTimestamp: &now,
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
@@ -671,7 +672,7 @@ func TestTopicReconciler_Deletion(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Topic{}
+	updated := &messagingv1beta1.Topic{}
 	err := cl.Get(ctx, key, updated)
 	if apierrors.IsNotFound(err) {
 		return
@@ -837,14 +838,14 @@ func TestTopicReconciler_TransientError(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	topic := &messagingv1alpha1.Topic{
+	topic := &messagingv1beta1.Topic{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "retail-orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.TopicFinalizer},
+			Finalizers: []string{messagingv1beta1.TopicFinalizer},
 		},
-		Spec: messagingv1alpha1.TopicSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.TopicSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			TopicName:     "RETAIL.ORDERS",
 		},
 	}
