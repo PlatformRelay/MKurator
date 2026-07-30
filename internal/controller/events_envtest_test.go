@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -48,12 +48,12 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 	})
 
 	It("records Progressing on Queue when the connection is not Ready", func() {
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -76,18 +76,18 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "Queue", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing,
+			ctx, ns, "Queue", key, corev1.EventTypeNormal, messagingv1beta1.ReasonProgressing,
 		)
 	})
 
 	It("records Available on Queue when reconcile succeeds", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -138,7 +138,7 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "Queue", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+			ctx, ns, "Queue", key, corev1.EventTypeNormal, messagingv1beta1.ReasonAvailable,
 		)
 	})
 
@@ -150,11 +150,11 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -195,17 +195,17 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "Topic", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+			ctx, ns, "Topic", key, corev1.EventTypeNormal, messagingv1beta1.ReasonAvailable,
 		)
 	})
 
 	It("records Progressing on ChannelAuthRule when the connection is not Ready", func() {
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -231,7 +231,7 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "ChannelAuthRule", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing,
+			ctx, ns, "ChannelAuthRule", key, corev1.EventTypeNormal, messagingv1beta1.ReasonProgressing,
 		)
 	})
 
@@ -243,11 +243,11 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -289,17 +289,17 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "ChannelAuthRule", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+			ctx, ns, "ChannelAuthRule", key, corev1.EventTypeNormal, messagingv1beta1.ReasonAvailable,
 		)
 	})
 
 	It("records Progressing on AuthorityRecord when the connection is not Ready", func() {
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -325,7 +325,7 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "AuthorityRecord", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing,
+			ctx, ns, "AuthorityRecord", key, corev1.EventTypeNormal, messagingv1beta1.ReasonProgressing,
 		)
 	})
 
@@ -337,11 +337,11 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -382,7 +382,7 @@ var _ = Describe("events.k8s.io reconcile events", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		eventuallyExpectEventsAPIEvent(
-			ctx, ns, "AuthorityRecord", key, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable,
+			ctx, ns, "AuthorityRecord", key, corev1.EventTypeNormal, messagingv1beta1.ReasonAvailable,
 		)
 	})
 })

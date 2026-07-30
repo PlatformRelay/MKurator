@@ -13,7 +13,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -62,7 +61,7 @@ var _ = Describe("TopicReconciler error branches", func() {
 
 		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
 	})
 
@@ -92,7 +91,7 @@ var _ = Describe("TopicReconciler error branches", func() {
 
 		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
 	})
 
@@ -132,10 +131,10 @@ var _ = Describe("TopicReconciler error branches", func() {
 
 		updated := &messagingv1beta1.Topic{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
-		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
-			To(Equal(messagingv1alpha1.ReasonAlreadyExists))
+		Expect(conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
+			To(Equal(messagingv1beta1.ReasonAlreadyExists))
 	})
 })
 
@@ -177,7 +176,7 @@ var _ = Describe("ChannelReconciler error branches", func() {
 
 		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
 	})
 
@@ -246,10 +245,10 @@ var _ = Describe("ChannelReconciler error branches", func() {
 
 		updated := &messagingv1beta1.Channel{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
-		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
-			To(Equal(messagingv1alpha1.ReasonAlreadyExists))
+		Expect(conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
+			To(Equal(messagingv1beta1.ReasonAlreadyExists))
 	})
 })
 
@@ -277,12 +276,12 @@ var _ = Describe("QueueManagerConnectionReconciler error branches", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager:         testQueueManager,
 				Endpoint:             testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: testSecretName},
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: testSecretName},
 			},
 		}
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
@@ -308,12 +307,12 @@ var _ = Describe("QueueManagerConnectionReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(Equal(TransientRequeueInterval()))
 
-		updated := &messagingv1alpha1.QueueManagerConnection{}
+		updated := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, req.NamespacedName, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionFalse))
-		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
-			To(Equal(messagingv1alpha1.ReasonError))
+		Expect(conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionReady)).
+			To(Equal(messagingv1beta1.ReasonError))
 	})
 
 	It("requeues on a transient ping failure when not yet Ready", func() {
@@ -323,12 +322,12 @@ var _ = Describe("QueueManagerConnectionReconciler error branches", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager:         testQueueManager,
 				Endpoint:             testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{Name: testSecretName},
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{Name: testSecretName},
 			},
 		}
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
@@ -354,9 +353,9 @@ var _ = Describe("QueueManagerConnectionReconciler error branches", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(Equal(TransientRequeueInterval()))
 
-		updated := &messagingv1alpha1.QueueManagerConnection{}
+		updated := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, req.NamespacedName, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionFalse))
 	})
 })
@@ -366,15 +365,15 @@ var _ = Describe("QueueManagerConnectionReconciler error branches", func() {
 func readyConnectionStatus(
 	ctx context.Context,
 	ns, name string,
-) *messagingv1alpha1.QueueManagerConnection {
+) *messagingv1beta1.QueueManagerConnection {
 	GinkgoHelper()
 	conn := readyConnection(ns, name)
 	Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-	conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+	conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 		Conditions: []metav1.Condition{{
-			Type:               messagingv1alpha1.ConditionReady,
+			Type:               messagingv1beta1.ConditionReady,
 			Status:             metav1.ConditionTrue,
-			Reason:             messagingv1alpha1.ReasonAvailable,
+			Reason:             messagingv1beta1.ReasonAvailable,
 			LastTransitionTime: metav1.Now(),
 		}},
 	}

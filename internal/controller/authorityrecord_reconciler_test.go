@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
@@ -43,12 +42,12 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 	})
 
 	It("requeues when the connection is not Ready", func() {
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: "qm1", Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -73,19 +72,19 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 
 		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionFalse))
-		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1alpha1.ReasonProgressing)
+		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1beta1.ReasonProgressing)
 	})
 
 	It("applies AUTHREC when the connection is Ready", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -133,13 +132,13 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 
 		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
 		Expect(updated.Status.MQObjectExists).NotTo(BeNil())
 		Expect(*updated.Status.MQObjectExists).To(BeTrue())
 		Expect(updated.Status.Message).To(Equal("AuthorityRecord matches spec"))
 		Expect(updated.Status.LastSyncTime).NotTo(BeNil())
-		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)
+		expectRecordedEvent(recorder, corev1.EventTypeNormal, messagingv1beta1.ReasonAvailable)
 	})
 
 	It("applies AUTHREC for channel profile when the connection is Ready", func() {
@@ -147,11 +146,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -196,7 +195,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "app-channel-chg-dsp"}, updated)).
 			To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
 		Expect(updated.Status.MQObjectExists).NotTo(BeNil())
 		Expect(*updated.Status.MQObjectExists).To(BeTrue())
@@ -209,11 +208,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -258,7 +257,7 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "app-nlist-chg-dsp"}, updated)).
 			To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
 			To(Equal(metav1.ConditionTrue))
 		Expect(updated.Status.MQObjectExists).NotTo(BeNil())
 		Expect(*updated.Status.MQObjectExists).To(BeTrue())
@@ -269,11 +268,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 	It("skips SET when AUTHREC already matches", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -316,11 +315,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 	It("emits a warning event when set authority fails terminally", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -368,11 +367,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 	It("requeues deletion when the connection is missing instead of failing terminally", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -402,18 +401,18 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 		updated := &messagingv1beta1.AuthorityRecord{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
 		Expect(updated.DeletionTimestamp).NotTo(BeZero())
-		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionSynced)).
-			To(Equal(messagingv1alpha1.ReasonProgressing))
+		Expect(conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionSynced)).
+			To(Equal(messagingv1beta1.ReasonProgressing))
 	})
 
 	It("removes the finalizer on deletionPolicy Orphan without MQ connectivity", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -448,11 +447,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 	It("removes the finalizer on force-orphan without MQ connectivity", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}
@@ -494,11 +493,11 @@ var _ = Describe("AuthorityRecordReconciler", func() {
 	It("removes AUTHREC on delete", func() {
 		conn := readyConnection(ns, "qm1")
 		Expect(k8sClient.Create(ctx, conn)).To(Succeed())
-		conn.Status = messagingv1alpha1.QueueManagerConnectionStatus{
+		conn.Status = messagingv1beta1.QueueManagerConnectionStatus{
 			Conditions: []metav1.Condition{{
-				Type:               messagingv1alpha1.ConditionReady,
+				Type:               messagingv1beta1.ConditionReady,
 				Status:             metav1.ConditionTrue,
-				Reason:             messagingv1alpha1.ReasonAvailable,
+				Reason:             messagingv1beta1.ReasonAvailable,
 				LastTransitionTime: metav1.Now(),
 			}},
 		}

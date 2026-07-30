@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -50,12 +49,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -88,9 +87,9 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.QueueManagerConnection{}
+		updated := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 		Expect(updated.Status.ObservedGeneration).To(Equal(updated.Generation))
 	})
@@ -108,12 +107,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -144,12 +143,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		Expect(result.RequeueAfter).To(Equal(TerminalRetryInterval()),
 			"terminal error must schedule a backstop requeue so the controller self-heals if the watch enqueue was dropped")
 
-		updated := &messagingv1alpha1.QueueManagerConnection{}
+		updated := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)).To(Succeed())
-		Expect(conditionStatus(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(updated.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionFalse))
-		Expect(conditionReason(updated.Status.Conditions, messagingv1alpha1.ConditionReady)).
-			To(Equal(messagingv1alpha1.ReasonError))
+		Expect(conditionReason(updated.Status.Conditions, messagingv1beta1.ConditionReady)).
+			To(Equal(messagingv1beta1.ReasonError))
 	})
 
 	It("removes the finalizer when the connection is deleted", func() {
@@ -162,12 +161,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -195,7 +194,7 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.QueueManagerConnection{}
+		updated := &messagingv1beta1.QueueManagerConnection{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue(), "finalizer removed and object deleted from API")
 	})
@@ -210,12 +209,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -252,7 +251,7 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		updated := &messagingv1alpha1.QueueManagerConnection{}
+		updated := &messagingv1beta1.QueueManagerConnection{}
 		err = k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, updated)
 		Expect(apierrors.IsNotFound(err)).To(BeTrue(), "finalizer removed despite missing Secret")
 	})
@@ -267,12 +266,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -299,22 +298,22 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		_, err = rec.Reconcile(ctx, req)
 		Expect(err).NotTo(HaveOccurred())
 
-		afterReady := &messagingv1alpha1.QueueManagerConnection{}
+		afterReady := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, afterReady)).To(Succeed())
-		Expect(conditionStatus(afterReady.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(afterReady.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 
 		_, err = rec.Reconcile(ctx, req)
 		Expect(err).NotTo(HaveOccurred())
 
-		afterSecond := &messagingv1alpha1.QueueManagerConnection{}
+		afterSecond := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, afterSecond)).To(Succeed())
-		Expect(conditionStatus(afterSecond.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(afterSecond.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 
 		Eventually(func(g Gomega) {
 			g.Expect(countEventsAPIEvents(ctx, ns, "QueueManagerConnection", key,
-				corev1.EventTypeNormal, messagingv1alpha1.ReasonAvailable)).To(Equal(1))
+				corev1.EventTypeNormal, messagingv1beta1.ReasonAvailable)).To(Equal(1))
 		}).WithTimeout(5 * time.Second).WithPolling(200 * time.Millisecond).Should(Succeed())
 	})
 
@@ -328,12 +327,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -361,12 +360,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		_, err = rec.Reconcile(ctx, req)
 		Expect(err).NotTo(HaveOccurred())
 
-		failed := &messagingv1alpha1.QueueManagerConnection{}
+		failed := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, failed)).To(Succeed())
-		Expect(conditionStatus(failed.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(failed.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionFalse))
-		Expect(conditionReason(failed.Status.Conditions, messagingv1alpha1.ConditionReady)).
-			To(Equal(messagingv1alpha1.ReasonError))
+		Expect(conditionReason(failed.Status.Conditions, messagingv1beta1.ConditionReady)).
+			To(Equal(messagingv1beta1.ReasonError))
 		origGen := failed.Generation
 
 		updatedSecret := &corev1.Secret{}
@@ -390,10 +389,10 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		_, err = rec.Reconcile(ctx, reqs[0])
 		Expect(err).NotTo(HaveOccurred())
 
-		recovered := &messagingv1alpha1.QueueManagerConnection{}
+		recovered := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, recovered)).To(Succeed())
 		Expect(recovered.Generation).To(Equal(origGen))
-		Expect(conditionStatus(recovered.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(recovered.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 	})
 
@@ -407,12 +406,12 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).To(Succeed())
 
-		conn := &messagingv1alpha1.QueueManagerConnection{
+		conn := &messagingv1beta1.QueueManagerConnection{
 			ObjectMeta: metav1.ObjectMeta{Name: key, Namespace: ns},
-			Spec: messagingv1alpha1.QueueManagerConnectionSpec{
+			Spec: messagingv1beta1.QueueManagerConnectionSpec{
 				QueueManager: testQueueManager,
 				Endpoint:     testEndpoint,
-				CredentialsSecretRef: messagingv1alpha1.SecretReference{
+				CredentialsSecretRef: &messagingv1beta1.SecretReference{
 					Name: testSecretName,
 				},
 			},
@@ -437,9 +436,9 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		_, err = rec.Reconcile(ctx, req)
 		Expect(err).NotTo(HaveOccurred())
 
-		ready := &messagingv1alpha1.QueueManagerConnection{}
+		ready := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, ready)).To(Succeed())
-		Expect(conditionStatus(ready.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(ready.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 
 		transientAdmin := mqadmintest.NewMockAdmin(GinkgoT())
@@ -452,9 +451,9 @@ var _ = Describe("QueueManagerConnectionReconciler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result.RequeueAfter).To(Equal(TransientRequeueInterval()))
 
-		stillReady := &messagingv1alpha1.QueueManagerConnection{}
+		stillReady := &messagingv1beta1.QueueManagerConnection{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: key}, stillReady)).To(Succeed())
-		Expect(conditionStatus(stillReady.Status.Conditions, messagingv1alpha1.ConditionReady)).
+		Expect(conditionStatus(stillReady.Status.Conditions, messagingv1beta1.ConditionReady)).
 			To(Equal(metav1.ConditionTrue))
 	})
 })
