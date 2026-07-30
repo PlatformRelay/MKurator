@@ -11,15 +11,18 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 
 ### Removed
 
-- **api!:** **BREAKING** — stop serving `messaging.mkurator.dev/v1alpha1`. The six
-  CRDs are now single-version (`v1beta1` served and stored) and the conversion
-  webhook is removed (8e-8a). Manifests must use `apiVersion:
-  messaging.mkurator.dev/v1beta1`. Upgrading from a build where `v1alpha1` was ever
+- **api!:** **BREAKING** — remove `messaging.mkurator.dev/v1alpha1` entirely
+  ([ADR-0029](docs/adr/0029-drop-v1alpha1-hard-cut.md)). The six CRDs are now
+  single-version (`v1beta1` served and stored) and the conversion webhook is
+  removed (8e-8a). Manifests must use `apiVersion:
+  messaging.mkurator.dev/v1beta1`; rewrite any manifest still pinned to `v1alpha1`
+  (the spec is identical). Upgrading from a build where `v1alpha1` was ever
   the etcd storage version (≤ v0.12) requires the one-time stored-object
-  rewrite + `status.storedVersions` prune in [docs/UPGRADE.md](docs/UPGRADE.md)
-  **first** — applying the single-version CRDs to a cluster that still lists
-  `v1alpha1` in `storedVersions` bricks the upgrade (no conversion webhook remains
-  to decode old records). An e2e stored-version guard enforces this as a red gate.
+  rewrite + `status.storedVersions` prune in
+  [docs/UPGRADE.md](docs/UPGRADE.md#removing-v1alpha1-v0150) **first** — applying
+  the single-version CRDs to a cluster that still lists `v1alpha1` in
+  `storedVersions` bricks the upgrade (no conversion webhook remains to decode old
+  records). An e2e stored-version guard enforces this as a red gate.
 
 ### Bug Fixes
 
