@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
@@ -89,6 +90,11 @@ func patchSyncedAdoptionBlocked(
 	emitSyncedTransitionEvent(recorder, obj, metav1.ConditionFalse, reason, message)
 
 	switch o := obj.(type) {
+	case *messagingv1beta1.Queue:
+		setCondition(&o.Status.Conditions, messagingv1beta1.ConditionSynced,
+			metav1.ConditionFalse, reason, message, generation)
+		applyMQObjectStatusFields(o, opts, message, nil)
+		return status.Update(ctx, o)
 	case *messagingv1alpha1.Queue:
 		setCondition(&o.Status.Conditions, messagingv1alpha1.ConditionSynced,
 			metav1.ConditionFalse, reason, message, generation)

@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 	mqadmintest "github.com/platformrelay/mkurator/test/mocks/mqadmin"
 )
@@ -229,19 +230,19 @@ func TestQueueReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 			Annotations: map[string]string{
 				messagingv1alpha1.DriftPolicyAnnotation: messagingv1alpha1.DriftPolicyObserveOnly,
 			},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 			Attributes:    map[string]string{"maxdepth": "5000"},
 		},
 	}
@@ -265,7 +266,7 @@ func TestQueueReconciler_ObserveOnlyReportsDriftWithoutDefine(t *testing.T) {
 		t.Fatalf("Reconcile: %v", err)
 	}
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}
@@ -396,16 +397,16 @@ func TestQueueReconciler_PeriodicResyncDetectsDrift(t *testing.T) {
 	s := unitSchemeOrFatal(t)
 
 	conn := readyConnForUnit(ns)
-	q := &messagingv1alpha1.Queue{
+	q := &messagingv1beta1.Queue{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "orders",
 			Namespace:  ns,
-			Finalizers: []string{messagingv1alpha1.QueueFinalizer},
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
 		},
-		Spec: messagingv1alpha1.QueueSpec{
-			ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 			QueueName:     "APP.ORDERS",
-			Type:          messagingv1alpha1.QueueTypeLocal,
+			Type:          messagingv1beta1.QueueTypeLocal,
 			Attributes:    map[string]string{"maxdepth": "5000"},
 		},
 	}
@@ -448,7 +449,7 @@ func TestQueueReconciler_PeriodicResyncDetectsDrift(t *testing.T) {
 	}
 	assertDriftResyncRequeue(t, result)
 
-	updated := &messagingv1alpha1.Queue{}
+	updated := &messagingv1beta1.Queue{}
 	if err := cl.Get(ctx, key, updated); err != nil {
 		t.Fatal(err)
 	}

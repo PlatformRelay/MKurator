@@ -6,15 +6,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
 )
 
 func TestToMQQueueSpec(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName: "APP.ORDERS",
-			Type:      messagingv1alpha1.QueueTypeLocal,
+			Type:      messagingv1beta1.QueueTypeLocal,
 			Attributes: map[string]string{
 				"MaxDepth": "5000",
 			},
@@ -32,10 +33,10 @@ func TestToMQQueueSpec(t *testing.T) {
 func TestToMQQueueSpecTypedMaxDepth(t *testing.T) {
 	t.Parallel()
 	depth := int32(10000)
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName: "APP.ORDERS",
-			Type:      messagingv1alpha1.QueueTypeLocal,
+			Type:      messagingv1beta1.QueueTypeLocal,
 			MaxDepth:  &depth,
 		},
 	}
@@ -47,10 +48,10 @@ func TestToMQQueueSpecTypedMaxDepth(t *testing.T) {
 
 func TestToMQQueueSpecTypedDescription(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName:   "APP.ORDERS",
-			Type:        messagingv1alpha1.QueueTypeLocal,
+			Type:        messagingv1beta1.QueueTypeLocal,
 			Description: "Order processing queue",
 		},
 	}
@@ -62,11 +63,11 @@ func TestToMQQueueSpecTypedDescription(t *testing.T) {
 
 func TestToMQQueueSpecTypedDefPersistence(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName:      "APP.ORDERS",
-			Type:           messagingv1alpha1.QueueTypeLocal,
-			DefPersistence: messagingv1alpha1.QueueDefaultPersistenceYes,
+			Type:           messagingv1beta1.QueueTypeLocal,
+			DefPersistence: messagingv1beta1.QueueDefaultPersistenceYes,
 		},
 	}
 	spec := toMQQueueSpec(q)
@@ -77,10 +78,10 @@ func TestToMQQueueSpecTypedDefPersistence(t *testing.T) {
 
 func TestToMQQueueSpecTypedTargetQueue(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName:   "APP.ORDERS.ALIAS",
-			Type:        messagingv1alpha1.QueueTypeAlias,
+			Type:        messagingv1beta1.QueueTypeAlias,
 			TargetQueue: "APP.ORDERS",
 		},
 	}
@@ -92,10 +93,10 @@ func TestToMQQueueSpecTypedTargetQueue(t *testing.T) {
 
 func TestToMQQueueSpecTypedXmitQueue(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName: "APP.ORDERS.REMOTE",
-			Type:      messagingv1alpha1.QueueTypeRemote,
+			Type:      messagingv1beta1.QueueTypeRemote,
 			XmitQueue: "SYSTEM.DEFAULT.XMIT.QUEUE",
 		},
 	}
@@ -107,10 +108,10 @@ func TestToMQQueueSpecTypedXmitQueue(t *testing.T) {
 
 func TestToMQQueueSpecTypedRemoteQueueManager(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName:          "APP.ORDERS.REMOTE",
-			Type:               messagingv1alpha1.QueueTypeRemote,
+			Type:               messagingv1beta1.QueueTypeRemote,
 			RemoteQueueManager: "QM2",
 		},
 	}
@@ -122,12 +123,12 @@ func TestToMQQueueSpecTypedRemoteQueueManager(t *testing.T) {
 
 func TestToMQQueueSpecTypedGetPut(t *testing.T) {
 	t.Parallel()
-	q := &messagingv1alpha1.Queue{
-		Spec: messagingv1alpha1.QueueSpec{
+	q := &messagingv1beta1.Queue{
+		Spec: messagingv1beta1.QueueSpec{
 			QueueName: "APP.ORDERS",
-			Type:      messagingv1alpha1.QueueTypeLocal,
-			Get:       messagingv1alpha1.QueueAccessEnabledEnabled,
-			Put:       messagingv1alpha1.QueueAccessEnabledDisabled,
+			Type:      messagingv1beta1.QueueTypeLocal,
+			Get:       messagingv1beta1.QueueAccessEnabledEnabled,
+			Put:       messagingv1beta1.QueueAccessEnabledDisabled,
 		},
 	}
 	spec := toMQQueueSpec(q)

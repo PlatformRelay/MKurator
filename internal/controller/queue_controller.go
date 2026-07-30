@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
+	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/adapter/mqrest"
 	"github.com/platformrelay/mkurator/internal/metrics"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -46,7 +46,7 @@ func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 //nolint:dupl // shared MQ object reconcile flow; differs in ensure/delete/spec mapping
 func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	q := &messagingv1alpha1.Queue{}
+	q := &messagingv1beta1.Queue{}
 	if err := r.Get(ctx, req.NamespacedName, q); err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -61,7 +61,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if !q.DeletionTimestamp.IsZero() {
 		return reconcileWorkloadDeletion(
 			ctx, r.Client, r.Status(), r.Recorder, r.MQFactory, q, q.Generation,
-			messagingv1alpha1.QueueFinalizer, "Queue orphaned in IBM MQ",
+			messagingv1beta1.QueueFinalizer, "Queue orphaned in IBM MQ",
 			func(ctx context.Context, admin mqadmin.Admin) (ctrl.Result, error) {
 				return r.handleDeletion(ctx, q, admin)
 			},
@@ -87,8 +87,8 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return setSyncedError(ctx, r.Status(), r.Recorder, q, q.Generation, err, syncStatusOpts{})
 	}
 
-	if !controllerutil.ContainsFinalizer(q, messagingv1alpha1.QueueFinalizer) {
-		controllerutil.AddFinalizer(q, messagingv1alpha1.QueueFinalizer)
+	if !controllerutil.ContainsFinalizer(q, messagingv1beta1.QueueFinalizer) {
+		controllerutil.AddFinalizer(q, messagingv1beta1.QueueFinalizer)
 		if updateErr := r.Update(ctx, q); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("add finalizer: %w", updateErr)
 		}
@@ -139,7 +139,7 @@ func (r *QueueReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *QueueReconciler) ensureQueue(
 	ctx context.Context,
 	admin mqadmin.Admin,
-	q *messagingv1alpha1.Queue,
+	q *messagingv1beta1.Queue,
 	spec mqadmin.QueueSpec,
 	observeOnly bool,
 ) (bool, string, error) {
@@ -175,7 +175,7 @@ func (r *QueueReconciler) ensureQueue(
 
 func (r *QueueReconciler) handleDeletion(
 	ctx context.Context,
-	q *messagingv1alpha1.Queue,
+	q *messagingv1beta1.Queue,
 	admin mqadmin.Admin,
 ) (ctrl.Result, error) {
 	if err := patchSyncedDeleting(ctx, r.Status(), r.Recorder, q, q.Generation, "Deleting queue from IBM MQ"); err != nil {
@@ -191,14 +191,14 @@ func (r *QueueReconciler) handleDeletion(
 
 	recordNormalEvent(r.Recorder, q, EventReasonDeleted, "Queue removed from IBM MQ")
 
-	controllerutil.RemoveFinalizer(q, messagingv1alpha1.QueueFinalizer)
+	controllerutil.RemoveFinalizer(q, messagingv1beta1.QueueFinalizer)
 	if err := r.Update(ctx, q); err != nil {
 		return ctrl.Result{}, fmt.Errorf("remove finalizer: %w", err)
 	}
 	return ctrl.Result{}, nil
 }
 
-func toMQQueueSpec(q *messagingv1alpha1.Queue) mqadmin.QueueSpec {
+func toMQQueueSpec(q *messagingv1beta1.Queue) mqadmin.QueueSpec {
 	attrs := map[string]string{}
 	for k, v := range q.Spec.Attributes {
 		attrs[mqadmin.NormalizeAttrKey(k)] = v
@@ -236,5 +236,5 @@ func toMQQueueSpec(q *messagingv1alpha1.Queue) mqadmin.QueueSpec {
 
 // SetupWithManager wires the reconciler.
 func (r *QueueReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return setupMQObjectController(mgr, r, &messagingv1alpha1.Queue{})
+	return setupMQObjectController(mgr, r, &messagingv1beta1.Queue{})
 }
