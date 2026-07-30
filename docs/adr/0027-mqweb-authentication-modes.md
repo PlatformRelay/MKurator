@@ -96,6 +96,13 @@ Alternatives, recorded and rejected for now:
 1. **Mirror the union onto `v1alpha1`** as well — keeps round-trip exact and ships before storage migration, at the cost of duplicated CEL per version (per ADR-0026 §Consequences). **Documented fallback** if the feature is needed before storage migration.
 3. **Preserve via conversion annotations** on the v1alpha1 spoke — fragile; **rejected**.
 
+> **Closed by [ADR-0029](0029-drop-v1alpha1-hard-cut.md) (2026-07-30):** the
+> sequencing prerequisite was **satisfied** — the union landed after `v1beta1`
+> became etcd storage — and is now **moot**: `v1alpha1` is being removed
+> entirely, so the lossy v1beta1 → v1alpha1 down-conversion this section guarded
+> against no longer exists. The rejected annotation mitigation (option 3) must
+> **not** be reintroduced by any removal slice.
+
 ## Trade-off matrix (mqweb admin auth modes)
 
 Weights sum to 100. Scores 1 (poor) – 5 (excellent), oriented so higher = better for MKurator→mqweb. **Weights are subjective**; the largest subjective lever is "org token-direction alignment", which is *strategic*, not technical (see honest-delta note above).

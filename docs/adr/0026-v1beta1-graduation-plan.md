@@ -99,6 +99,11 @@ fold logic.
 4. **`v1alpha1` stays served** for at least **one minor release** after `v1beta1`
    ships so clusters and GitOps can migrate `apiVersion` gradually; conversion on
    read handles stored `v1alpha1` objects.
+   > **Superseded by [ADR-0029](0029-drop-v1alpha1-hard-cut.md) (2026-07-30):**
+   > this served-window commitment is withdrawn. `v1alpha1` is removed entirely
+   > in a hard cut with no soft-migration window (no productive users; the served
+   > spoke is a data-loss surface — PR #168). Items 1–3 above and the rest of this
+   > ADR are unaffected.
 
 ### Implementation slices (ordered)
 
