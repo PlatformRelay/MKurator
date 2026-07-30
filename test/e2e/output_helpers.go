@@ -57,17 +57,16 @@ func dumpHelmDeployFailureDiagnostics() {
 	dump("manager-logs-prev", "logs", "deployment/mkurator-controller-manager", "-n", namespace, "--previous", "--tail=120")
 	dump("events", "get", "events", "-n", namespace, "--sort-by=.lastTimestamp")
 
-	// The single best discriminator: does listing the non-storage (v1alpha1) version across all
-	// namespaces error (conversion/TLS), return leftover objects, or return empty?
+	// 8e-8a: single-version CRDs — list the only served version (v1beta1) across all
+	// namespaces to surface leftover objects or read errors.
 	for _, kind := range mkuratorE2ECRDs {
 		plural := kind[:len(kind)-len(".messaging.mkurator.dev")]
-		dump("list-v1alpha1-"+plural, "get", plural+".v1alpha1.messaging.mkurator.dev", "-A")
 		dump("list-v1beta1-"+plural, "get", plural+".v1beta1.messaging.mkurator.dev", "-A")
 	}
 
-	// CRD storedVersions + conversion caBundle presence for one representative kind.
+	// CRD storedVersions for one representative kind (must be [v1beta1] post-8e-8a).
 	dump("crd-storedversions", "get", "crd", "queuemanagerconnections.messaging.mkurator.dev",
-		"-o", "jsonpath={.status.storedVersions}{\"\\n\"}{.spec.conversion.webhook.clientConfig.caBundle}")
+		"-o", "jsonpath={.status.storedVersions}")
 }
 
 // dumpFailureDiagnostics collects kubectl context on spec failure without full JSON logs by default.

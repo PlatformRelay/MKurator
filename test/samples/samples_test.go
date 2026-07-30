@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/validation"
 )
@@ -53,9 +52,6 @@ func sampleFiles(t *testing.T) []string {
 func loadScheme(t *testing.T) *k8sruntime.Scheme {
 	t.Helper()
 	s := k8sruntime.NewScheme()
-	if err := messagingv1alpha1.AddToScheme(s); err != nil {
-		t.Fatalf("add v1alpha1 scheme: %v", err)
-	}
 	if err := messagingv1beta1.AddToScheme(s); err != nil {
 		t.Fatalf("add v1beta1 scheme: %v", err)
 	}

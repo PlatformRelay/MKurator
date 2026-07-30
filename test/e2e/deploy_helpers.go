@@ -177,33 +177,6 @@ func waitForMKuratorCRDsEstablished() {
 	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
 
-// upgradeMKuratorCRDs reapplies the current CRD bundle (dual-version + conversion webhook),
-// simulating an operator upgrade on a cluster that already holds v1alpha1 stored objects.
-func upgradeMKuratorCRDs() {
-	By("re-applying upgraded MKurator CRD bundle and reclaiming storage-version ownership")
-	cmd := exec.Command("kubectl", "apply", "--server-side", "--force-conflicts", "-k", "config/crd")
-	cmd.Env = taskEnv()
-	_, err := utils.Run(cmd)
-	Expect(err).NotTo(HaveOccurred(), "Failed to re-apply CRDs")
-
-	waitForMKuratorCRDsEstablished()
-	expectCRDConversionWebhook("queues.messaging.mkurator.dev")
-	invalidateWebhookReadyCache()
-	waitForControllerAndWebhookReadyCached()
-}
-
-// expectCRDConversionWebhook blocks until the named CRD uses Webhook conversion strategy.
-func expectCRDConversionWebhook(crdName string) {
-	Eventually(func(g Gomega) {
-		cmd := exec.Command("kubectl", "get", "crd", crdName,
-			"-o", "jsonpath={.spec.conversion.strategy}")
-		out, runErr := utils.Run(cmd)
-		g.Expect(runErr).NotTo(HaveOccurred(), "CRD %s should exist", crdName)
-		g.Expect(strings.TrimSpace(out)).To(Equal("Webhook"),
-			"CRD %s should use Webhook conversion", crdName)
-	}).WithTimeout(2 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
-}
-
 // deployOperatorForE2EKustomize applies CRDs and operator manifests without rebuilding the image.
 func deployOperatorForE2EKustomize() {
 	waitForMKuratorCRDsNotTerminating()
@@ -352,7 +325,7 @@ func waitForControllerAndWebhookReady() {
 
 // webhookAdmissionResponds checks the validating webhook is reachable by dry-running an invalid Queue.
 func webhookAdmissionResponds() error {
-	invalidQueue := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1alpha1
+	invalidQueue := fmt.Sprintf(`apiVersion: messaging.mkurator.dev/v1beta1
 kind: Queue
 metadata:
   name: webhook-readiness-probe

@@ -23,9 +23,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	messagingv1alpha1 "github.com/platformrelay/mkurator/api/v1alpha1"
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
-	webhookv1alpha1 "github.com/platformrelay/mkurator/internal/webhook/v1alpha1"
 	webhookv1beta1 "github.com/platformrelay/mkurator/internal/webhook/v1beta1"
 )
 
@@ -59,7 +57,6 @@ var _ = BeforeSuite(func() {
 	var err error
 	webhookCfg, err = webhookTestEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(messagingv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(messagingv1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(corev1.AddToScheme(scheme.Scheme)).To(Succeed())
 
@@ -76,7 +73,6 @@ var _ = BeforeSuite(func() {
 		}),
 	})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(webhookv1alpha1.SetupWithManager(mgr)).To(Succeed())
 	Expect(webhookv1beta1.SetupWithManager(mgr)).To(Succeed())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -111,10 +107,10 @@ var _ = Describe("Validating admission webhooks", func() {
 
 	It("denies Queue when connectionRef target is missing", func() {
 		ctx := context.Background()
-		q := &messagingv1alpha1.Queue{
+		q := &messagingv1beta1.Queue{
 			ObjectMeta: metav1.ObjectMeta{Name: "bad-queue", Namespace: ns},
-			Spec: messagingv1alpha1.QueueSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "missing-qmc"},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "missing-qmc"},
 				QueueName:     "APP.ORDERS",
 			},
 		}
@@ -142,7 +138,7 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
 		})).To(Succeed())
-		Expect(webhookK8sClient.Create(ctx, sampleWebhookConnectionV1Beta1(ns, "qm-beta"))).To(Succeed())
+		Expect(webhookK8sClient.Create(ctx, sampleWebhookConnection(ns, "qm-beta"))).To(Succeed())
 
 		topic := &messagingv1beta1.Topic{
 			ObjectMeta: metav1.ObjectMeta{Name: "good-topic-v1beta1", Namespace: ns},
@@ -168,7 +164,7 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
 		})).To(Succeed())
-		Expect(webhookK8sClient.Create(ctx, sampleWebhookConnectionV1Beta1(ns, "qm-beta-auth"))).To(Succeed())
+		Expect(webhookK8sClient.Create(ctx, sampleWebhookConnection(ns, "qm-beta-auth"))).To(Succeed())
 		Expect(webhookK8sClient.Create(ctx, &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app-v1beta1", Namespace: ns},
 			Spec: messagingv1beta1.ChannelSpec{
@@ -206,7 +202,7 @@ var _ = Describe("Validating admission webhooks", func() {
 		Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
 		})).To(Succeed())
-		conn := sampleWebhookConnectionV1Beta1(ns, "qm-beta-delete")
+		conn := sampleWebhookConnection(ns, "qm-beta-delete")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 		Expect(webhookK8sClient.Create(ctx, &messagingv1beta1.Queue{
 			ObjectMeta: metav1.ObjectMeta{Name: "dep-queue-v1beta1", Namespace: ns},
@@ -229,12 +225,12 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		q := &messagingv1alpha1.Queue{
+		q := &messagingv1beta1.Queue{
 			ObjectMeta: metav1.ObjectMeta{Name: "alias-queue", Namespace: ns},
-			Spec: messagingv1alpha1.QueueSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				QueueName:     "ALIAS.Q",
-				Type:          messagingv1alpha1.QueueTypeAlias,
+				Type:          messagingv1beta1.QueueTypeAlias,
 			},
 		}
 		err := webhookK8sClient.Create(ctx, q)
@@ -250,10 +246,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		q := &messagingv1alpha1.Queue{
+		q := &messagingv1beta1.Queue{
 			ObjectMeta: metav1.ObjectMeta{Name: "good-queue", Namespace: ns},
-			Spec: messagingv1alpha1.QueueSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				QueueName:     "APP.ORDERS",
 				Attributes:    map[string]string{"maxdepth": "1000", "descr": "Orders intake queue"},
 			},
@@ -268,11 +264,11 @@ var _ = Describe("Validating admission webhooks", func() {
 		})).To(Succeed())
 
 		conn := sampleWebhookConnection(ns, "insecure-qmc")
-		conn.Spec.TLS = &messagingv1alpha1.TLSConfig{InsecureSkipVerify: true}
+		conn.Spec.TLS = &messagingv1beta1.TLSConfig{InsecureSkipVerify: true}
 		err := webhookK8sClient.Create(ctx, conn)
 		Expect(err).To(HaveOccurred())
 		Expect(apierrors.IsInvalid(err)).To(BeTrue())
-		Expect(err.Error()).To(ContainSubstring(messagingv1alpha1.AllowInsecureTLSAnnotation))
+		Expect(err.Error()).To(ContainSubstring(messagingv1beta1.AllowInsecureTLSAnnotation))
 	})
 
 	It("allows QueueManagerConnection with insecure TLS when opt-in annotation is set", func() {
@@ -283,9 +279,9 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		conn := sampleWebhookConnection(ns, "insecure-qmc-ok")
 		conn.Annotations = map[string]string{
-			messagingv1alpha1.AllowInsecureTLSAnnotation: "true",
+			messagingv1beta1.AllowInsecureTLSAnnotation: "true",
 		}
-		conn.Spec.TLS = &messagingv1alpha1.TLSConfig{InsecureSkipVerify: true}
+		conn.Spec.TLS = &messagingv1beta1.TLSConfig{InsecureSkipVerify: true}
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 	})
 
@@ -297,10 +293,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		q := &messagingv1alpha1.Queue{
+		q := &messagingv1beta1.Queue{
 			ObjectMeta: metav1.ObjectMeta{Name: "dep-queue", Namespace: ns},
-			Spec: messagingv1alpha1.QueueSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				QueueName:     "APP.ORDERS",
 			},
 		}
@@ -320,12 +316,12 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "bad-car", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 				Address:       "*",
 			},
 		}
@@ -343,21 +339,21 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "bad-blockaddr", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeBlockAddr,
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeBlockAddr,
 			},
 		}
 		err := webhookK8sClient.Create(ctx, rule)
@@ -374,23 +370,23 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "car-usermap", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeUserMap,
 				ClientUser:    "johndoe",
-				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				UserSource:    messagingv1beta1.ChannelAuthUserSourceMap,
 				McaUser:       "orders-app",
 			},
 		}
@@ -405,23 +401,23 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "car-sslpeermap", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeSSLPeerMap,
 				SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
-				UserSource:    messagingv1alpha1.ChannelAuthUserSourceMap,
+				UserSource:    messagingv1beta1.ChannelAuthUserSourceMap,
 				McaUser:       "orders-app",
 			},
 		}
@@ -436,23 +432,23 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "car-qmgrmap", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef:      messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:        "ORDERS.APP",
-				RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+				RuleType:           messagingv1beta1.ChannelAuthRuleTypeQMGRMap,
 				RemoteQueueManager: "QM_PARTNER",
-				UserSource:         messagingv1alpha1.ChannelAuthUserSourceMap,
+				UserSource:         messagingv1beta1.ChannelAuthUserSourceMap,
 				McaUser:            "orders-app",
 			},
 		}
@@ -467,10 +463,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
@@ -478,42 +474,42 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		cases := []struct {
 			name string
-			spec messagingv1alpha1.ChannelAuthRuleSpec
+			spec messagingv1beta1.ChannelAuthRuleSpec
 		}{
 			{
 				name: "car-usermap-channel",
-				spec: messagingv1alpha1.ChannelAuthRuleSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				spec: messagingv1beta1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "ORDERS.APP",
-					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeUserMap,
+					RuleType:      messagingv1beta1.ChannelAuthRuleTypeUserMap,
 					ClientUser:    "johndoe",
-					UserSource:    messagingv1alpha1.ChannelAuthUserSourceChannel,
+					UserSource:    messagingv1beta1.ChannelAuthUserSourceChannel,
 				},
 			},
 			{
 				name: "car-sslpeermap-channel",
-				spec: messagingv1alpha1.ChannelAuthRuleSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				spec: messagingv1beta1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "ORDERS.APP",
-					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeSSLPeerMap,
+					RuleType:      messagingv1beta1.ChannelAuthRuleTypeSSLPeerMap,
 					SslPeerName:   "CN=AppClient,O=MyOrg,C=US",
-					UserSource:    messagingv1alpha1.ChannelAuthUserSourceChannel,
+					UserSource:    messagingv1beta1.ChannelAuthUserSourceChannel,
 				},
 			},
 			{
 				name: "car-qmgrmap-channel",
-				spec: messagingv1alpha1.ChannelAuthRuleSpec{
-					ConnectionRef:      messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				spec: messagingv1beta1.ChannelAuthRuleSpec{
+					ConnectionRef:      messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:        "ORDERS.APP",
-					RuleType:           messagingv1alpha1.ChannelAuthRuleTypeQMGRMap,
+					RuleType:           messagingv1beta1.ChannelAuthRuleTypeQMGRMap,
 					RemoteQueueManager: "QM_PARTNER",
-					UserSource:         messagingv1alpha1.ChannelAuthUserSourceChannel,
+					UserSource:         messagingv1beta1.ChannelAuthUserSourceChannel,
 				},
 			},
 		}
 
 		for _, tc := range cases {
-			rule := &messagingv1alpha1.ChannelAuthRule{
+			rule := &messagingv1beta1.ChannelAuthRule{
 				ObjectMeta: metav1.ObjectMeta{Name: tc.name, Namespace: ns},
 				Spec:       tc.spec,
 			}
@@ -529,21 +525,21 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "good-car", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 				Address:       "*",
 			},
 		}
@@ -559,10 +555,10 @@ var _ = Describe("Validating admission webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
 			})).To(Succeed())
 			Expect(webhookK8sClient.Create(ctx, sampleWebhookConnection(ns, "qm1"))).To(Succeed())
-			ch := &messagingv1alpha1.Channel{
+			ch := &messagingv1beta1.Channel{
 				ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-				Spec: messagingv1alpha1.ChannelSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.ChannelSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "ORDERS.APP",
 				},
 			}
@@ -571,14 +567,14 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		It("denies ChannelAuthRule with MQSC injection in userSource", func() {
 			ctx := context.Background()
-			rule := &messagingv1alpha1.ChannelAuthRule{
+			rule := &messagingv1beta1.ChannelAuthRule{
 				ObjectMeta: metav1.ObjectMeta{Name: "inject-usersrc", Namespace: ns},
-				Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "ORDERS.APP",
-					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+					RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 					Address:       "*",
-					UserSource:    messagingv1alpha1.ChannelAuthUserSource(`MAP) MCAUSER('mqm'`),
+					UserSource:    messagingv1beta1.ChannelAuthUserSource(`MAP) MCAUSER('mqm'`),
 				},
 			}
 			err := webhookK8sClient.Create(ctx, rule)
@@ -589,14 +585,14 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		It("denies ChannelAuthRule with MQSC injection in checkClient", func() {
 			ctx := context.Background()
-			rule := &messagingv1alpha1.ChannelAuthRule{
+			rule := &messagingv1beta1.ChannelAuthRule{
 				ObjectMeta: metav1.ObjectMeta{Name: "inject-chckclnt", Namespace: ns},
-				Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.ChannelAuthRuleSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "ORDERS.APP",
-					RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+					RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 					Address:       "*",
-					CheckClient:   messagingv1alpha1.ChannelAuthCheckClient("REQUIRED) ACTION(REPLACE"),
+					CheckClient:   messagingv1beta1.ChannelAuthCheckClient("REQUIRED) ACTION(REPLACE"),
 				},
 			}
 			err := webhookK8sClient.Create(ctx, rule)
@@ -607,12 +603,12 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		It("denies AuthorityRecord with MQSC injection in authorities", func() {
 			ctx := context.Background()
-			auth := &messagingv1alpha1.AuthorityRecord{
+			auth := &messagingv1beta1.AuthorityRecord{
 				ObjectMeta: metav1.ObjectMeta{Name: "inject-auth", Namespace: ns},
-				Spec: messagingv1alpha1.AuthorityRecordSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.AuthorityRecordSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					Profile:       "APP.ORDERS",
-					ObjectType:    messagingv1alpha1.AuthorityObjectTypeQueue,
+					ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
 					Principal:     "app",
 					Authorities:   []string{`GET) AUTHADD(ALL`},
 				},
@@ -632,21 +628,21 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		ch := &messagingv1alpha1.Channel{
+		ch := &messagingv1beta1.Channel{
 			ObjectMeta: metav1.ObjectMeta{Name: "orders-app", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
 			},
 		}
 		Expect(webhookK8sClient.Create(ctx, ch)).To(Succeed())
 
-		rule := &messagingv1alpha1.ChannelAuthRule{
+		rule := &messagingv1beta1.ChannelAuthRule{
 			ObjectMeta: metav1.ObjectMeta{Name: "dep-car", Namespace: ns},
-			Spec: messagingv1alpha1.ChannelAuthRuleSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.ChannelAuthRuleSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				ChannelName:   "ORDERS.APP",
-				RuleType:      messagingv1alpha1.ChannelAuthRuleTypeAddressMap,
+				RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
 				Address:       "*",
 			},
 		}
@@ -666,10 +662,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		conn := sampleWebhookConnection(ns, "qm1")
 		Expect(webhookK8sClient.Create(ctx, conn)).To(Succeed())
 
-		q := &messagingv1alpha1.Queue{
+		q := &messagingv1beta1.Queue{
 			ObjectMeta: metav1.ObjectMeta{Name: "dep-queue", Namespace: ns},
-			Spec: messagingv1alpha1.QueueSpec{
-				ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+			Spec: messagingv1beta1.QueueSpec{
+				ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 				QueueName:     "APP.ORDERS",
 			},
 		}
@@ -713,10 +709,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		It("allows Queue create and warns on unknown attribute keys", func() {
 			ctx := context.Background()
 			warningClient, capture := newWarningCapturingClient()
-			q := &messagingv1alpha1.Queue{
+			q := &messagingv1beta1.Queue{
 				ObjectMeta: metav1.ObjectMeta{Name: "warn-queue", Namespace: ns},
-				Spec: messagingv1alpha1.QueueSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.QueueSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					QueueName:     "APP.WARN",
 					Attributes:    map[string]string{"notreal": "x"},
 				},
@@ -728,10 +724,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		It("allows Topic create and warns on unknown attribute keys", func() {
 			ctx := context.Background()
 			warningClient, capture := newWarningCapturingClient()
-			topic := &messagingv1alpha1.Topic{
+			topic := &messagingv1beta1.Topic{
 				ObjectMeta: metav1.ObjectMeta{Name: "warn-topic", Namespace: ns},
-				Spec: messagingv1alpha1.TopicSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.TopicSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					TopicName:     "RETAIL/ORDERS",
 					Attributes:    map[string]string{"boguskey": "y"},
 				},
@@ -743,10 +739,10 @@ var _ = Describe("Validating admission webhooks", func() {
 		It("allows Channel create and warns on unknown attribute keys", func() {
 			ctx := context.Background()
 			warningClient, capture := newWarningCapturingClient()
-			ch := &messagingv1alpha1.Channel{
+			ch := &messagingv1beta1.Channel{
 				ObjectMeta: metav1.ObjectMeta{Name: "warn-channel", Namespace: ns},
-				Spec: messagingv1alpha1.ChannelSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.ChannelSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "ORDERS.WARN",
 					Attributes:    map[string]string{"unknownattr": "z"},
 				},
@@ -757,12 +753,12 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		It("allows SDR Channel create when connName and xmitQueue are set", func() {
 			ctx := context.Background()
-			ch := &messagingv1alpha1.Channel{
+			ch := &messagingv1beta1.Channel{
 				ObjectMeta: metav1.ObjectMeta{Name: "sdr-channel", Namespace: ns},
-				Spec: messagingv1alpha1.ChannelSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.ChannelSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "QM1.TO.QM2",
-					Type:          messagingv1alpha1.ChannelTypeSdr,
+					Type:          messagingv1beta1.ChannelTypeSdr,
 					ConnName:      "qm2.example.com(1414)",
 					XmitQueue:     "SYSTEM.DEFAULT.XMIT.QUEUE",
 					Attributes:    map[string]string{"trptype": "tcp"},
@@ -773,12 +769,12 @@ var _ = Describe("Validating admission webhooks", func() {
 
 		It("allows RCVR Channel create without connName or xmitQueue", func() {
 			ctx := context.Background()
-			ch := &messagingv1alpha1.Channel{
+			ch := &messagingv1beta1.Channel{
 				ObjectMeta: metav1.ObjectMeta{Name: "rcvr-channel", Namespace: ns},
-				Spec: messagingv1alpha1.ChannelSpec{
-					ConnectionRef: messagingv1alpha1.LocalObjectReference{Name: "qm1"},
+				Spec: messagingv1beta1.ChannelSpec{
+					ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
 					ChannelName:   "QM2.FROM.QM1",
-					Type:          messagingv1alpha1.ChannelTypeRcvr,
+					Type:          messagingv1beta1.ChannelTypeRcvr,
 					Attributes:    map[string]string{"trptype": "tcp"},
 				},
 			}
@@ -969,7 +965,7 @@ var _ = Describe("Validating admission webhooks", func() {
 			Expect(webhookK8sClient.Create(ctx, &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: ns},
 			})).To(Succeed())
-			Expect(webhookK8sClient.Create(ctx, sampleWebhookConnectionV1Beta1(ns, "qm-v1beta1"))).To(Succeed())
+			Expect(webhookK8sClient.Create(ctx, sampleWebhookConnection(ns, "qm-v1beta1"))).To(Succeed())
 		})
 
 		It("allows Queue create and warns on deprecated attribute keys", func() {
@@ -989,36 +985,7 @@ var _ = Describe("Validating admission webhooks", func() {
 	})
 })
 
-func sampleWebhookConnection(ns, name string) *messagingv1alpha1.QueueManagerConnection {
-	return &messagingv1alpha1.QueueManagerConnection{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
-		Spec: messagingv1alpha1.QueueManagerConnectionSpec{
-			QueueManager: "QM1",
-			Endpoint:     "https://mq.example:9443",
-			CredentialsSecretRef: messagingv1alpha1.SecretReference{
-				Name: "creds",
-			},
-		},
-	}
-}
-
-func cleanupWebhookNamespace(ctx context.Context, ns string) {
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Queue{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Topic{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.ChannelAuthRule{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.AuthorityRecord{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.Channel{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1alpha1.QueueManagerConnection{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Queue{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Topic{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.ChannelAuthRule{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.AuthorityRecord{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Channel{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.QueueManagerConnection{}, client.InNamespace(ns))
-	_ = webhookK8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(ns))
-}
-
-func sampleWebhookConnectionV1Beta1(ns, name string) *messagingv1beta1.QueueManagerConnection {
+func sampleWebhookConnection(ns, name string) *messagingv1beta1.QueueManagerConnection {
 	return &messagingv1beta1.QueueManagerConnection{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
 		Spec: messagingv1beta1.QueueManagerConnectionSpec{
@@ -1029,6 +996,22 @@ func sampleWebhookConnectionV1Beta1(ns, name string) *messagingv1beta1.QueueMana
 			},
 		},
 	}
+}
+
+func cleanupWebhookNamespace(ctx context.Context, ns string) {
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Queue{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Topic{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.ChannelAuthRule{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.AuthorityRecord{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Channel{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.QueueManagerConnection{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Queue{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Topic{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.ChannelAuthRule{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.AuthorityRecord{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.Channel{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &messagingv1beta1.QueueManagerConnection{}, client.InNamespace(ns))
+	_ = webhookK8sClient.DeleteAllOf(ctx, &corev1.Secret{}, client.InNamespace(ns))
 }
 
 type warningCapture struct {
