@@ -215,3 +215,63 @@ jobs:
         run: task helm:test
         env:
           CI: "true"
+
+  fuzz:
+    name: fuzz (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    # One entry per fuzz target so a crash in any is isolated; fail-fast: false keeps
+    # the others running so a single flake does not mask a real finding. (Replaces the
+    # conversion round-trip matrix retired with v1alpha1 in Phase 8e; CI-20.)
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - FuzzParseMQSCDisplayAttributes
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/go-cache
+      - name: Fuzz ${{ matrix.target }}
+        env:
+          CI: "true"
+          CGO_ENABLED: "0"
+          FUZZ_TARGET: ${{ matrix.target }}
+        # A NEW corpus file under testdata/fuzz means the fuzzer found a crash — a real
+        # finding that must NEVER be retried or masked, so emit ::error and fail
+        # immediately. Only transient infra failures (network, cache) are retried.
+        run: |
+          set -uo pipefail
+          run_fuzz() {
+            go test -run='^$' -fuzz="^${FUZZ_TARGET}$" -fuzztime=30s ./internal/adapter/mqrest/
+          }
+          crash_corpus_present() {
+            git status --porcelain -- internal/adapter/mqrest/testdata/fuzz | grep -q '.'
+          }
+          attempt=0
+          max_attempts=3
+          while :; do
+            attempt=$((attempt + 1))
+            echo "::group::fuzz ${FUZZ_TARGET} (attempt ${attempt}/${max_attempts})"
+            if run_fuzz; then
+              echo "::endgroup::"
+              echo "fuzz ${FUZZ_TARGET} passed"
+              exit 0
+            else
+              # After a failed `if` condition, $? on the compound is 0, so capture
+              # run_fuzz's real exit code here before any other command runs.
+              status=$?
+            fi
+            echo "::endgroup::"
+            if crash_corpus_present; then
+              echo "::error title=Fuzz crash::${FUZZ_TARGET} produced a new corpus file under internal/adapter/mqrest/testdata/fuzz — a real finding, not retrying."
+              git status --porcelain -- internal/adapter/mqrest/testdata/fuzz
+              exit 1
+            fi
+            if [ "${attempt}" -ge "${max_attempts}" ]; then
+              echo "::error title=Fuzz failed::${FUZZ_TARGET} failed after ${max_attempts} attempts (no crash corpus; likely transient)."
+              exit "${status}"
+            fi
+            echo "::warning::${FUZZ_TARGET} attempt ${attempt} failed without a crash corpus; retrying (transient)."
+          done
