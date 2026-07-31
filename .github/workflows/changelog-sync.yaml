@@ -10,7 +10,8 @@ name: changelog-sync
 # regenerates CHANGELOG.md after each push to main and commits the result, so
 # those merges self-heal instead of needing a manual `task changelog:write`.
 #
-# ACTIVATION (operator) — until done, the job SOFT-FAILS with a warning and never
+# ACTIVATION (operator) — until done, the `gate` job resolves the App-ID secret as
+# unset and the `sync` job is SKIPPED cleanly (green); it never runs, fails, or
 # blocks a merge (it is not a required check):
 #   1. Install a GitHub App on platformrelay/MKurator that can push to main
 #      (kollect uses org Integration App ID 4389790 — the same App can be
@@ -44,8 +45,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Activation gate: secrets can't be referenced in a job-level `if`, so a tiny
+  # job resolves their presence into an output. Until the operator sets
+  # CHANGELOG_SYNC_GITHUB_APP_ID (see ACTIVATION above), `sync` is SKIPPED cleanly
+  # (green) instead of hard-failing on an empty app-token input.
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          APP_ID: ${{ secrets.CHANGELOG_SYNC_GITHUB_APP_ID }}
+        run: |
+          if [ -n "${APP_ID}" ]; then
+            echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice title=changelog-sync::Not activated (CHANGELOG_SYNC_GITHUB_APP_ID unset) — sync skipped. See workflow header for activation steps."
+          fi
+
   sync:
     name: sync
+    needs: [gate]
+    if: needs.gate.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
