@@ -35,10 +35,10 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-# Read-only baseline (OpenSSF Scorecard "Token-Permissions"). The write grant is
-# scoped to the `sync` job below — the only job that commits/pushes CHANGELOG.md.
-permissions:
-  contents: read
+# Deny-all workflow baseline (OpenSSF "Token-Permissions" + Sonar githubactions:S8264,
+# which wants no read grant at workflow level). Each job opts into exactly what it needs:
+# `gate` needs nothing (reads a secret only); `sync` alone gets contents:write to push.
+permissions: {}
 
 concurrency:
   group: changelog-sync-main
@@ -52,6 +52,7 @@ jobs:
   gate:
     name: gate
     runs-on: ubuntu-latest
+    permissions: {} # reads a secret only — no token scope needed
     outputs:
       enabled: ${{ steps.check.outputs.enabled }}
     steps:
