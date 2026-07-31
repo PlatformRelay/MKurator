@@ -1,6 +1,10 @@
 name: Vulncheck
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
     - cron: "12 4 * * 1"
   workflow_dispatch:
