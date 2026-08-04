@@ -26,7 +26,7 @@ Doc index: [README.md](index.md) · Agent entry: [../AGENTS.md](https://github.c
 
 ## I changed a CRD field — what do I regenerate?
 
-Edit types and kubebuilder markers in `api/v1alpha1/`, then run codegen in this
+Edit types and kubebuilder markers in `api/v1beta1/`, then run codegen in this
 order (or rely on `task verify`, which runs the same steps and fails on drift):
 
 | Step | Command | Produces / updates |
@@ -50,7 +50,7 @@ Then `task verify` before commit (also runs schema contract tests).
 | Change | Where |
 |--------|--------|
 | Admission rules for new/renamed fields | `internal/validation/` + `*_test.go` (table-driven) |
-| Webhook handler (thin) | `internal/webhook/v1alpha1/` — delegates to validation |
+| Webhook handler (thin) | `internal/webhook/v1beta1/` — delegates to validation |
 | Reconciler mapping CR spec → port types | `internal/controller/*_controller.go` |
 | Drift / DEFINE vs DISPLAY policy | [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md) and reconciler helpers |
 | User-facing samples | `config/samples/`, [config/samples/README.md](https://github.com/platformrelay/MKurator/blob/main/config/samples/README.md) |
@@ -72,7 +72,7 @@ Pick the **lowest tier** that exercises the behaviour ([ADR-0011](adr/0011-layer
 | A reconciler path (define, drift, delete, requeue, finalizer) | `internal/controller/*_unit_test.go` — `fake` client + **mock `Admin`**; or Ginkgo `*_reconciler_test.go` with **envtest** + mocks |
 | Controller registration / wiring | `wiring_envtest_test.go`, `events_envtest_test.go` |
 | Validation only | `internal/validation/*_test.go` — no cluster, no MQ |
-| Admission webhook wiring | `internal/webhook/v1alpha1/` envtest suite |
+| Admission webhook wiring | `internal/webhook/v1beta1/` envtest suite |
 
 **Default PR loop** (no Queue Manager):
 

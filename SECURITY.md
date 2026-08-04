@@ -22,8 +22,9 @@ seriously and handled promptly.
 
 ## Supported versions
 
-The project is pre-1.0 (`v1alpha1`). Only the latest released version / default
-branch receives fixes. The API contract may change between alpha releases.
+The project is pre-1.0; its only served API version is `v1beta1`. Only the latest
+released version / default branch receives fixes. The API contract may change
+between pre-1.0 releases.
 
 ## Security posture
 
