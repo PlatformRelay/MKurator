@@ -39,8 +39,10 @@ Published site: **[platformrelay.github.io/MKurator](https://platformrelay.githu
 > **not** deploy or scale queue managers. The target QM must expose **mqweb**
 > (Administrative REST) over HTTPS; credentials come from a Kubernetes `Secret`.
 
-Status: recommended API is **`messaging.mkurator.dev/v1beta1`** (conversion webhook
-keeps `v1alpha1` served). Latest release: see the badge above or
+Status: the only served and stored API is **`messaging.mkurator.dev/v1beta1`**.
+`v1alpha1` and the conversion webhook were removed in v0.15.0; follow the
+[upgrade runbook](docs/UPGRADE.md#removing-v1alpha1-v0150) before upgrading any
+cluster that ever ran v0.12 or earlier. Latest release: see the badge above or
 [GitHub Releases](https://github.com/platformrelay/MKurator/releases). Extended
 CHLAUTH rule types remain on the [roadmap](docs/ROADMAP.md#phase-5--user--authority-management).
 
@@ -55,13 +57,10 @@ CHLAUTH rule types remain on the [roadmap](docs/ROADMAP.md#phase-5--user--author
 | `ChannelAuthRule` | `CHLAUTH` | `ADDRESSMAP` exercised in kind e2e; `BLOCKUSER` in Docker integration; `USERMAP`, `SSLPEERMAP`, `QMGRMAP`, `BLOCKADDR` accepted by schema and admission, MQ-validated at apply time |
 | `AuthorityRecord` | `SET AUTHREC` (OAM) | Queue profile + principal/group authorities |
 
-**API versions:** all six kinds serve **`v1alpha1`** and **`v1beta1`** behind a
-conversion webhook; new manifests should use `v1beta1`. **Access control** covers
+**API version:** all six kinds serve **`v1beta1`** only. **Access control** covers
 `SET CHLAUTH` (one rule per CR) and `SET AUTHREC` for queue/channel-style
 profiles; see [PHASE5_AUTH_SKETCH.md](docs/PHASE5_AUTH_SKETCH.md) for the
-rule-type roadmap. **API stability:**
-[docs/API_STABILITY.md](docs/API_STABILITY.md) (per-version guarantees and the
-`v1beta1` graduation path).
+rule-type roadmap. **API stability:** [docs/API_STABILITY.md](docs/API_STABILITY.md).
 
 **Repository:** [github.com/platformrelay/MKurator](https://github.com/platformrelay/MKurator) — Go module
 [`github.com/platformrelay/MKurator`](https://pkg.go.dev/github.com/platformrelay/mkurator), images
@@ -116,13 +115,12 @@ adapter. Full design: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · extended map:
 
 ```text
 mkurator/
-├── 📦 api/{v1alpha1,v1beta1}/       CRD types, deepcopy + conversion (QMC, Queue, Topic, Channel, auth)
+├── 📦 api/v1beta1/                  CRD types + deepcopy (QMC, Queue, Topic, Channel, auth)
 ├── 🚀 cmd/                          Manager entrypoint (controller-runtime)
 ├── 🧠 internal/
 │   ├── controller/                  Reconcilers (thin) + unit/envtest suites
 │   ├── validation/                  Admission validation rules (pure functions)
-│   ├── webhook/{v1alpha1,v1beta1}/  Validating webhook handlers (per version)
-│   ├── webhook/conversion/          v1alpha1 ↔ v1beta1 conversion webhook
+│   ├── webhook/v1beta1/             Validating webhook handlers
 │   ├── mqadmin/                     MQAdmin port — interface + domain errors
 │   ├── adapter/mqrest/              mqweb REST client (sole adapter today)
 │   ├── logging/                     Structured logging helpers

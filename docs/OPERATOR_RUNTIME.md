@@ -14,7 +14,7 @@ Startup order:
    `MaxConcurrentReconciles` (`--max-concurrent-reconciles` or
    `KURATOR_MAX_CONCURRENT_RECONCILES`, minimum 1).
 2. **Logging** — `internal/logging` configures structured output (JSON in cluster).
-3. **Scheme** — core Kubernetes types plus `messaging.mkurator.dev/v1alpha1`.
+3. **Scheme** — core Kubernetes types plus `messaging.mkurator.dev/v1beta1`.
 4. **Manager** — controller-runtime `Manager` with metrics server (HTTPS + authz
    filter by default), webhook server, health probes, optional leader election
    (`LeaderElectionID`: `bdd44880.mkurator.dev`).
@@ -22,7 +22,7 @@ Startup order:
    `mqadmin.Factory`.
 6. **Reconcilers** — six controllers, shared `events.EventRecorder` name
    `mkurator-controller-manager`.
-7. **Webhooks** — `webhookv1alpha1.SetupWithManager(mgr)` (validating only).
+7. **Webhooks** — `webhookv1beta1.SetupWithManager(mgr)` (validating only).
 8. **Probes** — `healthz` ping; `readyz` via `health.NewMQConnectivityChecker`.
 9. **Run** — `mgr.Start` on SIGTERM/SIGINT.
 
@@ -105,7 +105,7 @@ Steps in code (`internal/controller/*_controller.go` + `reconcile_shared.go`):
    go through **`setSyncedError`**.
 5. **Deletion** — if `deletionTimestamp` is set, run kind-specific
    `handleDeletion` (MQ delete, then remove finalizer).
-6. **Finalizer** — add the kind finalizer constant from `api/v1alpha1` if missing;
+6. **Finalizer** — add the kind finalizer constant from `api/v1beta1` if missing;
    return and reconcile again.
 7. **Ensure** — populate `status.desiredMQSC` via `mqrest.Format*MQSC`; call port
    methods to observe and converge MQ state. Drift behaviour for queues/topics/channels
@@ -223,6 +223,7 @@ controller-runtime rate-limit when returning a bare error from `Reconcile`.
 | `--metrics-bind-address` | Prometheus (often `:8443` in deployment) |
 | `--health-probe-bind-address` | `:8081` for `healthz` / `readyz` |
 | `--max-concurrent-reconciles` / `KURATOR_MAX_CONCURRENT_RECONCILES` | Worker pool size per controller |
+| `--terminal-retry-interval` | QMC terminal-auth recovery backstop (default `2m`; Secret watches remain the fast path) |
 | Webhook / metrics cert paths | TLS for admission and metrics servers |
 
 Full logging options: [LOGGING.md](LOGGING.md). NFR summary:

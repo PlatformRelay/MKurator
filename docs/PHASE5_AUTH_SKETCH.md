@@ -5,16 +5,16 @@ reference MQSC from
 ibm-messaging/mq-gitops-samples `qmdemo-mqsc-config-map.yaml` (mirrored in [`test/e2e/fixtures/channel-auth-prereq.mqsc`](https://github.com/platformrelay/MKurator/blob/main/test/e2e/fixtures/channel-auth-prereq.mqsc))
 and patterns in [IBM_MQ_OBJECTS.md](IBM_MQ_OBJECTS.md) to CRD fields.
 
-**Already shipped (Phase 4):** the [`Channel`](https://github.com/platformrelay/MKurator/blob/main/api/v1alpha1/channel_types.go)
+**Already shipped (Phase 4):** the [`Channel`](https://github.com/platformrelay/MKurator/blob/main/api/v1beta1/channel_types.go)
 CRD reconciles `DEFINE CHANNEL` … `CHLTYPE(SVRCONN)` with drift detection. See
 [INSTALL_AND_USE.md](INSTALL_AND_USE.md) and
 [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md).
 
 **Shipped on `main` (Phase 5):**
 
-- [`ChannelAuthRule`](https://github.com/platformrelay/MKurator/blob/main/api/v1alpha1/channelauthrule_types.go) — `SET CHLAUTH`
+- [`ChannelAuthRule`](https://github.com/platformrelay/MKurator/blob/main/api/v1beta1/channelauthrule_types.go) — `SET CHLAUTH`
   with `ACTION(REPLACE)` / `ACTION(REMOVE)` on delete
-- [`AuthorityRecord`](https://github.com/platformrelay/MKurator/blob/main/api/v1alpha1/authorityrecord_types.go) — `SET AUTHREC`
+- [`AuthorityRecord`](https://github.com/platformrelay/MKurator/blob/main/api/v1beta1/authorityrecord_types.go) — `SET AUTHREC`
   with `AUTHADD` / `AUTHRMV(ALL)` on delete
 - Samples: [`config/samples/`](https://github.com/platformrelay/MKurator/tree/main/config/samples) · integration tests in
   [`test/integration/mq/`](https://github.com/platformrelay/MKurator/tree/main/test/integration/mq)
