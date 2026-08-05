@@ -39,6 +39,16 @@ if ! grep -qF 'operators.operatorframework.io.bundle.package.v1: mkurator' "${AN
   exit 1
 fi
 
+if ! grep -qF 'operators.operatorframework.io.bundle.channels.v1: stable' "${ANNOTATIONS}"; then
+  echo "FAIL: bundle channel must include stable" >&2
+  exit 1
+fi
+
+if ! grep -qF 'operators.operatorframework.io.bundle.channel.default.v1: stable' "${ANNOTATIONS}"; then
+  echo "FAIL: bundle default channel must be stable" >&2
+  exit 1
+fi
+
 if ! grep -qF "ghcr.io/platformrelay/mkurator@${FAKE_DIGEST}" "${CSV}"; then
   echo "FAIL: CSV must reference digest-pinned controller image" >&2
   exit 1

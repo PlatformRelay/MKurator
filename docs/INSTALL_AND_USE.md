@@ -166,7 +166,9 @@ via OLM from the **stable** channel (package name **mkurator**). Until then, use
 
 MKurator on OperatorHub ships the controller for **existing queue manager** object
 management only ([ADR-0012](adr/0012-operator-scope-existing-queue-manager.md)) — it
-does not install IBM MQ Queue Manager pods.
+does not install IBM MQ Queue Manager pods. The OLM bundle does **not** include
+ValidatingWebhookConfiguration wiring; use Helm (Option C) when you need admission
+webhooks. CRD CEL validation still applies under OLM.
 
 ### Option F — From this repository (development)
 

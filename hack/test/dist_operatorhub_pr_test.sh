@@ -2,6 +2,7 @@
 # DIST-OLM-02: operatorhub-pr script and release workflow gating.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "${ROOT}"
 SCRIPT="${ROOT}/hack/operatorhub-pr.sh"
 WORKFLOW="${ROOT}/.github/workflows/release.yaml"
 
@@ -10,14 +11,28 @@ if [[ ! -x "${SCRIPT}" ]]; then
   exit 1
 fi
 
-if ! "${SCRIPT}" --help 2>&1 | grep -qF 'operatorhub-pr.sh'; then
+HELP_OUT="$(mktemp)"
+if ! "${SCRIPT}" --help >"${HELP_OUT}" 2>&1; then
+  echo "FAIL: operatorhub-pr.sh --help exited non-zero" >&2
+  exit 1
+fi
+if ! grep -qF 'operatorhub-pr.sh' "${HELP_OUT}"; then
   echo "FAIL: operatorhub-pr.sh --help must print usage" >&2
   exit 1
 fi
+rm -f "${HELP_OUT}"
 
 FAKE_DIGEST='sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
-if ! DRY_RUN=1 VERSION=9.9.9-test IMAGE_DIGEST="${FAKE_DIGEST}" "${SCRIPT}" 2>&1 | grep -qF 'Bundle verified'; then
+DRY_OUT="$(mktemp)"
+trap 'rm -f "${DRY_OUT}"' EXIT
+if ! DRY_RUN=1 VERSION=9.9.9-test IMAGE_DIGEST="${FAKE_DIGEST}" "${SCRIPT}" >"${DRY_OUT}" 2>&1; then
+  echo "FAIL: DRY_RUN=1 operatorhub-pr.sh exited non-zero" >&2
+  cat "${DRY_OUT}" >&2
+  exit 1
+fi
+if ! grep -qF 'Bundle verified' "${DRY_OUT}"; then
   echo "FAIL: DRY_RUN=1 must generate and verify bundle without clone/push" >&2
+  cat "${DRY_OUT}" >&2
   exit 1
 fi
 

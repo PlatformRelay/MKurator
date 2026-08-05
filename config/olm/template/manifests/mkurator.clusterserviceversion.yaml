@@ -82,6 +82,14 @@ spec:
     MKurator exposes metrics and Kubernetes Events on transitions. It does not automate
     Queue Manager lifecycle or operate at Auto Pilot level.
 
+
+    ### OperatorHub install note
+
+    The OLM bundle ships the controller Deployment, RBAC, and CRDs. It does **not**
+    include ValidatingWebhookConfiguration / webhook Service / cert-manager wiring.
+    For full admission webhooks, install via the Helm chart (primary path). CRD CEL
+    rules still apply under OLM.
+
     ### Prerequisites
 
     * Kubernetes 1.29+
