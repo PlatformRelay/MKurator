@@ -55,3 +55,4 @@ supersedes the old one rather than editing history.
 | [0027](0027-mqweb-authentication-modes.md) | mqweb admin authentication modes (basic → LTPA → OIDC) | Accepted |
 | [0028](0028-integration-advisory-merge-gate.md) | Keep `integration` advisory (not `protect-main` required) | Accepted |
 | [0029](0029-drop-v1alpha1-hard-cut.md) | Drop `v1alpha1` entirely — hard cut, no soft-migration window | Accepted |
+| [0030](0030-operator-distribution-hubs.md) | Operator distribution via Artifact Hub and OperatorHub | Proposed |
