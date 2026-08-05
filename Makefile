@@ -200,6 +200,27 @@ deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/c
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	@KUBECONFIG="$${KUBECONFIG:-$$HOME/.kube/config}" task undeploy
 
+.PHONY: generate-olm-bundle
+generate-olm-bundle: manifests ## Generate OLM bundle for OperatorHub submission (requires VERSION and IMAGE_DIGEST)
+	@VERSION=$${VERSION:?VERSION is required (e.g. 0.15.0)} && \
+	IMAGE_DIGEST=$${IMAGE_DIGEST:?IMAGE_DIGEST is required (e.g. sha256:abc...)} && \
+	DATE=$$(date -u +%Y-%m-%dT00:00:00Z) && \
+	BUNDLE_DIR=dist/olm-bundle/$$VERSION && \
+	echo "Generating OLM bundle for version $$VERSION (digest: $$IMAGE_DIGEST)..." && \
+	mkdir -p "$$BUNDLE_DIR/manifests" "$$BUNDLE_DIR/metadata" && \
+	ICON_B64=$$(base64 < docs/images/mkurator-logo.png | tr -d '\n') && \
+	sed "s|__VERSION__|$$VERSION|g; s|__DATE__|$$DATE|g; s|__ICON_BASE64__|$$ICON_B64|g; s|__IMAGE_DIGEST__|$$IMAGE_DIGEST|g" \
+		config/olm/template/manifests/mkurator.clusterserviceversion.yaml \
+		> "$$BUNDLE_DIR/manifests/mkurator.clusterserviceversion.yaml" && \
+	cp config/olm/template/metadata/annotations.yaml "$$BUNDLE_DIR/metadata/" && \
+	cp config/crd/bases/messaging.mkurator.dev_authorityrecords.yaml "$$BUNDLE_DIR/manifests/" && \
+	cp config/crd/bases/messaging.mkurator.dev_channelauthrules.yaml "$$BUNDLE_DIR/manifests/" && \
+	cp config/crd/bases/messaging.mkurator.dev_channels.yaml "$$BUNDLE_DIR/manifests/" && \
+	cp config/crd/bases/messaging.mkurator.dev_queuemanagerconnections.yaml "$$BUNDLE_DIR/manifests/" && \
+	cp config/crd/bases/messaging.mkurator.dev_queues.yaml "$$BUNDLE_DIR/manifests/" && \
+	cp config/crd/bases/messaging.mkurator.dev_topics.yaml "$$BUNDLE_DIR/manifests/" && \
+	echo "OLM bundle generated at $$BUNDLE_DIR"
+
 ##@ Dependencies
 
 ## Location to install dependencies to

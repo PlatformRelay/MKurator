@@ -1,0 +1,318 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: mkurator.v__VERSION__
+  namespace: placeholder
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "messaging.mkurator.dev/v1beta1",
+          "kind": "QueueManagerConnection",
+          "metadata": {
+            "name": "qm1",
+            "namespace": "mkurator-system"
+          },
+          "spec": {
+            "queueManager": "QM1",
+            "endpoint": "https://ibm-mq.example.com:9443",
+            "credentialsSecretRef": {
+              "name": "mq-credentials"
+            }
+          }
+        },
+        {
+          "apiVersion": "messaging.mkurator.dev/v1beta1",
+          "kind": "Queue",
+          "metadata": {
+            "name": "orders",
+            "namespace": "mkurator-system"
+          },
+          "spec": {
+            "connectionRef": {
+              "name": "qm1"
+            },
+            "queueName": "APP.ORDERS",
+            "type": "local"
+          }
+        }
+      ]
+    categories: Integration & Delivery,Messaging
+    capabilities: Deep Insights
+    containerImage: ghcr.io/platformrelay/mkurator@__IMAGE_DIGEST__
+    createdAt: "__DATE__"
+    support: PlatformRelay
+    repository: https://github.com/platformrelay/MKurator
+    description: Kubernetes operator for declarative IBM MQ resources on an existing queue manager via mqweb.
+    operators.operatorframework.io/builder: operator-sdk-v1.39.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/disconnected: "false"
+spec:
+  displayName: MKurator
+  description: |
+    ## MKurator
+
+    MKurator is a Kubernetes operator for **declarative IBM MQ object management on an
+    existing queue manager**. It reconciles custom resources into MQSC objects through the
+    IBM MQ Administrative REST API (`mqweb`) over HTTPS.
+
+    Per [ADR-0012](https://github.com/platformrelay/MKurator/blob/main/docs/adr/0012-operator-scope-existing-queue-manager.md),
+    MKurator does **not** install, scale, or upgrade Queue Manager installations. You provide
+    a running queue manager with mqweb enabled; MKurator manages queues, topics, channels,
+    channel authentication rules, and OAM authority records on that manager.
+
+    ### Features
+
+    * **Existing QM only** — connects to queue managers you already operate
+    * **Six CRDs** — `QueueManagerConnection`, `Queue`, `Topic`, `Channel`, `ChannelAuthRule`, `AuthorityRecord`
+    * **Drift reconciliation** — desired state via DEFINE/DISPLAY MQSC through mqweb
+    * **Status conditions** — Synced/Ready reporting on each resource
+    * **Finalizers** — MQ objects removed before CR deletion
+    * **Prometheus metrics** — controller metrics for observability
+
+    ### Capability level: Deep Insights
+
+    MKurator exposes metrics and Kubernetes Events on transitions. It does not automate
+    Queue Manager lifecycle or operate at Auto Pilot level.
+
+    ### Prerequisites
+
+    * Kubernetes 1.29+
+    * IBM MQ with mqweb (Administrative REST API) reachable from the cluster
+    * MQ administrator credentials in a Kubernetes Secret
+
+  maturity: beta
+  version: __VERSION__
+  minKubeVersion: "1.29.0"
+
+  keywords:
+    - ibm-mq
+    - messaging
+    - operator
+    - queue-manager
+    - mqweb
+    - kubernetes
+
+  maintainers:
+    - name: PlatformRelay
+      email: konrad.heimel@gmail.com
+
+  provider:
+    name: PlatformRelay
+
+  links:
+    - name: Documentation
+      url: https://platformrelay.github.io/MKurator/
+    - name: GitHub
+      url: https://github.com/platformrelay/MKurator
+
+  icon:
+    - base64data: __ICON_BASE64__
+      mediatype: image/png
+
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true
+
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+        - serviceAccountName: mkurator-controller-manager
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+                - events.k8s.io
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - messaging.mkurator.dev
+              resources:
+                - authorityrecords
+                - channelauthrules
+                - channels
+                - queuemanagerconnections
+                - queues
+                - topics
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - messaging.mkurator.dev
+              resources:
+                - authorityrecords/finalizers
+                - channelauthrules/finalizers
+                - channels/finalizers
+                - queuemanagerconnections/finalizers
+                - queues/finalizers
+                - topics/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - messaging.mkurator.dev
+              resources:
+                - authorityrecords/status
+                - channelauthrules/status
+                - channels/status
+                - queuemanagerconnections/status
+                - queues/status
+                - topics/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+      deployments:
+        - name: mkurator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+                app.kubernetes.io/name: mkurator
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager
+                  app.kubernetes.io/name: mkurator
+              spec:
+                serviceAccountName: mkurator-controller-manager
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: manager
+                    image: ghcr.io/platformrelay/mkurator@__IMAGE_DIGEST__
+                    imagePullPolicy: IfNotPresent
+                    command:
+                      - /manager
+                    args:
+                      - --leader-elect
+                      - --health-probe-bind-address=:8081
+                    env:
+                      - name: KURATOR_LOG_LEVEL
+                        value: info
+                      - name: KURATOR_LOG_FORMAT
+                        value: json
+                    ports:
+                      - containerPort: 8081
+                        name: health
+                        protocol: TCP
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                    securityContext:
+                      readOnlyRootFilesystem: true
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                terminationGracePeriodSeconds: 10
+
+  customresourcedefinitions:
+    owned:
+      - name: queuemanagerconnections.messaging.mkurator.dev
+        version: v1beta1
+        kind: QueueManagerConnection
+        displayName: Queue Manager Connection
+        description: How to reach an existing IBM MQ queue manager (endpoint, TLS, credentials).
+      - name: queues.messaging.mkurator.dev
+        version: v1beta1
+        kind: Queue
+        displayName: Queue
+        description: Local, alias, or remote queue on a connected queue manager.
+      - name: topics.messaging.mkurator.dev
+        version: v1beta1
+        kind: Topic
+        displayName: Topic
+        description: Administrative topic object (DEFINE TOPIC).
+      - name: channels.messaging.mkurator.dev
+        version: v1beta1
+        kind: Channel
+        displayName: Channel
+        description: Server-connection channel (CHLTYPE SVRCONN).
+      - name: channelauthrules.messaging.mkurator.dev
+        version: v1beta1
+        kind: ChannelAuthRule
+        displayName: Channel Auth Rule
+        description: Channel authentication rule (SET CHLAUTH).
+      - name: authorityrecords.messaging.mkurator.dev
+        version: v1beta1
+        kind: AuthorityRecord
+        displayName: Authority Record
+        description: OAM authority record (SET AUTHREC).
+
+  relatedImages:
+    - name: mkurator
+      image: ghcr.io/platformrelay/mkurator@__IMAGE_DIGEST__
