@@ -143,7 +143,8 @@ mkurator/
 ## Install and use
 
 **Start here:** [docs/INSTALL_AND_USE.md](docs/INSTALL_AND_USE.md) — install the
-operator (Release manifests, Helm), connect to your queue manager, manage queues,
+operator (Release manifests, Helm OCI, Artifact Hub / OperatorHub when listed),
+connect to your queue manager, manage queues,
 [kubectl diagnostics](docs/INSTALL_AND_USE.md#diagnostics-and-troubleshooting),
 and uninstall.
 

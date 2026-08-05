@@ -146,7 +146,29 @@ helm upgrade --install mkurator oci://ghcr.io/platformrelay/mkurator \
   --set image.tag="${VERSION}"
 ```
 
-### Option D — From this repository (development)
+### Option D — Artifact Hub (Helm OCI listing)
+
+Once the maintainer registers the GHCR OCI repository on
+[Artifact Hub](https://artifacthub.io/), the signed Helm chart published by release
+(see [ADR-0030](adr/0030-operator-distribution-hubs.md)) appears under package
+**mkurator**. Until registration completes, use **Option C** (direct OCI install) or
+the GitHub Release tarball (**Option B**).
+
+After listing is live, discover the chart on Artifact Hub and install with the same
+OCI coordinates as Option C (`oci://ghcr.io/platformrelay/mkurator`).
+
+### Option E — OperatorHub / OpenShift OperatorHub (OLM)
+
+When the **mkurator** bundle is accepted on
+[OperatorHub.io](https://operatorhub.io/) or the OpenShift community catalog, install
+via OLM from the **stable** channel (package name **mkurator**). Until then, use
+**Option A**, **B**, or **C** above.
+
+MKurator on OperatorHub ships the controller for **existing queue manager** object
+management only ([ADR-0012](adr/0012-operator-scope-existing-queue-manager.md)) — it
+does not install IBM MQ Queue Manager pods.
+
+### Option F — From this repository (development)
 
 ```sh
 task deploy          # Kustomize: config/default + CRDs
