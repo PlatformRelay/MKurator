@@ -15,3 +15,47 @@ keywords:
   - operator
 maintainers:
   - name: MKurator contributors
+annotations:
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/operator: 'true'
+  artifacthub.io/category: streaming-messaging
+  artifacthub.io/operatorCapabilities: Deep Insights
+  artifacthub.io/crds: |
+    - kind: QueueManagerConnection
+      version: v1beta1
+      name: queuemanagerconnections.messaging.mkurator.dev
+      displayName: Queue Manager Connection
+      description: Connectivity and credentials for an existing IBM MQ queue manager (mqweb)
+    - kind: Queue
+      version: v1beta1
+      name: queues.messaging.mkurator.dev
+      displayName: Queue
+      description: Declarative local, alias, or remote queue on a connected queue manager
+    - kind: Topic
+      version: v1beta1
+      name: topics.messaging.mkurator.dev
+      displayName: Topic
+      description: Administrative topic object (DEFINE TOPIC)
+    - kind: Channel
+      version: v1beta1
+      name: channels.messaging.mkurator.dev
+      displayName: Channel
+      description: Server-connection channel (CHLTYPE SVRCONN)
+    - kind: ChannelAuthRule
+      version: v1beta1
+      name: channelauthrules.messaging.mkurator.dev
+      displayName: Channel Auth Rule
+      description: Channel authentication rule (SET CHLAUTH)
+    - kind: AuthorityRecord
+      version: v1beta1
+      name: authorityrecords.messaging.mkurator.dev
+      displayName: Authority Record
+      description: OAM authority record (SET AUTHREC)
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://platformrelay.github.io/MKurator/
+    - name: Source
+      url: https://github.com/platformrelay/MKurator
+  artifacthub.io/images: |
+    - name: mkurator
+      image: ghcr.io/platformrelay/mkurator:latest
