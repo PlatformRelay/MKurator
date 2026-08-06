@@ -432,6 +432,54 @@ func TestQueueReconciler_TransientError(t *testing.T) {
 	}
 }
 
+// REQ-REL-2026-08 regression: a reconcile failing with a bare context.DeadlineExceeded
+// (neither TransientError nor TerminalError) must schedule a retry — before the fix it
+// returned (ctrl.Result{}, nil) and the CR stayed Synced=False forever with no requeue.
+func TestQueueReconciler_UnclassifiedErrorSchedulesRetry(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	key := types.NamespacedName{Namespace: ns, Name: "orders"}
+	s := unitSchemeOrFatal(t)
+
+	conn := readyConnForUnit(ns)
+	q := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "orders",
+			Namespace:  ns,
+			Finalizers: []string{messagingv1beta1.QueueFinalizer},
+		},
+		Spec: messagingv1beta1.QueueSpec{
+			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
+			QueueName:     "APP.ORDERS",
+			Type:          messagingv1beta1.QueueTypeLocal,
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(q, conn).
+		WithObjects(conn, q).
+		Build()
+
+	mockAdmin := mqadmintest.NewMockAdmin(t)
+	mockAdmin.EXPECT().GetQueue(mock.Anything, mock.Anything).Return(nil, context.DeadlineExceeded)
+
+	mockFactory := mqadmintest.NewMockFactory(t)
+	mockFactory.EXPECT().ForConnection(mock.Anything, mock.Anything).Return(mockAdmin, nil)
+
+	rec := &QueueReconciler{
+		Client:    cl,
+		Scheme:    s,
+		MQFactory: mockFactory,
+	}
+
+	result, err := rec.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	if result.RequeueAfter <= 0 && err == nil {
+		t.Fatalf("unclassified error must schedule a retry: result=%+v err=%v", result, err)
+	}
+}
+
 func TestQueueManagerConnectionReconciler_PingFailure(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

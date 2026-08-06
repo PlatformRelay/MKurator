@@ -173,10 +173,23 @@ func setSyncedError(
 ) (ctrl.Result, error) {
 	recordReconcileWarning(recorder, obj, err)
 
+	// Retry policy (REQ-REL-2026-08): never return (Result{}, nil) on an error the caller
+	// cannot recover from by waiting for a watch event — workloadReconcilePredicates only
+	// enqueues on generation / reconcile-requested-at / lifecycle change, so a skipped
+	// requeue wedges the CR until a human edits it. Known-transient failures get the fixed
+	// requeue interval; terminal failures (bad spec — retrying cannot help) are the only
+	// no-requeue path, healed by the generation predicate once the spec is fixed; anything
+	// unclassified is returned to controller-runtime for rate-limited backoff (which also
+	// logs it at ERROR).
 	reason, message := classifyReconcileError(err)
 	requeue := ctrl.Result{}
-	if errors.Is(err, mqadmin.ErrTransient) {
+	var reconcileErr error
+	switch {
+	case errors.Is(err, mqadmin.ErrTransient):
 		requeue = ctrl.Result{RequeueAfter: TransientRequeueInterval()}
+	case errors.Is(err, mqadmin.ErrTerminal):
+	default:
+		reconcileErr = err
 	}
 
 	if patchErr := patchSyncedStatus(ctx, status, recorder, obj, syncedStatusPatch{
@@ -189,10 +202,13 @@ func setSyncedError(
 		return requeue, patchErr
 	}
 
-	if errors.Is(err, mqadmin.ErrTransient) {
-		return requeue, nil
+	if reconcileErr == nil {
+		// The 1h-TTL warning event is the only other trace; without this line a not-synced
+		// CR is invisible in the logs (controller-runtime only logs returned errors).
+		log.FromContext(ctx).Error(err, "workload CR not synced",
+			"reason", reason, "retryAfter", requeue.RequeueAfter)
 	}
-	return ctrl.Result{}, nil
+	return requeue, reconcileErr
 }
 
 func patchSyncedAvailable(

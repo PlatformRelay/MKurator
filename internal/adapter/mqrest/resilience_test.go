@@ -164,6 +164,11 @@ func TestRoundTripContextCancelledDuringBackoff(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("got %v", err)
 	}
+	// REQ-REL-2026-08 (REL-2): context expiry is the canonical transient failure and must
+	// carry the transient marker so the reconciler schedules a retry.
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("context error must be transient, got %v", err)
+	}
 }
 
 func TestRoundTripExhaustedHTTPRetries(t *testing.T) {
@@ -234,6 +239,39 @@ func TestRoundTripContextCancelledDuringRequest(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("got %v", err)
 	}
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("context error must be transient, got %v", err)
+	}
+}
+
+// REQ-REL-2026-08 (REL-2): a deadline expiry during the HTTP request must flow down the
+// retry path like every other network failure — bare context.DeadlineExceeded escaping the
+// adapter is what wedged Channel/logistics-app for 23h.
+func TestRoundTripContextDeadlineExceededIsTransient(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+	c := &Client{
+		httpClient: &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+			return nil, context.DeadlineExceeded
+		})},
+		retry: retryPolicy{
+			maxAttempts:    3,
+			initialBackoff: time.Millisecond,
+			maxBackoff:     time.Millisecond,
+			sleep:          time.Sleep,
+		},
+		breaker: newCircuitBreaker(defaultCircuitBreakerConfig()),
+	}
+	_, err := c.roundTrip(ctx, func(reqCtx context.Context) (*http.Request, error) {
+		return http.NewRequestWithContext(reqCtx, http.MethodGet, "http://127.0.0.1:1", nil)
+	})
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("got %v", err)
+	}
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("deadline expiry must be transient, got %v", err)
+	}
 }
 
 func TestSleepWithContextCancelled(t *testing.T) {
@@ -241,8 +279,12 @@ func TestSleepWithContextCancelled(t *testing.T) {
 	cancel()
 	// Block forever so select always observes ctx.Done() (no-op sleepFn races with done).
 	block := func(time.Duration) { select {} }
-	if err := sleepWithContext(ctx, block, time.Hour); !errors.Is(err, context.Canceled) {
+	err := sleepWithContext(ctx, block, time.Hour)
+	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("got %v", err)
+	}
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("context error must be transient, got %v", err)
 	}
 }
 

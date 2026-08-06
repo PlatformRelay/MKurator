@@ -56,7 +56,9 @@ var _ = Describe("TopicReconciler error branches", func() {
 		result, err := rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
-		Expect(err).NotTo(HaveOccurred())
+		// REQ-REL-2026-08: an unclassified error (missing connection) is returned to
+		// controller-runtime for rate-limited retry instead of silently dropping the object.
+		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		updated := &messagingv1beta1.Topic{}
@@ -171,7 +173,9 @@ var _ = Describe("ChannelReconciler error branches", func() {
 		result, err := rec.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{Namespace: ns, Name: key},
 		})
-		Expect(err).NotTo(HaveOccurred())
+		// REQ-REL-2026-08: an unclassified error (missing connection) is returned to
+		// controller-runtime for rate-limited retry instead of silently dropping the object.
+		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		updated := &messagingv1beta1.Channel{}
