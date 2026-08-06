@@ -175,7 +175,8 @@ func (a *ltpaAuthenticator) doLogin(ctx context.Context) ([]*http.Cookie, error)
 	res, err := a.httpClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			// Context expiry is transient like any other network failure (REQ-REL-2026-08).
+			return nil, &mqadmin.TransientError{Message: "ltpa login aborted", Cause: ctx.Err()}
 		}
 		return nil, &mqadmin.TransientError{Message: "ltpa login request failed", Cause: err}
 	}

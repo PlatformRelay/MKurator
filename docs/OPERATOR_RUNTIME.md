@@ -198,15 +198,20 @@ Errors are classified in `mqrest` and returned as port types; reconcilers use
 
 | Class | Port signal | Reconciler behaviour |
 |-------|-------------|-------------------|
-| **Terminal** | `*TerminalError` (`ErrTerminal`) | `Synced` or `Ready` False with stable reason; Warning Event; no hot-loop |
-| **Transient** | `*TransientError` (`ErrTransient`) | `setSyncedError` / QMC fail path returns `RequeueAfter: 30s` (workload) or connection equivalent |
+| **Terminal** | `*TerminalError` (`ErrTerminal`) | `Synced` or `Ready` False with a stable reason distinguishable from retryable failures (default `TerminalError`, or a specific reason like `UnsupportedChannelType`); Warning Event; no requeue for workloads (a spec edit re-enqueues), QMC uses the 2m backstop |
+| **Transient** | `*TransientError` (`ErrTransient`) | `setSyncedError` / QMC fail path returns `RequeueAfter: 30s` (workload) or connection equivalent; context deadline expiry/cancellation in the mqweb adapter is classified transient |
 | **NotFound** | `*NotFoundError` | Ensure: create path; Delete: treat as already gone |
+| **Unclassified** | anything else (incl. missing connection/Secret) | Error returned to controller-runtime → rate-limited backoff requeue + ERROR log; never `(Result{}, nil)` (REQ-REL-2026-08) |
 
 Also handled without MQ types: Kubernetes `NotFound` on connection or Secret
-(mapped to Warning reasons `ConnectionNotFound`, `SecretNotFound`).
+(mapped to Warning reasons `ConnectionNotFound`, `SecretNotFound`; retried via
+the unclassified path above, with the QMC-ready watch as the fast path).
 
 Principles: wrap errors with context; never panic in reconcile; let
-controller-runtime rate-limit when returning a bare error from `Reconcile`.
+controller-runtime rate-limit when returning a bare error from `Reconcile`; a
+workload reconcile that fails must always schedule a retry unless the failure is
+terminal — every `Synced=False` transition that does not return an error logs the
+error and the scheduled retry interval.
 
 ## Concurrency and metrics
 

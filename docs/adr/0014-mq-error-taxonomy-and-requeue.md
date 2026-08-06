@@ -1,6 +1,6 @@
 # ADR-0014: MQ error taxonomy and requeue strategy
 
-- **Status**: Accepted
+- **Status**: Accepted (amended 2026-08-06, REQ-REL-2026-08)
 - **Date**: 2026-06-02
 
 ## Context
@@ -55,6 +55,28 @@ Principles:
 
 `RunMQSC` on the REST client is for fixtures/e2e and future work — not part of
 `Admin`; reconcilers use typed port methods only.
+
+### Amendment — never `(Result{}, nil)` on error (2026-08-06, REQ-REL-2026-08)
+
+A live incident showed a third class the original table missed: an error that is
+*neither* `TerminalError` nor `TransientError` (e.g. a bare
+`context.DeadlineExceeded` escaping the adapter) was treated like terminal —
+returned as `(ctrl.Result{}, nil)` — and, because the workload predicates only
+enqueue on generation / `reconcile-requested-at` / lifecycle change, the CR
+wedged permanently with no log and no event surviving the 1h TTL. The amended
+policy for workload reconcilers (`setSyncedError`):
+
+- **Transient** → `RequeueAfter: TransientRequeueInterval()` (30s default), as before.
+  Context deadline expiry/cancellation is classified transient at the adapter
+  boundary (`roundTrip`, `sleepWithContext`, LTPA login).
+- **Terminal** → the *only* no-requeue path; the condition reason defaults to
+  `TerminalError` (a specific `TerminalError.Reason` still wins) so no-retry
+  states are distinguishable from retryable `Error`.
+- **Anything else** (including missing connection/Secret) → the error is returned
+  to controller-runtime for rate-limited backoff, which also logs it at ERROR.
+- Every `Synced=False` transition that does not return an error emits its own
+  ERROR log line with the error and scheduled retry interval, so a not-synced CR
+  is always greppable.
 
 ## Consequences
 
