@@ -32,9 +32,11 @@ func TestClassifyReconcileError(t *testing.T) {
 			wantMsg:    "define failed: AMQ8405E",
 		},
 		{
+			// REQ-REL-2026-08: terminal failures get no retry, so their condition reason
+			// must be distinguishable from a retryable "Error".
 			name:       "terminal without reason",
 			err:        &mqadmin.TerminalError{Message: "bad mqsc"},
-			wantReason: messagingv1beta1.ReasonError,
+			wantReason: messagingv1beta1.ReasonTerminalError,
 			wantMsg:    "bad mqsc",
 		},
 		{

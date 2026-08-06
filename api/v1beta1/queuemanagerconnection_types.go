@@ -12,9 +12,12 @@ const (
 
 // Condition reasons shared across resources.
 const (
-	ReasonAvailable        = "Available"
-	ReasonProgressing      = "Progressing"
-	ReasonError            = "Error"
+	ReasonAvailable   = "Available"
+	ReasonProgressing = "Progressing"
+	ReasonError       = "Error"
+	// ReasonTerminalError marks a non-retryable failure (bad spec): no retry is scheduled,
+	// so the reason must be distinguishable from retryable "Error" (REQ-REL-2026-08).
+	ReasonTerminalError    = "TerminalError"
 	ReasonDeleting         = "Deleting"
 	ReasonDriftDetected    = "DriftDetected"
 	ReasonOrphaned         = "Orphaned"

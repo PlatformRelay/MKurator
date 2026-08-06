@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/funcr"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 	"github.com/platformrelay/mkurator/internal/mqadmin"
@@ -886,6 +889,59 @@ func TestSetSyncedError_TransientAuthorityRecord(t *testing.T) {
 	)
 	if err != nil || result.RequeueAfter != 30*time.Second {
 		t.Fatalf("result=%+v err=%v", result, err)
+	}
+}
+
+// REQ-REL-2026-08 regression: an error that is neither transient nor terminal (e.g. a bare
+// context.DeadlineExceeded escaping the adapter) must never yield (Result{}, nil) — that
+// wedges the CR forever because no predicate re-enqueues it. The error must be returned so
+// controller-runtime schedules a rate-limited retry and logs it.
+func TestSetSyncedError_UnclassifiedReturnsError(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	ns := "mkurator-system"
+	s := unitSchemeOrFatal(t)
+	ch := &messagingv1beta1.Channel{
+		ObjectMeta: metav1.ObjectMeta{Name: "logistics-app", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(ch).WithObjects(ch).Build()
+	result, err := setSyncedError(
+		ctx, cl.Status(), nil, ch, 1, context.DeadlineExceeded, syncStatusOpts{},
+	)
+	if result.RequeueAfter <= 0 && err == nil {
+		t.Fatalf("unclassified error must schedule a retry: result=%+v err=%v", result, err)
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected the original error returned for rate-limited backoff, got %v", err)
+	}
+}
+
+// REQ-REL-2026-08 (REL-3): every Synced=False transition that does not return an error to
+// controller-runtime (which would log it) must emit its own log line naming the error and
+// the scheduled retry, so a wedged CR is greppable instead of silent.
+func TestSetSyncedError_TransientLogsRetry(t *testing.T) {
+	t.Parallel()
+	ns := "mkurator-system"
+	s := unitSchemeOrFatal(t)
+	q := &messagingv1beta1.Queue{
+		ObjectMeta: metav1.ObjectMeta{Name: "orders", Namespace: ns, Generation: 1},
+	}
+	cl := fake.NewClientBuilder().WithScheme(s).WithStatusSubresource(q).WithObjects(q).Build()
+
+	var logged []string
+	logger := funcr.New(func(prefix, args string) {
+		logged = append(logged, args)
+	}, funcr.Options{})
+	ctx := log.IntoContext(context.Background(), logger)
+
+	if _, err := setSyncedError(
+		ctx, cl.Status(), nil, q, 1, &mqadmin.TransientError{Message: "mqweb unreachable"}, syncStatusOpts{},
+	); err != nil {
+		t.Fatalf("setSyncedError: %v", err)
+	}
+	joined := strings.Join(logged, "\n")
+	if !strings.Contains(joined, "mqweb unreachable") || !strings.Contains(joined, "retryAfter") {
+		t.Fatalf("expected a not-synced log line with error and retry interval, got %q", joined)
 	}
 }
 

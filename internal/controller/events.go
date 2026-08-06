@@ -25,7 +25,7 @@ func classifyReconcileError(err error) (reason, message string) {
 
 	var term *mqadmin.TerminalError
 	if errors.As(err, &term) {
-		reason = messagingv1beta1.ReasonError
+		reason = messagingv1beta1.ReasonTerminalError
 		if term.Reason != "" {
 			reason = term.Reason
 		}

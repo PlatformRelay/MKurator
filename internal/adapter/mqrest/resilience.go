@@ -152,7 +152,10 @@ func (c *Client) roundTrip(ctx context.Context, build requestBuilder) (*http.Res
 		res, err := c.httpClient.Do(req)
 		if err != nil {
 			if ctx.Err() != nil {
-				return nil, ctx.Err()
+				// Deadline expiry / cancellation is the canonical transient failure: it must
+				// carry the transient marker or the reconciler treats it as terminal and never
+				// retries (REQ-REL-2026-08).
+				return nil, &mqadmin.TransientError{Message: "mqweb request aborted", Cause: ctx.Err()}
 			}
 			// ClientCert (mTLS): a server-originated TLS handshake alert means mqweb
 			// rejected the presented client certificate. That is a terminal Unauthorized
@@ -200,7 +203,7 @@ func sleepWithContext(ctx context.Context, sleepFn func(time.Duration), d time.D
 	}()
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return &mqadmin.TransientError{Message: "mqweb retry backoff aborted", Cause: ctx.Err()}
 	case <-done:
 		return nil
 	}
