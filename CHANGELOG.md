@@ -7,28 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
-## [Unreleased]
-
-## [0.15.0](https://github.com/platformrelay/MKurator/compare/v0.14.0..v0.15.0) - 2026-07-30
-
-### Removed
-
-- **api!:** **BREAKING** — remove `messaging.mkurator.dev/v1alpha1` entirely
-  ([ADR-0029](docs/adr/0029-drop-v1alpha1-hard-cut.md)). The six CRDs are now
-  single-version (`v1beta1` served and stored) and the conversion webhook is
-  removed (8e-8a). Manifests must use `apiVersion:
-  messaging.mkurator.dev/v1beta1`; rewrite any manifest still pinned to `v1alpha1`
-  (the spec is identical). Upgrading from a build where `v1alpha1` was ever
-  the etcd storage version (≤ v0.12) requires the one-time stored-object
-  rewrite + `status.storedVersions` prune in
-  [docs/UPGRADE.md](docs/UPGRADE.md#removing-v1alpha1-v0150) **first** — applying
-  the single-version CRDs to a cluster that still lists `v1alpha1` in
-  `storedVersions` bricks the upgrade (no conversion webhook remains to decode old
-  records). An e2e stored-version guard enforces this as a red gate.
+## [0.15.1](https://github.com/platformrelay/MKurator/compare/v0.15.0..v0.15.1) - 2026-08-06
 
 ### Bug Fixes
 
-- **controller:** QMC reconcile+factory native v1beta1, drop lossy round-trip (8e-1) [dd35299](https://github.com/platformrelay/MKurator/commit/dd3529991e4c98ddbadfd2211425576467ff4aec)
+- **controller:** Schedule retries for non-transient reconcile errors (REQ-REL-2026-08) [597ca06](https://github.com/platformrelay/MKurator/commit/597ca06b360e50f19a282d3503ef0b11e2b8c3c9)
+
+- **deps:** Bump otel v1.44.0 + cel-go v0.29.2 to clear OSV findings (CI-17) [e88dbc5](https://github.com/platformrelay/MKurator/commit/e88dbc5b5ccc43dfcd5bfedc874adcf62a617baf)
+
+## [0.15.0](https://github.com/platformrelay/MKurator/compare/v0.14.0..v0.15.0) - 2026-07-30
+
+### Bug Fixes
+
+- **controller:** Flip workload QMC connection-watch to v1beta1 (8e-8a) ([#175](https://github.com/platformrelay/MKurator/pull/175)) [b4ed2b2](https://github.com/platformrelay/MKurator/commit/b4ed2b2ca161b544992714d34cf3b60f4b7f6c69)
+
+- **helm:** Drop v1alpha1 validating-webhook blocks from chart template (8e-8a) [14566af](https://github.com/platformrelay/MKurator/commit/14566af805d25fd498d5fd217f0a7af667be8f3a)
+
+- **crd:** Regenerate single-version bases/helm/docs (8e-8a codegen-clean) [43cd431](https://github.com/platformrelay/MKurator/commit/43cd431cd138c6ac5dfcf45479ef7443caf6cee3)
+
+- **controller:** QMC reconcile+factory native v1beta1, drop lossy round-trip (8e-1) ([#171](https://github.com/platformrelay/MKurator/pull/171)) [e680268](https://github.com/platformrelay/MKurator/commit/e680268a3456193411584584e05f4845b7255753)
 
 - **api:** Preserve authentication union across v1alpha1 spoke round trip (AUTH-14) ([#168](https://github.com/platformrelay/MKurator/pull/168)) [d744a6f](https://github.com/platformrelay/MKurator/commit/d744a6ffdc8f22ef8a2b3d4c85dfe7bfc95eb659)
 
@@ -37,6 +34,30 @@ on the default branch using [git-cliff](https://git-cliff.org/).
 - **controller:** Address review findings on terminal-error backstop (AUTH-14) ([#162](https://github.com/platformrelay/MKurator/pull/162)) [fd0da61](https://github.com/platformrelay/MKurator/commit/fd0da617d8bb9a50f4a7e93189059ff821171414)
 
 - **controller:** Add terminal-error backstop requeue to QMC reconciler [1102948](https://github.com/platformrelay/MKurator/commit/1102948ef1f616227a70b2bbee8413c623f8191f)
+
+
+### Features
+
+- **api:** [**breaking**] Delete v1alpha1 dirs + repoint non-test refs to v1beta1 (8e-8b) [fa87fc2](https://github.com/platformrelay/MKurator/commit/fa87fc26e2c3adfcc206c3e927b3f7c58a6b3585)
+
+- **api:** [**breaking**] Single-version CRDs + remove conversion webhook wiring (8e-8a) [fd4ec8e](https://github.com/platformrelay/MKurator/commit/fd4ec8e6daf26bcb171bba1abccd8cf626010b66)
+
+
+### Refactoring
+
+- **controller:** Flip AuthorityRecord reconciler to v1beta1 (8e-4to7) ([#174](https://github.com/platformrelay/MKurator/pull/174)) [ee5a5fb](https://github.com/platformrelay/MKurator/commit/ee5a5fbbce5539d6ac2bc6ab109d5164fa869d7d)
+
+- **controller:** Flip ChannelAuthRule reconciler to v1beta1 (8e-4to7) [c4f6c42](https://github.com/platformrelay/MKurator/commit/c4f6c422d3f683e15e2ec30814fa5fd3fc0fc683)
+
+- **controller:** Flip Channel reconciler to v1beta1 (8e-4to7) [34703bb](https://github.com/platformrelay/MKurator/commit/34703bbd44b3ddb819b98f5b39ceb89a6c0e4651)
+
+- **controller:** Flip Topic reconciler to v1beta1 (8e-4to7) [bcabbe8](https://github.com/platformrelay/MKurator/commit/bcabbe832cd86dfa4eab154be8d9396fed907b8c)
+
+- **controller:** Flip Queue reconciler to v1beta1 (8e-3b) [2261d28](https://github.com/platformrelay/MKurator/commit/2261d280f5ee7bd5653d2351a95acbbfd6f538ef)
+
+- **controller:** Decouple shared MQObject scaffolding from v1alpha1 status struct (8e-3a) [e072df1](https://github.com/platformrelay/MKurator/commit/e072df17d88213b52f6ef9206a5038c42c6fb93a)
+
+- **controller:** Secret-watch+cache+health native v1beta1, drop hub re-read (8e-2) ([#172](https://github.com/platformrelay/MKurator/pull/172)) [9824ca0](https://github.com/platformrelay/MKurator/commit/9824ca04f14c2d359f02cd72b6689887226747ac)
 
 ## [0.14.0](https://github.com/platformrelay/MKurator/compare/v0.13.0..v0.14.0) - 2026-07-27
 
