@@ -403,6 +403,28 @@ func TestLTPA_LoginServerError_Transient(t *testing.T) {
 	}
 }
 
+// REQ-REL-2026-08 (REL-2): a context expiry during LTPA login is transient like any
+// other network failure — a bare ctx.Err() would land on the backoff path instead of
+// the 30s transient requeue.
+func TestLTPA_LoginContextCancelled_Transient(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := newLTPATestClient(t, srv.URL, srv.Client())
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := c.Ping(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("got %v", err)
+	}
+	if !errors.Is(err, mqadmin.ErrTransient) {
+		t.Fatalf("login context expiry must be transient, got %v", err)
+	}
+}
+
 // A login that returns 2xx/204 but no Set-Cookie is a terminal misconfiguration:
 // there is no session to cache, so treat it as Unauthorized rather than looping.
 func TestLTPA_LoginNoCookie_Terminal(t *testing.T) {

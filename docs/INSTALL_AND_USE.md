@@ -533,7 +533,8 @@ Full matrix: [ATTRIBUTE_RECONCILIATION.md](ATTRIBUTE_RECONCILIATION.md). MQSC re
 | `Synced=False`, `Reason=DriftDetected` | **Observe-only** (`messaging.mkurator.dev/drift-policy=observe-only`): drift or missing object reported without applying to MQ |
 | `Synced=False`, `Reason=Suspended` | `spec.suspend: true` — MQ reconciliation paused for this object |
 | `Synced=False`, `Reason=Deleting` | Removing queue from MQ |
-| `Synced=False`, `Reason=Error` | MQ or configuration error (see `status.message` and condition message) |
+| `Synced=False`, `Reason=Error` | Retryable MQ/mqweb error (see `status.message`); a retry is always scheduled (fixed 30s interval for classified-transient failures, rate-limited backoff otherwise) |
+| `Synced=False`, `Reason=TerminalError` (or a specific reason such as `UnsupportedChannelType`) | Non-retryable configuration error — no retry is scheduled; fix the spec to recover (a spec edit re-triggers reconciliation) |
 
 **Extra status fields** (`Queue`, `Topic`, `Channel`): `status.message` (short summary),
 `status.lastSyncTime` (last successful sync), `status.mqObjectExists` (last GET on MQ).
@@ -765,7 +766,12 @@ reconcile (`DEFINE … REPLACE` or auth GET/replace); status returns to
 MQ is not changed (see
 [ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy](ATTRIBUTE_RECONCILIATION.md#observe-only-drift-policy)).
 `Reason=Suspended` means `spec.suspend: true`. `Reason=Error` surfaces a classified
-mqweb/MQSC summary in `status.message` and the condition message.
+mqweb/MQSC summary in `status.message` and the condition message; it is always
+retried (transient failures on a fixed 30s interval, anything unclassified via
+controller-runtime's rate-limited backoff, which also logs the error).
+`Reason=TerminalError` — or a more specific terminal reason such as
+`UnsupportedChannelType` — marks a non-retryable spec problem: no retry is
+scheduled, and editing the spec is what re-triggers reconciliation.
 
 For **Queue**, **Topic**, **Channel**, **ChannelAuthRule**, and **AuthorityRecord**
 resources, `status.desiredMQSC` is a debug/GitOps aid (not authoritative): the
