@@ -85,30 +85,6 @@ func allowInsecureTLS(annotations map[string]string) bool {
 	return err == nil && allowed
 }
 
-// ValidateQueueManagerConnectionDelete denies delete when Queue, Topic, Channel,
-// ChannelAuthRule, or AuthorityRecord CRs in the same namespace reference this connection
-// via spec.connectionRef.name.
-func ValidateQueueManagerConnectionDelete(
-	ctx context.Context,
-	reader client.Reader,
-	conn *messagingv1beta1.QueueManagerConnection,
-) field.ErrorList {
-	path := field.NewPath("metadata").Child("name")
-	dependents, errs := listConnectionDependents(ctx, reader, conn.Namespace, conn.Name)
-	if len(errs) > 0 {
-		return errs
-	}
-	if len(dependents) == 0 {
-		return nil
-	}
-	return field.ErrorList{
-		field.Invalid(path, conn.Name, fmt.Sprintf(
-			"cannot delete QueueManagerConnection %q: %s; delete or re-point dependents first",
-			conn.Name, formatDependents(dependents),
-		)),
-	}
-}
-
 type connectionDependent struct {
 	kind string
 	name string

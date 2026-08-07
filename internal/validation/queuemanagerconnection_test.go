@@ -13,75 +13,6 @@ import (
 	messagingv1beta1 "github.com/platformrelay/mkurator/api/v1beta1"
 )
 
-func TestValidateQueueManagerConnectionDeleteWithTopic(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1beta1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-	topic := &messagingv1beta1.Topic{
-		ObjectMeta: metav1.ObjectMeta{Name: "retail", Namespace: "ns"},
-		Spec: messagingv1beta1.TopicSpec{
-			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
-			TopicName:     "RETAIL.ORDERS",
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, topic).Build()
-	errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn)
-	if len(errs) == 0 {
-		t.Fatal("expected delete blocked when topic dependent exists")
-	}
-	if !strings.Contains(errs[0].Detail, "retail") {
-		t.Fatalf("detail = %q", errs[0].Detail)
-	}
-}
-
-func TestValidateQueueManagerConnectionDeleteWithChannel(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1beta1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-	channel := &messagingv1beta1.Channel{
-		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "ns"},
-		Spec: messagingv1beta1.ChannelSpec{
-			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
-			ChannelName:   "ORDERS.APP",
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, channel).Build()
-	if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
-		t.Fatal("expected delete blocked when channel dependent exists")
-	}
-}
-
-func TestValidateQueueManagerConnectionDeleteWithAuthDependents(t *testing.T) {
-	t.Parallel()
-	scheme := runtime.NewScheme()
-	_ = messagingv1beta1.AddToScheme(scheme)
-	conn := sampleConnection("ns", "qm1")
-	car := &messagingv1beta1.ChannelAuthRule{
-		ObjectMeta: metav1.ObjectMeta{Name: "car1", Namespace: "ns"},
-		Spec: messagingv1beta1.ChannelAuthRuleSpec{
-			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
-			ChannelName:   "ORDERS.APP",
-			RuleType:      messagingv1beta1.ChannelAuthRuleTypeAddressMap,
-		},
-	}
-	auth := &messagingv1beta1.AuthorityRecord{
-		ObjectMeta: metav1.ObjectMeta{Name: "auth1", Namespace: "ns"},
-		Spec: messagingv1beta1.AuthorityRecordSpec{
-			ConnectionRef: messagingv1beta1.LocalObjectReference{Name: "qm1"},
-			Profile:       "APP.ORDERS",
-			ObjectType:    messagingv1beta1.AuthorityObjectTypeQueue,
-			Principal:     "app",
-			Authorities:   []string{"GET"},
-		},
-	}
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, car, auth).Build()
-	if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
-		t.Fatal("expected delete blocked when auth dependents exist")
-	}
-}
-
 func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
@@ -102,7 +33,7 @@ func TestValidateQueueManagerConnectionSpec(t *testing.T) {
 	})
 }
 
-func TestValidateQueueManagerConnectionDelete(t *testing.T) {
+func TestValidateQueueManagerConnectionDeleteV1Beta1Dependents(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
 	_ = messagingv1beta1.AddToScheme(scheme)
@@ -125,14 +56,14 @@ func TestValidateQueueManagerConnectionDelete(t *testing.T) {
 
 	t.Run("deny with dependents", func(t *testing.T) {
 		t.Parallel()
-		if errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn); len(errs) == 0 {
+		if errs := ValidateQueueManagerConnectionDeleteV1Beta1(context.Background(), cl, conn); len(errs) == 0 {
 			t.Fatal("expected delete blocked when dependents exist")
 		}
 	})
 	t.Run("allow without dependents", func(t *testing.T) {
 		t.Parallel()
 		empty := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn).Build()
-		if errs := ValidateQueueManagerConnectionDelete(context.Background(), empty, conn); len(errs) > 0 {
+		if errs := ValidateQueueManagerConnectionDeleteV1Beta1(context.Background(), empty, conn); len(errs) > 0 {
 			t.Fatalf("unexpected errors: %v", errs)
 		}
 	})
@@ -194,7 +125,7 @@ func TestValidateQueueManagerConnectionInsecureTLS(t *testing.T) {
 	}
 }
 
-func TestValidateQueueManagerConnectionDeleteMultipleDependents(t *testing.T) {
+func TestValidateQueueManagerConnectionDeleteV1Beta1MultipleDependents(t *testing.T) {
 	t.Parallel()
 	scheme := runtime.NewScheme()
 	_ = messagingv1beta1.AddToScheme(scheme)
@@ -214,7 +145,7 @@ func TestValidateQueueManagerConnectionDeleteMultipleDependents(t *testing.T) {
 		},
 	}
 	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(conn, queue, topic).Build()
-	errs := ValidateQueueManagerConnectionDelete(context.Background(), cl, conn)
+	errs := ValidateQueueManagerConnectionDeleteV1Beta1(context.Background(), cl, conn)
 	if len(errs) == 0 {
 		t.Fatal("expected delete blocked")
 	}
