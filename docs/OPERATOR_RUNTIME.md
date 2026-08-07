@@ -209,18 +209,27 @@ the unclassified path above, with the QMC-ready watch as the fast path).
 
 ### Expected ERROR logs during bootstrap ordering
 
-Applying workload CRs (Queue, Topic, Channel, …) before their
-`QueueManagerConnection` — or a QMC before its credentials Secret — is a normal
-ordering for GitOps tools that apply a directory in one shot. Since
-REQ-REL-2026-08 those reconciles **return the error** rather than waiting
-silently on the watch, so until the missing object appears the manager emits
-rate-limited `Reconciler error` lines at ERROR:
+Applying a directory in one shot — the normal GitOps case — routinely creates
+objects before the things they reference. The two orderings surface
+**differently**, so only one of them produces ERROR logs.
+
+**Workload CR before its `QueueManagerConnection`** (Queue, Topic, Channel, …).
+Since REQ-REL-2026-08 this reconcile **returns the error** rather than waiting
+silently on the watch, so until the QMC appears the manager emits rate-limited
+`Reconciler error` lines at ERROR:
 
 ```text
 ERROR   Reconciler error   {"controller": "queue", "error": "get connection \"qm1\": queuemanagerconnections.messaging.mkurator.dev \"qm1\" not found"}
 ```
 
-This is the deliberate retry backstop, **not an incident**. The lines stop on
+**QMC before its credentials Secret.** This one logs **no** ERROR line. A missing
+Secret surfaces as `SecretNotFoundError`, which is neither transient nor
+terminal, so the QMC reconciler's `fail()` path sets `Ready=False`, emits a
+Warning Event (`SecretNotFound`), and returns a `RequeueAfter` with a **nil**
+error — controller-runtime has nothing to log. Watch this one through the
+condition and the Event, not the log stream.
+
+Both are the deliberate retry backstop, **not an incident**, and both clear on
 their own once the referenced object is created (the watch re-enqueues within
 seconds; the requeue is the fallback). Treat them as actionable only if they
 persist after the QMC and its Secret exist and the QMC reports `Ready=True` —

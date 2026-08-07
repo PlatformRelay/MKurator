@@ -42,8 +42,10 @@ backstop — the watch is the preferred trigger — and is intentionally slower 
 credentials.
 
 **Scope**: the backstop applies to **every** non-transient QMC error, not only auth. `fail()`
-takes the `TerminalRetryInterval` path whenever the error is not `ErrTransient`, so a QMC that
-went terminal on, say, an unreachable-endpoint misconfiguration is also retried every 2 minutes.
+takes the `TerminalRetryInterval` path whenever the error is not `ErrTransient` and the status
+update succeeds, so a QMC that went terminal on, say, an unreachable-endpoint misconfiguration is
+also retried every 2 minutes. (If the status update itself fails, `fail()` returns that error and
+controller-runtime's backoff schedules the retry instead — sooner, not never.)
 This is deliberate — the QMC's inputs (Secret, endpoint, TLS material) are all mutable, so no
 terminal QMC state is known to be permanent — but it is broader than the auth-rotation case that
 prompted it.
