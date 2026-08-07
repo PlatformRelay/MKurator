@@ -145,7 +145,9 @@ func (r *QueueManagerConnectionReconciler) fail(
 	if errors.Is(err, mqadmin.ErrTransient) {
 		return requeue, nil
 	}
-	// Backstop requeue (ADR-0014 auth-recovery carve-out): ensures self-healing if the
+	// Backstop requeue (ADR-0014 terminal-error carve-out): reached for every non-transient
+	// error, not only auth — a QMC's inputs (Secret, endpoint, TLS material) are all mutable,
+	// so no terminal QMC state is known to be permanent. Ensures self-healing if the
 	// Secret-watch enqueue was silently dropped (e.g. transient hub re-read failure under
 	// kind/CI load). The watch is the fast path; TerminalRetryInterval (2m) guards against
 	// a permanently stuck QMC when no other event re-triggers the reconcile (AUTH-14).

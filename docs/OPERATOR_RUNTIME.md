@@ -228,7 +228,11 @@ error and the scheduled retry interval.
 | `--metrics-bind-address` | Prometheus (often `:8443` in deployment) |
 | `--health-probe-bind-address` | `:8081` for `healthz` / `readyz` |
 | `--max-concurrent-reconciles` / `KURATOR_MAX_CONCURRENT_RECONCILES` | Worker pool size per controller |
-| `--terminal-retry-interval` | QMC terminal-auth recovery backstop (default `2m`; Secret watches remain the fast path) |
+| `--drift-resync-min` / `--drift-resync-max` | Jitter window for the periodic re-check of successfully synced workload CRs (defaults `5m` / `10m`) |
+| `--connection-wait-interval` | Requeue delay while a workload CR waits for its QueueManagerConnection to become Ready (default `15s`) |
+| `--transient-requeue-interval` | Requeue delay after a transient MQ or connection error (default `30s`) |
+| `--terminal-retry-interval` | Backstop requeue for QMC **terminal (non-transient) errors** — not only auth (default `2m`; Secret watches remain the fast path). See [ADR-0014](adr/0014-mq-error-taxonomy-and-requeue.md) |
+| `--mq-request-timeout` | Per-request deadline for mqweb Admin calls from reconcilers (default `30s`) |
 | Webhook / metrics cert paths | TLS for admission and metrics servers |
 
 Full logging options: [LOGGING.md](LOGGING.md). NFR summary:

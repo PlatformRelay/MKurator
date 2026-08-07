@@ -101,7 +101,7 @@ func main() {
 	flag.DurationVar(&transientRequeueInterval, "transient-requeue-interval", 30*time.Second,
 		"RequeueAfter after transient MQ or connection errors.")
 	flag.DurationVar(&terminalRetryInterval, "terminal-retry-interval", 2*time.Minute,
-		"Backstop RequeueAfter for QueueManagerConnection terminal auth errors (ADR-0014 carve-out).")
+		"Backstop RequeueAfter for QueueManagerConnection terminal (non-transient) errors (ADR-0014 carve-out).")
 	flag.DurationVar(&mqRequestTimeout, "mq-request-timeout", 30*time.Second,
 		"Per-request deadline for mqweb Admin calls from reconcilers.")
 	flag.Parse()
