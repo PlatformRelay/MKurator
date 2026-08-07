@@ -19,7 +19,7 @@ new fields. Upgrading CRs before the operator can cause admission failures or st
 reconcile behaviour.
 
 ```sh
-VERSION=0.15.1   # target release
+VERSION=0.15.2   # target release
 
 # 1. CRDs (release tarball or chart crds/)
 kubectl apply --server-side -f install-crds.yaml
@@ -43,6 +43,7 @@ before upgrading.
 
 | From | To | Highlights |
 |------|-----|------------|
+| **0.15.1** | **0.15.2** | Patch — maintenance only. Internal dead-code removal in the validation package (no reachable behaviour changed), plus docs corrections and an mqweb outage-recovery e2e test. No operator, CRD, or configuration change. No action required. |
 | **0.15.0** | **0.15.1** | Patch — reconcile retry-policy fix ([REQ-REL-2026-08](https://github.com/platformrelay/MKurator/pull/186)): transient mqweb failures (incl. context deadline expiry) always schedule a retry; terminal spec errors surface the distinct condition reason `TerminalError`. No action required. |
 | **0.14.x** | **0.15.0** | **BREAKING** — `v1alpha1` removed; CRDs single-version (`v1beta1` served and stored), conversion webhook gone. Rewrite any `apiVersion: …/v1alpha1` manifests to `…/v1beta1` (spec identical); clusters that ran ≤ v0.12 must complete the stored-object rewrite + prune **first**. See [Removing `v1alpha1` (v0.15.0)](#removing-v1alpha1-v0150). |
 | **0.13.x** | **0.14.x** | Additive `spec.authentication` union on `QueueManagerConnection` (Basic / LTPA / ClientCert-mTLS). **No action for existing Basic users** — see [`spec.authentication` union (Basic users: no action)](#specauthentication-union-basic-users-no-action). |
