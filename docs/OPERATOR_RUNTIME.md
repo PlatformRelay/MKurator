@@ -201,11 +201,14 @@ Errors are classified in `mqrest` and returned as port types; reconcilers use
 | **Terminal** | `*TerminalError` (`ErrTerminal`) | `Synced` or `Ready` False with a stable reason distinguishable from retryable failures (default `TerminalError`, or a specific reason like `UnsupportedChannelType`); Warning Event; no requeue for workloads (a spec edit re-enqueues), QMC uses the 2m backstop |
 | **Transient** | `*TransientError` (`ErrTransient`) | `setSyncedError` / QMC fail path returns `RequeueAfter: 30s` (workload) or connection equivalent; context deadline expiry/cancellation in the mqweb adapter is classified transient |
 | **NotFound** | `*NotFoundError` | Ensure: create path; Delete: treat as already gone |
-| **Unclassified** | anything else (incl. missing connection/Secret) | Error returned to controller-runtime → rate-limited backoff requeue + ERROR log; never `(Result{}, nil)` (REQ-REL-2026-08) |
+| **Unclassified** | anything else (incl. missing connection/Secret) | **Workload reconcilers:** error returned to controller-runtime → rate-limited backoff requeue + ERROR log; never `(Result{}, nil)` (REQ-REL-2026-08). **QMC:** `fail()` treats any non-transient error the same way — `Ready=False` + Warning Event + `RequeueAfter: TerminalRetryInterval()` with a **nil** error, so no ERROR line |
 
 Also handled without MQ types: Kubernetes `NotFound` on connection or Secret
-(mapped to Warning reasons `ConnectionNotFound`, `SecretNotFound`; retried via
-the unclassified path above, with the QMC-ready watch as the fast path).
+(mapped to Warning reasons `ConnectionNotFound`, `SecretNotFound`). A workload CR
+whose connection is missing retries via the unclassified path above, with the
+QMC-ready watch as the fast path; a QMC whose Secret is missing retries on the
+2m backstop and reports through its condition and Event rather than the log —
+see [Expected ERROR logs during bootstrap ordering](#expected-error-logs-during-bootstrap-ordering).
 
 ### Expected ERROR logs during bootstrap ordering
 
