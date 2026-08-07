@@ -19,14 +19,14 @@ in `mqrest`, consumed by controllers):
 
 | Class | Types / signals | Controller behaviour |
 |-------|-----------------|----------------------|
-| **Terminal** | `*TerminalError` (`ErrTerminal`), invalid MQSC, 4xx auth/validation | Failing status condition; Warning Event ([ADR-0015](0015-kubernetes-events-on-transitions.md)); return **without** unbounded requeue — **except** the QMC auth-recovery carve-out below |
+| **Terminal** | `*TerminalError` (`ErrTerminal`), invalid MQSC, 4xx auth/validation | Failing status condition; Warning Event ([ADR-0015](0015-kubernetes-events-on-transitions.md)); return **without** unbounded requeue — **except** the QMC terminal-error carve-out below |
 | **Transient** | 5xx, timeouts, QM unavailable (503) | Return error to trigger controller-runtime **backoff requeue** |
 | **NotFound** | `*NotFoundError` (`ErrNotFound`) | Ensure: treat as create needed; Delete: treat as already gone |
 
-### QMC auth-error recovery carve-out (AUTH-14)
+### QMC terminal-error recovery carve-out (AUTH-14)
 
-`QueueManagerConnection` auth failures (e.g. 401 Unauthorized) are classified terminal by the
-mqweb client, but the underlying credentials are **mutable** — an operator rotates the Secret
+Auth failures (e.g. 401 Unauthorized) motivated this carve-out: they are classified terminal by
+the mqweb client, but the underlying credentials are **mutable** — an operator rotates the Secret
 and the controller must self-heal without manual intervention.
 
 The Secret watch (AUTH-14, `internal/controller/secret_watch.go`) is the fast path: a Secret
@@ -40,6 +40,13 @@ future trigger.
 backstop — the watch is the preferred trigger — and is intentionally slower than
 `TransientRequeueInterval` to avoid hot-looping on genuinely misconfigured (non-rotatable)
 credentials.
+
+**Scope**: the backstop applies to **every** non-transient QMC error, not only auth. `fail()`
+takes the `TerminalRetryInterval` path whenever the error is not `ErrTransient`, so a QMC that
+went terminal on, say, an unreachable-endpoint misconfiguration is also retried every 2 minutes.
+This is deliberate — the QMC's inputs (Secret, endpoint, TLS material) are all mutable, so no
+terminal QMC state is known to be permanent — but it is broader than the auth-rotation case that
+prompted it.
 
 This carve-out does **not** apply to workload reconcilers (Queue, Channel, Topic, etc.), where
 terminal errors from MQSC misconfiguration must remain one-shot with no requeue.
