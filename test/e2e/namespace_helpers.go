@@ -21,6 +21,10 @@ const (
 	namespaceTopics   = "mkurator-e2e-topics"
 	namespaceChannels = "mkurator-e2e-channels"
 	namespaceAuth     = "mkurator-e2e-auth"
+	// namespaceOutage isolates the mqweb outage-recovery spec: it takes the shared IBM MQ
+	// workload down, so its connection and workload CRs must not sit next to specs that
+	// assume a healthy queue manager.
+	namespaceOutage = "mkurator-e2e-outage"
 )
 
 var mqE2ENamespaces = []string{
@@ -28,6 +32,7 @@ var mqE2ENamespaces = []string{
 	namespaceTopics,
 	namespaceChannels,
 	namespaceAuth,
+	namespaceOutage,
 }
 
 // mqObjectPrefix returns a unique MQ object name segment per parallel Ginkgo process.
@@ -37,6 +42,10 @@ func mqObjectPrefix() string {
 
 func mqQueueObjectName(prefix string) string {
 	return fmt.Sprintf("E2E.%s.APP.ORDERS", prefix)
+}
+
+func mqOutageQueueObjectName(prefix string) string {
+	return fmt.Sprintf("E2E.%s.OUTAGE.ORDERS", prefix)
 }
 
 func mqTopicObjectName(prefix string) string {
