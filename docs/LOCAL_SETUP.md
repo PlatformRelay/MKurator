@@ -38,9 +38,9 @@ separately — they ship via `go.mod` `tool` directives (see below).
 |------|---------------------|---------------|
 | Go | **1.26.7** | `go.mod` (Taskfile derives `GOTOOLCHAIN` from it) |
 | Task | **3.51.1** | `Taskfile.yml` (`TASK_VERSION`) + CI `arduino/setup-task` |
-| kind | **v0.27.0** | `Taskfile.yml` (`KIND_VERSION`) |
+| kind | **v0.32.0** | `Taskfile.yml` (`KIND_VERSION`) |
 | mkcert | **v1.4.4** | `Taskfile.yml` (`MKCERT_VERSION`) |
-| Terraform | **1.9.8** | `Taskfile.yml` (`TERRAFORM_VERSION`) |
+| Terraform | **1.15.5** | `Taskfile.yml` (`TERRAFORM_VERSION`) |
 | git-cliff | **v2.13.1** | `Taskfile.yml` (`GIT_CLIFF_VERSION`) + release workflow |
 | Helm | latest from `azure/setup-helm` | `.github/workflows/e2e.yaml` |
 
@@ -131,8 +131,8 @@ brew install go-task/tap/go-task@3.51
 Install pinned kind/mkcert binaries manually (optional):
 
 ```sh
-# kind v0.27.0
-curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.27.0/kind-darwin-$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')"
+# kind v0.32.0
+curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.32.0/kind-darwin-$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')"
 chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
 
 # mkcert v1.4.4
@@ -158,11 +158,11 @@ sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
 # Tier C
 sudo apt install kubectl
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o /tmp/tf.zip
+curl -fsSL https://releases.hashicorp.com/terraform/1.15.5/terraform_1.15.5_linux_amd64.zip -o /tmp/tf.zip
 unzip /tmp/tf.zip -d ~/.local/bin && chmod +x ~/.local/bin/terraform
 
-# kind v0.27.0
-curl -Lo ~/.local/bin/kind "https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64"
+# kind v0.32.0
+curl -Lo ~/.local/bin/kind "https://kind.sigs.k8s.io/dl/v0.32.0/kind-linux-amd64"
 chmod +x ~/.local/bin/kind
 
 # mkcert v1.4.4
@@ -226,7 +226,7 @@ task tools:check
 kind version        # v0.27.x
 kubectl version --client
 helm version
-terraform version   # >= 1.5.0 (1.9.8 in CI)
+terraform version   # >= 1.5.0 (1.15.5 in CI)
 mkcert -version
 
 task local:up       # first run: image pulls, MQ chart wait (~10–15 min)

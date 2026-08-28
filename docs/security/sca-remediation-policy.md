@@ -81,13 +81,21 @@ this change, because most of them fail silently (wrong compiler, still-green CI)
 
 ### Bundle nothing with a toolchain bump
 
-A toolchain bump ships **alone**: `go.mod`, the non-derived pins above, docs, and nothing else.
+A toolchain bump ships **alone**: `go.mod`, the non-derived pins above, the docs that copy them, and
+the policy text recording the decision. No dependency bumps, no generator upgrades, no drive-by fixes
+— nothing that could fail independently of the toolchain, so the commit stays revertible in one step.
 
-This rule is earned from `adb9b87` ("bump Go 1.26.4 and sync verify artifacts"), which folded in a
-`controller-gen` v0.19.0 → v0.20.1 upgrade, a Makefile `kustomize` path fix, and a webhook
-`commonLabels` removal. The CRD and `zz_generated.deepcopy.go` churn in that commit came from
-`controller-gen`, **not** from Go — but the commit made it look causal, and it has been miscited
-since as "a Go bump requires regenerating CRDs". It does not.
+This rule is earned from `adb9b87` ("bump Go 1.26.4 and sync verify artifacts"), which also carried a
+Makefile `kustomize` path fix and a webhook `commonLabels` removal. It regenerated CRDs and
+`zz_generated.deepcopy.go`, and has been miscited since as proof that "a Go bump requires
+regenerating CRDs". **It does not** — and the real cause is this section's other warning, not Go:
+
+`adb9b87` changed no `controller-gen` version at all. `sigs.k8s.io/controller-tools` was `v0.19.0` in
+`go.mod` both before and after it, while `Makefile`'s `CONTROLLER_TOOLS_VERSION ?= v0.20.1` has stood
+unchanged since the initial scaffold (`b27dd50`). The annotations moved because the generator that
+ran was the **Makefile-pinned** v0.20.1 rather than the **`go.mod`-pinned** v0.19.0. `adb9b87` is
+therefore the historical proof case for the `make manifests` skew warned about below — not an
+example of Go forcing regeneration.
 
 **A patch-level toolchain bump must produce zero generated-artifact drift.** If `task verify`
 reports drift, that is a signal to investigate (a `gofmt` behaviour change), not an expected cost.
@@ -105,8 +113,14 @@ independently of that cache.
 
 Confirm the toolchain from the job log, not from a green check: `go version` in CI, plus a green
 `task vuln:check` (which reads the *building* toolchain's stdlib version, so it cannot pass under
-the old one). `setup-go`'s resolution of a `go` directive that carries a patch component, absent a
-`toolchain` directive, is asserted by observation of the log — not assumed.
+the old one). Look for `Setup go version spec <X>` followed by `Successfully set up Go version <X>`.
+
+`setup-go` resolves a `go` directive carrying a patch component **exactly**, with no `toolchain`
+directive present — confirmed on both majors in use here: v6.4.0 (via `.github/actions/go-cache`)
+logged `Setup go version spec 1.26.7` → `go version go1.26.7 linux/amd64` on the 1.26.7 bump, and
+v7.0.0 (`release.yaml`) logged `Successfully set up Go version 1.26.5` against a `go 1.26.5` module
+on the v0.15.1 release run. Adding a `toolchain` directive would break this: `Taskfile.yml` derives
+`GOTOOLCHAIN` by sed-ing the `go` line only, so local builds would stay behind while CI moved.
 
 ## Reachability triage
 
@@ -140,9 +154,9 @@ weekly `vulncheck.yaml` run reports a non-reachable finding.
 
 | ID | Module | CVSS / band | Clock start | Due | Notes |
 | --- | --- | --- | --- | --- | --- |
-| [GO-2026-6094](https://pkg.go.dev/vuln/GO-2026-6094) | `github.com/google/cel-go` v0.29.2 → v0.30.0 | CVSS v4 `AV:N/AC:L/AT:P/PR:N/UI:N/VC:L` — **Medium** | 2026-08-28 | 2026-11-26 | Package-level, via `controller-runtime/pkg/metrics/filters` → `k8s.io/apiserver/.../cel`. `k8s.io/apiserver` v0.36.3 only requires v0.26.0, so we are already three minors ahead of it — MVS divergence is not the risk; CEL evaluation semantics are. Gate on the ADR-0025 admission suite. |
-| [GO-2026-6180](https://pkg.go.dev/vuln/GO-2026-6180) | `golang.org/x/mod` v0.37.0 → v0.40.0 | CVE-2026-56864, CVSS v3.1 **7.5 High** | 2026-08-28 | 2026-09-27 | Package-level, tool-only (`x/tools/cmd/goimports`); `sumdb` verification, not in the manager binary. High band ⇒ 30 days despite no gate. |
-| [GO-2026-6179](https://pkg.go.dev/vuln/GO-2026-6179) | `golang.org/x/mod` v0.37.0 → v0.40.0 | CVE-2026-56865, CVSS v3.1 **8.4 High** | 2026-08-28 | 2026-09-27 | As above (`sumdb/tlog` tile verification bypass). Same one-line fix as GO-2026-6180. |
+| [GO-2026-6094](https://pkg.go.dev/vuln/GO-2026-6094) | `github.com/google/cel-go` v0.29.2 → v0.30.0 | CVSS v4 `AV:N/AC:L/AT:P/PR:N/UI:N/VC:L` — **Medium** | 2026-08-28 | 2026-11-26 | Package-level. Reached **only** via `cmd` → `controller-runtime/pkg/metrics/filters` → `k8s.io/apiserver/pkg/authorization/authorizerfactory` → `.../authorization/cel` — the **metrics-endpoint authorization filter**. There is no direct `cel-go` import in `internal/`, `api/` or `cmd/`. **Not gated by the ADR-0025 admission suite:** CRD `x-kubernetes-validations` are evaluated by the kube-apiserver's own compiled-in cel-go (a separate binary under envtest), so our version cannot affect them. Gate on the metrics-endpoint authorization path instead. `k8s.io/apiserver` v0.36.3 requires only v0.26.0 against our v0.29.2, so MVS divergence is not the risk either; the advisory is JSON private-field exposure via `NativeTypes`/`ParseStructTag`. |
+| [GO-2026-6180](https://pkg.go.dev/vuln/GO-2026-6180) | `golang.org/x/mod` v0.37.0 → v0.40.0 | CVE-2026-56864, CVSS v3.1 **7.5 High** | 2026-08-28 | 2026-09-27 | **Module-level**, tool-only (`x/tools/cmd/goimports`); `sumdb` verification, not in the manager binary. High band ⇒ 30 days despite no gate. |
+| [GO-2026-6179](https://pkg.go.dev/vuln/GO-2026-6179) | `golang.org/x/mod` v0.37.0 → v0.40.0 | CVE-2026-56865, CVSS v3.1 **8.4 High** | 2026-08-28 | 2026-09-27 | **Module-level**, as above (`sumdb/tlog` tile verification bypass). Same one-line fix as GO-2026-6180. |
 
 ## Detection tools
 
