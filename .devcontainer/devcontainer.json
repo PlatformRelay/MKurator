@@ -1,6 +1,6 @@
 {
   "name": "MKurator DevContainer",
-  "image": "golang:1.26.4-bookworm",
+  "image": "golang:1.26.7-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:3": {
       "moby": true,

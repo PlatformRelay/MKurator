@@ -36,7 +36,7 @@ separately — they ship via `go.mod` `tool` directives (see below).
 
 | Tool | Pinned version (CI) | Where defined |
 |------|---------------------|---------------|
-| Go | **1.26.3** | `go.mod` (Taskfile derives `GOTOOLCHAIN` from it) |
+| Go | **1.26.7** | `go.mod` (Taskfile derives `GOTOOLCHAIN` from it) |
 | Task | **3.51.1** | `Taskfile.yml` (`TASK_VERSION`) + CI `arduino/setup-task` |
 | kind | **v0.27.0** | `Taskfile.yml` (`KIND_VERSION`) |
 | mkcert | **v1.4.4** | `Taskfile.yml` (`MKCERT_VERSION`) |
@@ -49,7 +49,7 @@ release. Terraform must be **≥ 1.5.0** (`hack/kind-cluster/terraform/versions.
 
 ## Go toolchain (pinned in go.mod)
 
-Install Go **1.26.3** (or enable auto-download — `task` sets `GOTOOLCHAIN` from `go.mod`).
+Install Go **1.26.7** (or enable auto-download — `task` sets `GOTOOLCHAIN` from `go.mod`).
 
 These tools are **already pinned** in `go.mod` and invoked with `go tool …` —
 no separate install step:
@@ -146,7 +146,7 @@ mkcert -install   # trust local CA (may prompt for password)
 ```sh
 # Go — use https://go.dev/dl/ or your distro if it ships 1.26+
 # Example (adjust arch/version):
-# curl -fsSL https://go.dev/dl/go1.26.3.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+# curl -fsSL https://go.dev/dl/go1.26.7.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
 
 # Tier A — Task
 sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin v3.51.1
@@ -204,7 +204,7 @@ Run from the repository root after installing your tier:
 
 ```sh
 TOOLS_TIER=A task tools:check
-go version          # go1.26.3
+go version          # go1.26.7
 task --version      # 3.x (3.51.1 matches CI)
 task install
 task lint
