@@ -2,7 +2,7 @@
 # Download a pinned external tool binary.
 # Usage: hack/install-external-tool.sh <tool> <version> <output-path>
 # Tools: kind, mkcert, task, terraform
-# Example: hack/install-external-tool.sh kind v0.27.0 bin/kind
+# Example: hack/install-external-tool.sh kind v0.32.0 bin/kind
 set -euo pipefail
 
 TOOL="${1:?tool required (kind|mkcert|task|terraform)}"
