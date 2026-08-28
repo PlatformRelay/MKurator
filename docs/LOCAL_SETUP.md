@@ -223,7 +223,7 @@ task test:integration:local
 
 ```sh
 task tools:check
-kind version        # v0.27.x
+kind version        # v0.32.x
 kubectl version --client
 helm version
 terraform version   # >= 1.5.0 (1.15.5 in CI)

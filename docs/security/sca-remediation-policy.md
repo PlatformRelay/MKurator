@@ -86,9 +86,11 @@ the policy text recording the decision. No dependency bumps, no generator upgrad
 — nothing that could fail independently of the toolchain, so the commit stays revertible in one step.
 
 This rule is earned from `adb9b87` ("bump Go 1.26.4 and sync verify artifacts"), which also carried a
-Makefile `kustomize` path fix and a webhook `commonLabels` removal. It regenerated CRDs and
-`zz_generated.deepcopy.go`, and has been miscited since as proof that "a Go bump requires
-regenerating CRDs". **It does not** — and the real cause is this section's other warning, not Go:
+Makefile `kustomize` path fix, a webhook `commonLabels` removal, the `test/utils/utils.go`
+`GOTOOLCHAIN=local` change, a unit-test edit and a mock regeneration — five concerns *beyond* the
+bump itself. It regenerated CRDs and `zz_generated.deepcopy.go`, and has been miscited since as
+proof that "a Go bump requires regenerating CRDs". **It does not** — the real cause is this
+section's other warning, not Go:
 
 `adb9b87` changed no `controller-gen` version at all. `sigs.k8s.io/controller-tools` was `v0.19.0` in
 `go.mod` both before and after it, while `Makefile`'s `CONTROLLER_TOOLS_VERSION ?= v0.20.1` has stood
@@ -96,6 +98,10 @@ unchanged since the initial scaffold (`b27dd50`). The annotations moved because 
 ran was the **Makefile-pinned** v0.20.1 rather than the **`go.mod`-pinned** v0.19.0. `adb9b87` is
 therefore the historical proof case for the `make manifests` skew warned about below — not an
 example of Go forcing regeneration.
+
+Note the skew ran the *other way* then: the Makefile pin was **above** go.mod (v0.20.1 > v0.19.0), so
+the annotation was rewritten *upward*. Today it is **below** (v0.20.1 < v0.21.0) and the same
+mechanism would rewrite it *downward*. Same failure, opposite direction.
 
 **A patch-level toolchain bump must produce zero generated-artifact drift.** If `task verify`
 reports drift, that is a signal to investigate (a `gofmt` behaviour change), not an expected cost.
@@ -142,8 +148,11 @@ Two standing qualifiers for this repo:
   `mockery`, `golangci-lint`) are not linked into the manager binary and do not appear in the
   release image or its SBOM. They still carry the severity clock; they do not constrain a release.
 - **Transitive Kubernetes dependencies** are bumped on their own, gated by the tests that cover the
-  behaviour they change — e.g. `cel-go` is bumped against the CEL admission suite
-  ([ADR-0025](../adr/0025-cel-first-admission-validation.md)), never alongside an urgent fix.
+  behaviour they actually reach — which is rarely the suite the package name suggests. Establish the
+  entry point with `go mod why -m <module>` (one shortest *import* path — confirm uniqueness with
+  `go list -deps`) before choosing a gate: our `cel-go`, for example, is reached only from `cmd` via
+  the metrics-endpoint authentication/authorization filter, and is **not** exercised by the ADR-0025
+  admission suite (see the register below). Never bump one alongside an urgent fix.
 
 ### Open non-reachable findings
 
@@ -154,7 +163,7 @@ weekly `vulncheck.yaml` run reports a non-reachable finding.
 
 | ID | Module | CVSS / band | Clock start | Due | Notes |
 | --- | --- | --- | --- | --- | --- |
-| [GO-2026-6094](https://pkg.go.dev/vuln/GO-2026-6094) | `github.com/google/cel-go` v0.29.2 → v0.30.0 | CVSS v4 `AV:N/AC:L/AT:P/PR:N/UI:N/VC:L` — **Medium** | 2026-08-28 | 2026-11-26 | Package-level. Reached **only** via `cmd` → `controller-runtime/pkg/metrics/filters` → `k8s.io/apiserver/pkg/authorization/authorizerfactory` → `.../authorization/cel` — the **metrics-endpoint authorization filter**. There is no direct `cel-go` import in `internal/`, `api/` or `cmd/`. **Not gated by the ADR-0025 admission suite:** CRD `x-kubernetes-validations` are evaluated by the kube-apiserver's own compiled-in cel-go (a separate binary under envtest), so our version cannot affect them. Gate on the metrics-endpoint authorization path instead. `k8s.io/apiserver` v0.36.3 requires only v0.26.0 against our v0.29.2, so MVS divergence is not the risk either; the advisory is JSON private-field exposure via `NativeTypes`/`ParseStructTag`. |
+| [GO-2026-6094](https://pkg.go.dev/vuln/GO-2026-6094) | `github.com/google/cel-go` v0.29.2 → v0.30.0 | CVSS v4 `AV:N/AC:L/AT:P/PR:N/UI:N/VC:L` — **Medium** | 2026-08-28 | 2026-11-26 | Package-level. Reached **only** via `cmd` → `controller-runtime/pkg/metrics/filters` → `k8s.io/apiserver/pkg/authorization/authorizerfactory` → `.../authorization/cel` — the **metrics-endpoint authentication/authorization filter** (the filter pulls in `authentication/cel` too). There is no direct `cel-go` import in `internal/`, `api/` or `cmd/`. **Not gated by the ADR-0025 admission suite:** CRD `x-kubernetes-validations` are evaluated by the kube-apiserver's own compiled-in cel-go (a separate binary under envtest), so our version cannot affect them. Gate on the metrics-endpoint authorization path instead. `k8s.io/apiserver` v0.36.3 requires only v0.26.0 against our v0.29.2, so MVS divergence is not the risk either; the advisory is JSON private-field exposure via `NativeTypes`/`ParseStructTag`. |
 | [GO-2026-6180](https://pkg.go.dev/vuln/GO-2026-6180) | `golang.org/x/mod` v0.37.0 → v0.40.0 | CVE-2026-56864, CVSS v3.1 **7.5 High** | 2026-08-28 | 2026-09-27 | **Module-level**, tool-only (`x/tools/cmd/goimports`); `sumdb` verification, not in the manager binary. High band ⇒ 30 days despite no gate. |
 | [GO-2026-6179](https://pkg.go.dev/vuln/GO-2026-6179) | `golang.org/x/mod` v0.37.0 → v0.40.0 | CVE-2026-56865, CVSS v3.1 **8.4 High** | 2026-08-28 | 2026-09-27 | **Module-level**, as above (`sumdb/tlog` tile verification bypass). Same one-line fix as GO-2026-6180. |
 
