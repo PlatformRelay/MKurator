@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
+## [0.15.2](https://github.com/platformrelay/MKurator/compare/v0.15.1..v0.15.2) - 2026-08-28
+
+### Bug Fixes
+
+- **security:** Bump Go to 1.26.7 and record toolchain policy [50ef84d](https://github.com/platformrelay/MKurator/commit/50ef84d5b5e76cc29c69ce529c8c0d8792427b91)
+
+- **security:** Clear Scorecard OSV and pin image digests ([#192](https://github.com/platformrelay/MKurator/pull/192)) [6ce4ec4](https://github.com/platformrelay/MKurator/commit/6ce4ec4252fc806734eba210ea8e66ce73e5ed8d)
+
+
+### Refactoring
+
+- **validation:** Drop dead ValidateQueueManagerConnectionDelete duplicate [384c6ea](https://github.com/platformrelay/MKurator/commit/384c6ea77058cf4e5e81b352ec55021bd8487ffc)
+
 ## [0.15.1](https://github.com/platformrelay/MKurator/compare/v0.15.0..v0.15.1) - 2026-08-06
 
 ### Bug Fixes
