@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release notes are generated from [Conventional Commits](https://www.conventionalcommits.org/)
 on the default branch using [git-cliff](https://git-cliff.org/).
 
+## [0.15.3](https://github.com/platformrelay/MKurator/compare/v0.15.2..v0.15.3) - 2026-09-21
+
+### Bug Fixes
+
+- **deps:** Bump smol-toml to 1.7.1 (GHSA-7w5x-hrqm-74c2) ([#206](https://github.com/platformrelay/MKurator/pull/206)) [a4f5b8b](https://github.com/platformrelay/MKurator/commit/a4f5b8bd7c0705ef34ed1a49634298826431da6c)
+
 ## [0.15.2](https://github.com/platformrelay/MKurator/compare/v0.15.1..v0.15.2) - 2026-08-28
 
 ### Bug Fixes
