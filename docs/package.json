@@ -6,7 +6,7 @@
     "lint:markdown": "markdownlint-cli2"
   },
   "devDependencies": {
-    "markdownlint-cli2": "0.23.0"
+    "markdownlint-cli2": "0.23.3"
   },
   "overrides": {
     "js-yaml": "5.2.2",
