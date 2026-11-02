@@ -16,8 +16,8 @@ require_digest() {
   fi
 }
 
-require_digest "${ROOT}/Dockerfile" "golang:"
-require_digest "${ROOT}/Dockerfile" "gcr.io/distroless/static:"
+require_digest "${ROOT}/Dockerfile" "golang"
+require_digest "${ROOT}/Dockerfile" "gcr.io/distroless/static"
 require_digest "${ROOT}/test/e2e/fixtures/metrics-curl/Dockerfile" "alpine:"
 
 # ARG expansion must be quoted so a malicious/empty TARGETOS cannot word-split.
