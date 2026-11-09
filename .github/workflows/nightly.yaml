@@ -53,7 +53,7 @@ jobs:
 
       - name: Upload failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nightly-integration-failure-${{ github.run_id }}
           path: |
@@ -67,7 +67,7 @@ jobs:
           docker compose -f hack/mq-docker/docker-compose.yml logs > mq-integration-docker.log 2>&1 || true
       - name: Upload Docker MQ logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nightly-integration-docker-logs-${{ github.run_id }}
           path: mq-integration-docker.log
@@ -130,7 +130,7 @@ jobs:
 
       - name: Upload failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nightly-e2e-kustomize-failure-${{ github.run_id }}
           path: |
@@ -197,7 +197,7 @@ jobs:
 
       - name: Upload failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nightly-e2e-helm-failure-${{ github.run_id }}
           path: |
