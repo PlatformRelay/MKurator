@@ -1,6 +1,6 @@
 # Build the manager binary
-# golang 1.26.10 (digest-only pin: Sonar docker:S8431 rejects tag plus digest)
-FROM golang@sha256:670bb5aa5349ae03b8516764718486f4f16399134bdc9acd0c46a23f043ab05c AS builder
+# golang 1.26.11 (digest-only pin: Sonar docker:S8431 rejects tag plus digest)
+FROM golang@sha256:f6946db66567acc1497655237e58f06ec3a57478a5e0d67fca29d2ffcf2ea136 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
